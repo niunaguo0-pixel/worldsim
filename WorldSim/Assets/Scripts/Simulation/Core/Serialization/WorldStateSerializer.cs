@@ -15,7 +15,7 @@ namespace WorldSim.Simulation.Core.Serialization
     /// </summary>
     public static class WorldStateSerializer
     {
-        public const int SchemaVersion = 2;
+        public const int SchemaVersion = 3; // P1: 月哈希对齐契约 + EraGate v1.4.4 字段
         public const int Magic = 0x57534D31; // 'WSM1'
 
         public static byte[] Save(WorldState world)
@@ -66,6 +66,7 @@ namespace WorldSim.Simulation.Core.Serialization
             world.Settlements = ReadSettlements(r);
             world.Species = ReadSpecies(r);
             world.Polities = ReadPolities(r);
+            world.Resources = ReadResources(r);
 
             int eventCount = r.ReadInt32();
             world.Events = new List<SimEvent>(eventCount);
@@ -105,7 +106,8 @@ namespace WorldSim.Simulation.Core.Serialization
         }
 
         /// <summary>
-        /// 月级确定性指标哈希 (契约 §2): Quantize 后 FNV-1a-64; 供 Gate-0 / 路径④比对.
+        /// 月级确定性指标哈希 (契约 §2.3): Quantize 后 FNV-1a-64; 供 Gate-0 / 路径④比对.
+        /// 含产出/军力/稳定度/TechTier/资源量；禁绝对人口作时代钥匙（人口仍入哈希作观测指标）.
         /// </summary>
         public static ulong ComputeMonthlyHash(WorldState world)
         {
@@ -121,13 +123,23 @@ namespace WorldSim.Simulation.Core.Serialization
             foreach (var p in SortedCopy(world.Polities, x => x.stableId))
             {
                 w.WriteInt32(p.stableId);
-                w.WriteDouble(DeterminismMath.Quantize(p.development, 3));
+                w.WriteDouble(DeterminismMath.Quantize(p.population, 0));
+                w.WriteDouble(DeterminismMath.Quantize(p.aggregateOutput, 0));
+                w.WriteDouble(DeterminismMath.Quantize(p.aggregateMilitaryPower, 0));
+                w.WriteDouble(DeterminismMath.Quantize(p.aggregateStability, 3));
+                w.WriteInt32(p.techTier);
+                w.WriteInt32(p.sustainedSurplusMonths);
+                w.WriteDouble(DeterminismMath.Quantize(p.capacityUtilization, 3));
+                w.WriteInt32(p.divisionDepth);
+                w.WriteInt32(p.lawStage);
+                w.WriteBool(p.hasWriting);
             }
 
             foreach (var s in SortedCopy(world.Settlements, x => x.stableId))
             {
                 w.WriteInt32(s.stableId);
                 w.WriteDouble(DeterminismMath.Quantize(s.population, 0));
+                w.WriteDouble(DeterminismMath.Quantize(s.growthRate, 3));
                 w.WriteBool(s.isAtWar);
                 w.WriteBool(s.underDisaster);
                 w.WriteBool(s.constructionActive);
@@ -138,6 +150,12 @@ namespace WorldSim.Simulation.Core.Serialization
                 w.WriteInt32(sp.stableId);
                 w.WriteDouble(DeterminismMath.Quantize(sp.population, 0));
                 w.WriteInt32(sp.stressMonths);
+            }
+
+            foreach (var res in SortedCopy(world.Resources, x => x.stableId))
+            {
+                w.WriteInt32(res.stableId);
+                w.WriteDouble(DeterminismMath.Quantize(res.currentAmount, 3));
             }
 
             w.WriteInt32(world.Time.monthIndex);
@@ -174,6 +192,7 @@ namespace WorldSim.Simulation.Core.Serialization
             WriteSettlements(w, SortedCopy(world.Settlements, s => s.stableId));
             WriteSpecies(w, SortedCopy(world.Species, s => s.stableId));
             WritePolities(w, SortedCopy(world.Polities, p => p.stableId));
+            WriteResources(w, SortedCopy(world.Resources, r => r.stableId));
 
             var events = new List<SimEvent>(world.Events);
             events.Sort(CompareEvents);
@@ -220,6 +239,7 @@ namespace WorldSim.Simulation.Core.Serialization
                 w.WriteInt32(s.stableId);
                 w.WriteString(s.name);
                 w.WriteDouble(s.population);
+                w.WriteDouble(s.growthRate);
                 w.WriteBool(s.isAtWar);
                 w.WriteBool(s.underDisaster);
                 w.WriteBool(s.constructionActive);
@@ -240,6 +260,7 @@ namespace WorldSim.Simulation.Core.Serialization
                     stableId = r.ReadInt32(),
                     name = r.ReadString(),
                     population = r.ReadDouble(),
+                    growthRate = r.ReadDouble(),
                     isAtWar = r.ReadBool(),
                     underDisaster = r.ReadBool(),
                     constructionActive = r.ReadBool(),
@@ -289,7 +310,16 @@ namespace WorldSim.Simulation.Core.Serialization
                 var p = list[i];
                 w.WriteInt32(p.stableId);
                 w.WriteString(p.name);
-                w.WriteDouble(p.development);
+                w.WriteDouble(p.population);
+                w.WriteDouble(p.aggregateOutput);
+                w.WriteDouble(p.aggregateMilitaryPower);
+                w.WriteDouble(p.aggregateStability);
+                w.WriteInt32(p.techTier);
+                w.WriteInt32(p.sustainedSurplusMonths);
+                w.WriteDouble(p.capacityUtilization);
+                w.WriteInt32(p.divisionDepth);
+                w.WriteInt32(p.lawStage);
+                w.WriteBool(p.hasWriting);
             }
         }
 
@@ -303,7 +333,44 @@ namespace WorldSim.Simulation.Core.Serialization
                 {
                     stableId = r.ReadInt32(),
                     name = r.ReadString(),
-                    development = r.ReadDouble()
+                    population = r.ReadDouble(),
+                    aggregateOutput = r.ReadDouble(),
+                    aggregateMilitaryPower = r.ReadDouble(),
+                    aggregateStability = r.ReadDouble(),
+                    techTier = r.ReadInt32(),
+                    sustainedSurplusMonths = r.ReadInt32(),
+                    capacityUtilization = r.ReadDouble(),
+                    divisionDepth = r.ReadInt32(),
+                    lawStage = r.ReadInt32(),
+                    hasWriting = r.ReadBool()
+                });
+            }
+            return list;
+        }
+
+        private static void WriteResources(DeterministicBinaryWriter w, List<ResourceStub> list)
+        {
+            w.WriteInt32(list.Count);
+            for (int i = 0; i < list.Count; i++)
+            {
+                var res = list[i];
+                w.WriteInt32(res.stableId);
+                w.WriteString(res.name);
+                w.WriteDouble(res.currentAmount);
+            }
+        }
+
+        private static List<ResourceStub> ReadResources(DeterministicBinaryReader r)
+        {
+            int n = r.ReadInt32();
+            var list = new List<ResourceStub>(n);
+            for (int i = 0; i < n; i++)
+            {
+                list.Add(new ResourceStub
+                {
+                    stableId = r.ReadInt32(),
+                    name = r.ReadString(),
+                    currentAmount = r.ReadDouble()
                 });
             }
             return list;

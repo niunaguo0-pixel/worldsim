@@ -216,18 +216,52 @@ namespace WorldSim.Simulation.Time
                 }
             }
 
+            // S3 v1.4.4: 时代门闩读 TechTier + 持续盈余 + pop/CC + 制度 stub，禁绝对人口
             foreach (var p in SortedByStableId(_world.Polities))
             {
                 ulong cr = civRng.NextU64();
-                double gain = 0.5 + ((double)(cr % 100)) / 200.0; // ~[0.5, 1.0]/月
-                p.development = DeterminismMath.Quantize(p.development + gain, 3);
-                double threshold = (_world.EraIndex + 1) * 10.0;
-                if (p.development >= threshold)
+                // 切片生长：缓慢抬科技/利用率/盈余，保证 ≥120 月内可跃迁，且不读裸人口阈值
+                if ((cr % 5) == 0 && p.techTier < 8)
+                    p.techTier++;
+                if ((cr % 7) == 0 && p.divisionDepth < 6)
+                    p.divisionDepth++;
+                if ((cr % 11) == 0 && p.lawStage < 5)
+                    p.lawStage++;
+                if (!p.hasWriting && p.techTier >= 3 && (cr % 13) == 0)
+                    p.hasWriting = true;
+
+                double utilGain = 0.01 + ((double)(cr % 50)) / 5000.0; // ~[0.01, 0.02]
+                p.capacityUtilization = DeterminismMath.Quantize(
+                    Math.Min(1.0, p.capacityUtilization + utilGain), 3);
+                p.sustainedSurplusMonths++;
+
+                double outGain = 0.5 + ((double)(cr % 100)) / 200.0;
+                p.aggregateOutput = DeterminismMath.Quantize(p.aggregateOutput + outGain, 0);
+                p.aggregateMilitaryPower = DeterminismMath.Quantize(
+                    p.aggregateMilitaryPower + ((cr % 3) == 0 ? 1.0 : 0.0), 0);
+                p.aggregateStability = DeterminismMath.Quantize(
+                    Math.Min(1.0, p.aggregateStability + 0.002), 3);
+
+                // 聚落人口仅作体量参考，绝不参与 EraGate
+                foreach (var s in SortedByStableId(_world.Settlements))
                 {
-                    _world.EraIndex++;
-                    _world.Events.Add(new SimEvent(month, SimEventCategory.Era, p.stableId,
-                        "civ.era", DeterminismMath.Quantize(p.development, 3)));
+                    s.population = DeterminismMath.Quantize(s.population * (1.0 + s.growthRate), 0);
+                    p.population = DeterminismMath.Quantize(s.population, 0);
                 }
+
+                foreach (var r in SortedByStableId(_world.Resources))
+                {
+                    r.currentAmount = DeterminismMath.Quantize(r.currentAmount + 0.5, 3);
+                }
+
+                if (!EraGate.TryGetNextGate(_world.EraIndex, out var gate))
+                    continue;
+                if (!EraGate.Meets(p, gate))
+                    continue;
+
+                _world.EraIndex++;
+                _world.Events.Add(new SimEvent(month, SimEventCategory.Era, p.stableId,
+                    "civ.era", DeterminismMath.Quantize(p.capacityUtilization, 3)));
             }
         }
 
@@ -257,6 +291,7 @@ namespace WorldSim.Simulation.Time
         {
             if (item is SettlementStub s) return s.stableId;
             if (item is SpeciesStub sp) return sp.stableId;
+            if (item is ResourceStub res) return res.stableId;
             if (item is PolityStub p) return p.stableId;
             return 0;
         }

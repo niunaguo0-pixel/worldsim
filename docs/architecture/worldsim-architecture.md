@@ -321,6 +321,9 @@ WorldState ──SimOrchestrator──→ S2(生态态) → S3(文明态) → �
 > 用户**不操作 Unity Hub GUI**，一切走 Unity CLI + unity mcp（见 `docs/unity-setup-complete.md`）。以下结构据此设计。
 
 ### 8.1 Assembly 划分（asmdef）
+
+> **Epic 0 现状**：规划 **14** 个；已落地 **9**（6× `WorldSim.Simulation.*` + Presentation + Editor + Tests）。`Narrative` / `SaveLoad` / `ModularToggle` / `Runtime` / `UI` 等在后续 Epic 按需拆出，本节表格仍是目标架构，不是「已全部建文件」清单。
+
 | 程序集 | 依赖 | 说明 |
 |--------|------|------|
 | `WorldSim.Simulation.Core` | Unity.Mathematics, System | WorldState / RngRegistry / Fix / Math / SimOrchestrator / TimeDriver（**零 CoreModule**） |

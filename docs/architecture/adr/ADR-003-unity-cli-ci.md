@@ -36,7 +36,7 @@ ADR: 003
 ## 后果（Consequences）
 - 正向：全流程 CLI 可完成（建场景/装配/构建/测试）；Gate-0 自动门禁；可 headless 重放利于确定性 CI。
 - 负向：所有工程操作须走 mcp/Editor 脚本，不能依赖 GUI 习惯（如拖 prefab 装配需在 Editor 脚本或 mcp 完成）；CI runner 首次配置有环境成本。
-- 约束：`WorldSim.Editor` 的 `BuildScript` / region 导入器须在 Phase 4 预制作入口创建（本文档不预写代码）；CI 锁定同 Unity 版本（见 ADR-002 跨平台一致性）。
+- 约束：`WorldSim.Editor.BuildScript.BuildWin64` 已落地（`Assets/Scripts/Editor/BuildScript.cs`）；region 导入器随 V0-6；CI 锁定同 Unity + Burst（见 ADR-002 / V0-8）。
 
 ## 采纳记录（已拍板）
 - [x] 已采纳 **选项 A（本地 CLI 脚本 + GitHub Actions，Gate-0 自动门禁）**（2026-08-12，主理人游承峰转呈用户拍板）。

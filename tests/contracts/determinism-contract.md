@@ -67,7 +67,8 @@ byte[] BuildDeterministicBuffer(WorldState ws):
 - `gameClock` 以**整数游戏月**参与哈希（由边界序号派生，见 §3），避免 float 累加器 drift 污染哈希。
 
 ### 2.4 哈希算法
-- **FNV-1a-64**（或 xxHash64），over 上述字节流。
+- **FNV-1a-64** over 上述字节流（Epic 0 / Gate-0 唯一算法）。
+- **xxHash64** 仅作架构备选，**未实现**；在引入前须改契约并过四路 Replay，禁止文档与代码口径分裂。
 - **禁止** `string.GetHashCode`（运行时不稳定的哈希）。
 - `monthlyHash = FNV1a64(buf)`（ulong）。
 
@@ -122,16 +123,16 @@ nextWeekBoundary  = (weekIndex + 1) * WEEK_SECONDS
 | G0-3 稳定 ID 排序遍历 | `StableIdOrderingTests`：排序后序与插入序无关 | `unit/StableIdOrderingTests.cs` |
 | G0-4 RNG 分流入档 | `RngStreamTests`（确定性 + 状态往返）+ `SerializationRoundTripTests`（状态入档） | `unit/RngStreamTests.cs`, `unit/SerializationRoundTripTests.cs` |
 | G0-5 禁不确定并发与浮点漂移 | `QuantizeTests` + 并行仅叶子约束（CI 静态/Doc） | `unit/QuantizeTests.cs` |
-| G0-6 四路 Replay 哈希一致 | `Gate0DeterminismTest` | `gate0/Gate0DeterminismTest.cs` |
-| G0-7 哈希函数确定 | `DeterminismHash` 单测（禁 `string.GetHashCode`） | `unit/QuantizeTests.cs` 附件 / 契约 §2.4 |
+| G0-6 四路 Replay 哈希一致 | `Gate0DeterminismTest` | `WorldSim/Assets/Scripts/Tests/Gate0/Gate0DeterminismTest.cs` |
+| G0-7 哈希函数确定 | `DeterminismHash` 单测（禁 `string.GetHashCode`） | `WorldSim/Assets/Scripts/Tests/Unit/QuantizeTests.cs` / 契约 §2.4 |
 | G0-8 三级回退可用 | 回退钩子存在性（`Fix` 全局切换 / 速度档收窄 / lockstep） | Epic 0 V0-7 |
 
 ### 6.2 Phase 4 入口条件（B2/B3/B4）
 | 条件 | 负责 Story | 测试/CI 证据 |
 |------|-----------|--------------|
 | **B2** CI 锁同 Unity + 同 Burst | V0-8 ✅ | `gate0.yml` job `pin-versions` + `tests/ci/assert-burst-pinned.ps1`；`version-pins.json` + manifest `com.unity.burst: 1.8.30` |
-| **B3** Quantize+确定性哈希+Gate-0 入 CI | V0-2 / V0-4 / V0-5 / V0-9 ✅ | `gate0.yml` job `gate0` 跑 `Gate0Determinism`，分叉即红，上传 artifact |
-| **B4** 真实地球管线 + region-presets 消费 | V0-6 / S5-1 | `unit/RegionPresetConsumptionTests.cs` + S5 管线单测 |
+| **B3** Quantize+确定性哈希+Gate-0 入 CI | V0-2 / V0-4 / V0-5 / V0-9 ✅ | `gate0.yml` job `gate0` 跑全量 `WorldSim.Tests` EditMode，分叉即红，上传 artifact |
+| **B4** 真实地球管线 + region-presets 消费 | V0-6 / S5-1（MVP）；完整 DEM → Epic 5 | `RegionPresetConsumptionTests` + `assert-region-presets-synced.ps1`；MVP 高程为公式，非真实 DEM |
 
 ---
 

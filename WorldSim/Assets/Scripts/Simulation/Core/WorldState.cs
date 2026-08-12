@@ -18,6 +18,7 @@ namespace WorldSim.Simulation.Core
         public List<SettlementStub> Settlements;
         public List<SpeciesStub> Species;
         public List<PolityStub> Polities;
+        public List<ResourceStub> Resources;
         public List<SimEvent> Events;
         public StableIdSet ActiveEntities;
         public List<InterventionRecord> InterventionLog;
@@ -35,6 +36,7 @@ namespace WorldSim.Simulation.Core
             Settlements = new List<SettlementStub>();
             Species = new List<SpeciesStub>();
             Polities = new List<PolityStub>();
+            Resources = new List<ResourceStub>();
             Events = new List<SimEvent>();
             ActiveEntities = new StableIdSet();
             InterventionLog = new List<InterventionRecord>();
@@ -44,7 +46,8 @@ namespace WorldSim.Simulation.Core
         }
 
         /// <summary>
-        /// V0-3 切片工厂: 1 聚落 + 2 物种 + 1 政体, 足以在 ≥120 月触发战事/灾害/时代过渡.
+        /// V0-3 切片工厂: 1 聚落 + 2 物种 + 1 政体 + 1 资源, 足以在 ≥120 月触发战事/灾害/时代过渡.
+        /// 时代门闩用 TechTier/盈余/利用率, 不用绝对人口 (S3 v1.4.4).
         /// </summary>
         public static WorldState CreateMinimalSlice(ulong worldSeed, int speedMultiplier = 1)
         {
@@ -53,7 +56,8 @@ namespace WorldSim.Simulation.Core
             {
                 stableId = 1,
                 name = "Alpha",
-                population = 100.0
+                population = 100.0,
+                growthRate = 0.01
             });
             w.Species.Add(new SpeciesStub
             {
@@ -71,7 +75,22 @@ namespace WorldSim.Simulation.Core
             {
                 stableId = 100,
                 name = "PolityA",
-                development = 0.0
+                population = 100.0,
+                aggregateOutput = 10.0,
+                aggregateMilitaryPower = 1.0,
+                aggregateStability = 0.5,
+                techTier = 1,
+                sustainedSurplusMonths = 0,
+                capacityUtilization = 0.30,
+                divisionDepth = 0,
+                lawStage = 0,
+                hasWriting = false
+            });
+            w.Resources.Add(new ResourceStub
+            {
+                stableId = 200,
+                name = "Food",
+                currentAmount = 50.0
             });
             return w;
         }

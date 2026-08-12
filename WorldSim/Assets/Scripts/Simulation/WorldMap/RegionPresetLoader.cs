@@ -137,7 +137,8 @@ namespace WorldSim.Simulation.WorldMap
                     double lat = minLat + (y + 0.5) * dpt;
                     double lon = minLon + (x + 0.5) * dpt;
                     double dist = HaversineApproxDeg(cfg.StartRegionCenterLat, cfg.StartRegionCenterLon, lat, lon);
-                    // 简化高程: 距中心越近越高 (河谷盆地反相用 lat 调制)
+                    // 简化高程 (MVP 公式，非真实 DEM；完整 Natural Earth/DEM 管线 → Epic 5 / B4)
+                    // 距中心越近越高 (河谷盆地反相用 lat 调制)
                     double elev = Math.Max(0, (r - dist) / r) * 0.6 + (1.0 - Math.Abs(lat) / 90.0) * 0.2;
                     byte biome = PickBiome(lat, elev, dist, r);
                     tiles[y, x] = new WorldTile

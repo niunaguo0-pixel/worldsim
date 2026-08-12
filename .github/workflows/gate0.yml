@@ -26,7 +26,7 @@ env:
   BURST_VERSION_PIN: "1.8.30"
   PROJECT_PATH: "WorldSim"
   # 至少应覆盖 Gate0Determinism 四路 + 单元确定性套件（本地基线约 34–42）
-  GATE0_MIN_TESTS: "30"
+  GATE0_MIN_TESTS: "33"
 
 jobs:
   pin-versions:
@@ -54,6 +54,10 @@ jobs:
       - name: G0-1 — check-sim-asmdef.ps1
         shell: pwsh
         run: ./tests/ci/check-sim-asmdef.ps1
+
+      - name: P1 — region-presets design↔StreamingAssets sync
+        shell: pwsh
+        run: ./tests/ci/assert-region-presets-synced.ps1
 
   gate0:
     name: V0-9 — EditMode Gate-0 suite

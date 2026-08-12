@@ -1,12 +1,12 @@
 ---
 项目名: WorldSim
 文档名: Phase 3 出口控制清单（Control Checklist）
-版本: v1.0.2
+版本: v1.0.3
 日期: 2026-08-12
 作者: 程基岩
 阶段: Phase 3 — 技术搭建（出口门）
 关联: worldsim-architecture.md / adr/ADR-001~004 / architecture-review.md
-变更摘要: v1.0.2（P0 修复）——重写 UTF-8；同步 Sprint 1 / Epic 0 实装状态：G0-1~G0-8 与 B2/B3/B8 标为已由代码+CI 闭环（自托管 Windows + Unity 6000.0.81f1）；澄清 gate0.yml 跑全量 WorldSim.Tests EditMode + pin-versions 含 check-sim-asmdef；B4 仍为 Phase 4 入口（MVP region 切片已做，完整地球管线待 Epic 5）。v1.0.1 曾修复 §C/§D 自相矛盾表述。
+变更摘要: v1.0.3（P1/P2）——EraGate 对齐 S3 v1.4.4（禁绝对人口）；月哈希补产出/军力/稳定度/TechTier/资源；`BuildScript.cs` 落地；`tests/` 去双源 `.cs`；`assert-region-presets-synced` 入 CI；契约钉死 FNV-1a-64；asmdef 表注明 Epic 0 已建 9/规划 14。v1.0.2（P0）——UTF-8 + G0/B2/B3/B8 闭环。
 ---
 
 # Phase 3 出口控制清单（Control Checklist）
@@ -70,11 +70,11 @@
 2. ✅ B 类 ADR（U1–U4）用户确认
 3. ⏳ C 类：B1/B2/B3/B8 ✅；**B4 完整地球管线**仍待 Epic 5（MVP region-presets 已可消费）
 4. ✅ `WorldSim.Simulation.*` asmdef + CI `check-sim-asmdef`
-5. ⏳ `WorldSim.Editor.BuildScript.cs`（ADR-003 声称；**尚未建文件**，属 P1）
-6. ✅ region-presets 导入/消费（V0-6）；StreamingAssets 与 design 数据当前一致
+5. ✅ `WorldSim.Editor.BuildScript.cs`（ADR-003；`BuildWin64` headless）
+6. ✅ region-presets 导入/消费（V0-6）；StreamingAssets 与 design 由 `assert-region-presets-synced.ps1` 守住
 7. ⏳ 模块化开关框架（S7）完整配置 — 切片仅有 `ModuleToggles` 字典
 8. ⏳ NPR 微缩沙盘渲染原型 — 美术侧，非 Epic 0
-9. ✅ `com.unity.burst@1.8.30` 直依 + `assert-burst-pinned`
+9. ✅ `com.unity.burst@1.8.30` 直依 + `assert-burst-pinned`（lock 中他包写的 ≥1.8.29 仅为下限，解析为 1.8.30）
 
 > 环境：Unity **6000.0.81f1**；Hub：`C:\Program Files\Unity\Hub\Editor\6000.0.81f1`；注册表：`HKLM\SOFTWARE\Unity Technologies\Installer\Unity 6000.0.81f1`（`Location x64`）。
 
