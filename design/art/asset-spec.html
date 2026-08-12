@@ -1,0 +1,2994 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldSim 资产规格（Asset Specification）</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 asset-spec.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#worldsim-asset-specification">WorldSim 资产规格（Asset Specification）</a><ul>
+<li><a href="#0-phase-4">0. Phase 4 任务交付覆盖索引（与主理人派发清单对齐）</a></li>
+<li><a href="#1-global-conventions">1. 全局约定（Global Conventions）</a><ul>
+<li><a href="#11">1.1 尺度与单位（双尺度约定）</a></li>
+<li><a href="#12-zoom-band-lod">1.2 相机档位（Zoom Band）— LOD 与资产表现的唯一调度轴</a></li>
+<li><a href="#13-91">1.3 命名规范（继承圣经 §9.1 + 三项兼容扩展）</a></li>
+<li><a href="#14-worldsimassetsart">1.4 目录结构（WorldSim/Assets/Art/）</a></li>
+<li><a href="#15-83">1.5 全局技术预算分配（圣经 §8.3 的资产层拆分）</a></li>
+</ul>
+</li>
+<li><a href="#2-lod">2. 微缩沙盘低多边形模型 LOD 规范</a><ul>
+<li><a href="#21">2.1 聚落分档的视觉密度换算（核心生产决策）</a></li>
+<li><a href="#22-lod">2.2 逐分档多边形预算与 LOD 层级</a></li>
+<li><a href="#23-kit">2.3 时代形态 × 分档：模块 Kit 策略（资产量压缩关键）</a></li>
+<li><a href="#24-mvp-vs">2.4 全球尺度：MVP 精算区 vs 低精度区（切换距离与简化规则）</a></li>
+</ul>
+</li>
+<li><a href="#3">3. 手绘纹理规范</a><ul>
+<li><a href="#31-texel-2k">3.1 分辨率与 texel 密度（按需分配，反对一律 2K）</a></li>
+<li><a href="#32">3.2 手绘风格执行标准（可验收）</a></li>
+<li><a href="#33-tileability">3.3 可平铺性（Tileability）</a></li>
+<li><a href="#34-windows-directx-pc">3.4 压缩与流送策略（Windows / DirectX PC 平台）</a></li>
+<li><a href="#35-import-preset">3.5 导入设置检查清单（Import Preset，入库门槛）</a></li>
+</ul>
+</li>
+<li><a href="#4-npc">4. NPC 令牌资产清单（三层兜底的资产化）</a><ul>
+<li><a href="#41">4.1 三层结构的资产分解与量化参数</a></li>
+<li><a href="#42">4.2 职业体色（辅助识别，不承载可辨性）</a></li>
+<li><a href="#43-npc">4.3 NPC 令牌资产清单</a></li>
+<li><a href="#44-npc-a4">4.4 NPC 性能规格（圣经 A4 风险）</a></li>
+</ul>
+</li>
+<li><a href="#5-ui-ax-2-cvd">5. UI 图标集（含灾害/危机 + AX-2 冗余 + CVD）</a><ul>
+<li><a href="#51">5.1 图标通用规格</a></li>
+<li><a href="#52-as-2p0">5.2 世界层图标的双极兜底（新发现 AS-2，P0）</a></li>
+<li><a href="#53-ax-2">5.3 灾害 / 危机图标集（AX-2 核心交付）</a></li>
+<li><a href="#54-s1">5.4 干预图标集（S1）</a></li>
+<li><a href="#55-mvp-18-12">5.5 系统 / 资源 / 控制图标（MVP 18 + 核心 12）</a></li>
+<li><a href="#56-s3">5.6 政治 / 军事 / 族群图标（S3，核心层为主）</a></li>
+<li><a href="#57-cvd-standard">5.7 CVD 友好配色与图案集（Standard 档 / 核心层）</a></li>
+</ul>
+</li>
+<li><a href="#6-swatch">6. 色彩 / 材质 Swatch（附实测对比度）</a><ul>
+<li><a href="#61-swatch-21">6.1 世界层 swatch（全时代统一，圣经 §2.1）</a></li>
+<li><a href="#62-ui-swatch4-23">6.2 UI 层 swatch（≤4 色 + 底色，圣经 §2.3）</a></li>
+<li><a href="#63-swatchmaterial-library-shd_handpainted">6.3 材质 swatch（Material Library，共用 SHD_HANDPAINTED）</a></li>
+</ul>
+</li>
+<li><a href="#7-volume-ta">7. 后处理 Volume 参数（TA 实现清单）</a><ul>
+<li><a href="#71-vol_global_baseglobalpriority-0">7.1 VOL_GLOBAL_BASE（Global，Priority 0）</a></li>
+<li><a href="#72-vol_disaster_localpriority-10">7.2 VOL_DISASTER_*（Local，Priority 10）</a></li>
+<li><a href="#73-vol_access_highcontrastglobalpriority-100">7.3 VOL_ACCESS_HIGHCONTRAST（Global，Priority 100 — 高对比主题）</a></li>
+<li><a href="#74-vol_access_reducemotionglobalpriority-110">7.4 VOL_ACCESS_REDUCEMOTION（Global，Priority 110 — 减少动态 / 无闪烁）</a></li>
+<li><a href="#75-volume-s3">7.5 国家覆盖层 Volume 无关资产（S3 国家 = 聚合统计）</a></li>
+<li><a href="#76-volume-accessibilitysettings">7.6 设置开关 ↔ Volume / 参数映射（供程基岩接 AccessibilitySettings）</a></li>
+<li><a href="#77-ax-1">7.7 AX-1 可量化验收标准（本规格新增，供测试引用）</a></li>
+</ul>
+</li>
+<li><a href="#8-mvp">8. 资产分层清单（MVP / 核心 / 延展 + 垂直切片优先项）</a><ul>
+<li><a href="#81-4">8.1 总量与分层（对齐概念 §4 范围分层 + 可访问性三档）</a></li>
+<li><a href="#82-mvp-190">8.2 MVP 逐条目清单（190 条，按类别）</a></li>
+<li><a href="#83-vs-1-vs-12phase-4">8.3 垂直切片优先项（VS-1 ~ VS-12，Phase 4 首批产出）</a></li>
+<li><a href="#84-73-4">8.4 与可访问性三档的对应（圣经 §7.3 / 分级 §4，映射不变）</a></li>
+</ul>
+</li>
+<li><a href="#9">9. 资产验收与审计规则</a><ul>
+<li><a href="#91-definition-of-done">9.1 入库门槛（Definition of Done，逐条硬性）</a></li>
+<li><a href="#92">9.2 定期审计（每里程碑一次）</a></li>
+</ul>
+</li>
+<li><a href="#10">10. 一致性对照（本规格 ↔ 美术圣经 / 可访问性分级）</a></li>
+<li><a href="#11_1">11. 风险、待批项与协同</a><ul>
+<li><a href="#111-v101">11.1 本规格新发现（请主理人裁决 + 圣经 v1.0.1 补丁）</a></li>
+<li><a href="#112">11.2 继承风险的资产层缓解</a></li>
+<li><a href="#113">11.3 协同待办（经主理人排期）</a></li>
+</ul>
+</li>
+<li><a href="#12">12. 评审检查清单</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="worldsim-asset-specification">WorldSim 资产规格（Asset Specification）</h1>
+<blockquote>
+<p><strong>文档定位</strong>：本文档是美术圣经 v1.0.0 的<strong>生产落地件</strong>。圣经回答"世界应长什么样"，本文档回答"要产出哪些资产、每个资产多大多少面、怎么导入、怎么验收"。二者冲突时<strong>以圣经为准</strong>，本文档须修订对齐。</p>
+<p><strong>不在本文档范围</strong>：架构/代码/测试方案（归程基岩）、UX 交互规格与信息架构（归文策渊，须引用本文档 §7 与 §9 的可访问性资产约束）、音频资产（归阮和鸣，AX-2 第三冗余通道）。</p>
+<p><strong>两条不可协商的 P0 安全约束（继承圣经 §7.1，在资产层的落位见 §6/§7/§9）</strong>：
+- <strong>AX-1</strong>：危机不用硬闪烁 → 平滑脉冲 + 全局"减少动态/无闪烁"开关。资产层落位：脉冲参数写入 VFX/UI 动画资产（§9.3），并给可量化验收标准（§9.5）。
+- <strong>AX-2</strong>：意义不单靠颜色 → 图标 + 文字冗余。资产层落位：<strong>每个灾害/危机图标必须成对交付「图标 asset + 文字标签字符串键」，缺一不予入库</strong>（§7.2）。</p>
+</blockquote>
+<hr />
+<h2 id="0-phase-4">0. Phase 4 任务交付覆盖索引（与主理人派发清单对齐）</h2>
+<blockquote>
+<p>本章节为 Phase 4 重跑时追加的交付覆盖映射，便于主理人逐条核验派发清单（不改动后续 §1–§12 既有规范）。资产总量 <strong>555 条</strong>（MVP 190 / 核心层 222 / 延展 143），全部对齐美术圣经 v1.0.0 与可访问性分级 v1.1.0。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>派发交付项</th>
+<th>落位章节</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>微缩沙盘低多边形模型 LOD 规范（村/镇/市/都市圈：模型复杂度 / 多边形预算 / LOD 层级）</td>
+<td>§2（2.1 视觉密度换算 · 2.2 逐分档预算与 LOD · 2.3 时代 Kit · 2.4 全球尺度 LOD）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>手绘纹理规范（分辨率 / 风格 / 可平铺性 / 压缩 / 流送）</td>
+<td>§3</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>NPC 令牌资产清单（职业字形 + 描边 + 投影盘，呼应圣经 §3.3 三层兜底）</td>
+<td>§4（4.1 三层分解 · 4.3 清单 · 4.4 性能规格）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UI 图标集（灾害/危机图标 + 文字标签冗余 AX-2 + CVD 友好配色 + 形状编码）</td>
+<td>§5（5.3 灾害/危机 · 5.7 CVD 图案集）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>色彩 / 材质 Swatch（落圣经调色板 + 实测对比度达标值 + 使用/禁用场景）</td>
+<td>§6</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>后处理 Volume 参数（高对比主题 / 减少动态 / 粒子上限 + 设置映射）</td>
+<td>§7（7.3 / 7.4 / 7.6）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>资产分层清单（MVP / 核心 / 延展 各档条目与优先级）+ 垂直切片优先项</td>
+<td>§8（8.1 分层统计 · 8.3 垂直切片 VS-1~VS-12）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>额外修正：accessibility-grade 路径引用统一为 <code>design/ux/ux-spec.md</code></td>
+<td>见 <code>docs/art/accessibility-grade.md</code> 修订（§0 关联待办 + §7 策略 #2 已统一）</td>
+<td>✅ 已处理</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-global-conventions">1. 全局约定（Global Conventions）</h2>
+<h3 id="11">1.1 尺度与单位（双尺度约定）</h3>
+<p>真实地球全球尺度 + 微缩沙盘视觉，二者的单位诉求冲突（地图要公里级，建模要米级）。故采用<strong>双尺度约定</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>空间</th>
+<th>单位定义</th>
+<th>用途</th>
+<th>换算</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>资产建模空间</strong></td>
+<td>1 单位 = 1 米</td>
+<td>所有 mesh 在 DCC 中按真实米制建模（茅棚 4×4×3 m、夯土屋 6×6×4 m）</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>世界地图空间</strong></td>
+<td>1 单位 = 100 米</td>
+<td>地形网格、经纬度映射、相机正交 Size</td>
+<td>1 经度 ≈ 111 km ≈ <strong>1110 地图单位</strong>（赤道）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>挂载规则</strong>：聚落 / 建筑 / NPC prefab 的<strong>根节点持 scale = 0.01</strong>（米制 → 地图单位），资产内部保持米制不变。美术侧<strong>不得</strong>为适配地图单位而改建模比例。</p>
+<blockquote>
+<p><strong>微缩感的来源</strong>：不是把模型做小，而是 ① 正交相机 + 45°–60° 俯视（圣经 §3.2）；② 短投影 / 小偏移阴影（Shadow Distance ≤ 50 m 等效）；③ 屏幕空间恒定宽度的描边。改建模比例会破坏跨资产一致性，禁止。</p>
+<p><strong>浮点精度 / 浮动原点</strong>（全球尺度下 float32 在远离原点处精度退化）归<strong>程基岩</strong>负责（相机与世界坐标系方案）。美术侧只承诺上表换算与资产米制建模，<strong>待程基岩确认浮动原点方案后回批本节</strong>。</p>
+</blockquote>
+<h3 id="12-zoom-band-lod">1.2 相机档位（Zoom Band）— LOD 与资产表现的唯一调度轴</h3>
+<p>圣经 §9.3 的 LOD 距离以"正交 Size 倍数"表达，本节将其<strong>绝对化</strong>为 6 个相机档位，作为后续所有 LOD 表的索引。视高 = 2 × Size × 100 m。</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>正交 Size（地图单位）</th>
+<th>视高</th>
+<th>经度跨度</th>
+<th>玩家在看什么</th>
+<th>NPC 屏幕等效</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Z0 个体档</strong></td>
+<td>0.5 – 2</td>
+<td>100 – 400 m</td>
+<td>~0.004°</td>
+<td>看得见人：NPC 走动、田垄、炊烟</td>
+<td>3–5 mm（≈11 px @1080p）✅ 圣经 §3.2</td>
+</tr>
+<tr>
+<td><strong>Z1 聚落档</strong></td>
+<td>2 – 10</td>
+<td>0.4 – 2 km</td>
+<td>~0.02°</td>
+<td>村/镇全貌、功能区布局</td>
+<td>2–3 px（点状化临界）</td>
+</tr>
+<tr>
+<td><strong>Z2 区域档</strong></td>
+<td>10 – 60</td>
+<td>2 – 12 km</td>
+<td>~0.1°</td>
+<td>市/都市圈全貌、多聚落关系</td>
+<td>令牌群 → 密度图</td>
+</tr>
+<tr>
+<td><strong>Z3 国家档</strong></td>
+<td>60 – 2,000</td>
+<td>12 – 400 km</td>
+<td>0.1 – 3.6°</td>
+<td>国家边界、聚落分布、战线</td>
+<td>无 NPC 实体</td>
+</tr>
+<tr>
+<td><strong>Z4 大陆档</strong></td>
+<td>2,000 – 20,000</td>
+<td>400 – 4,000 km</td>
+<td>3.6 – 36°</td>
+<td>大陆、气候带、文明版图</td>
+<td>无</td>
+</tr>
+<tr>
+<td><strong>Z5 全球档</strong></td>
+<td>&gt; 20,000</td>
+<td>&gt; 4,000 km</td>
+<td>&gt; 36°</td>
+<td>整颗地球</td>
+<td>无</td>
+</tr>
+</tbody>
+</table>
+<p><strong>档位切换必须平滑</strong>：任意相邻档位切换使用 dither cross-fade <strong>0.25 s</strong>；"减少动态"开启时延长至 <strong>0.5 s</strong> 且<strong>禁止 pop</strong>（AX-1 关联，圣经 §8.4 第 ⑤ 项）。</p>
+<h3 id="13-91">1.3 命名规范（继承圣经 §9.1 + 三项兼容扩展）</h3>
+<p>沿用 <code>[类型]_[分类]_[名称]_[变体]_[LOD]</code>。本文档新增三类资产，圣经 §9.1 前缀表未覆盖，<strong>按下表扩展并申请圣经 v1.0.1 补丁收录</strong>（§11 待批项 ④）：</p>
+<table>
+<thead>
+<tr>
+<th>新增前缀</th>
+<th>含义</th>
+<th>归属</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VOL_</code></td>
+<td>后处理 Volume Profile</td>
+<td>新增顶层前缀</td>
+<td><code>VOL_ACCESS_HIGHCONTRAST</code></td>
+</tr>
+<tr>
+<td><code>UI_ICO_</code></td>
+<td>UI 图标（<code>UI_</code> 下二级分类）</td>
+<td>兼容既有 <code>UI_</code></td>
+<td><code>UI_ICO_HAZARD_DROUGHT</code></td>
+</tr>
+<tr>
+<td><code>TEX_PAT_</code> / <code>TEX_LUT_</code></td>
+<td>CVD 图案 / 调色 LUT（<code>TEX_</code> 下二级）</td>
+<td>兼容既有 <code>TEX_</code></td>
+<td><code>TEX_PAT_DIAG</code>、<code>TEX_LUT_SEASON_AUTUMN</code></td>
+</tr>
+</tbody>
+</table>
+<p>补充示例：</p>
+<pre><code>BLD_KIT_ANCIENT_ROOF_TILE_L01     // 建筑_模块kit_古代_屋顶_瓦_LOD1
+BLD_BLK_MODERN_DISTRICT_A_L02     // 建筑_街区块_现代_A型_LOD2（都市圈用）
+CHR_TOKEN_BASE_L00                // 角色_令牌_基础人形_LOD0
+CHR_GLYPH_FARMER                  // 角色_职业字形_农（麦穗）
+MOD_TOKEN_DISC                    // 模型_令牌_投影盘
+UI_ICO_HAZARD_DROUGHT_OMEN        // UI_图标_灾害_旱灾_前兆变体
+TEX_PAT_DOT                       // 纹理_图案_点阵（CVD 区分用）
+VOL_DISASTER_DROUGHT              // Volume_灾害_旱灾（Local）
+</code></pre>
+<h3 id="14-worldsimassetsart">1.4 目录结构（<code>WorldSim/Assets/Art/</code>）</h3>
+<p>现有 <code>Art/{Sprites,Tilemaps,UI}</code> 为 Unity 2D 模板残留（三者均为空目录，已核查），与本作低多边形 3D 管线不匹配。建议重整为：</p>
+<pre><code>Assets/Art/
+  Terrain/        （地形 mesh 预设、clipmap 配置、程序化细节资源）
+  Vegetation/     （植被 mesh + billboard）
+  Buildings/      （Kit_Primordial / Kit_Ancient / ... / Blocks_Modern）
+  Characters/     （NPC 令牌：Base / Glyphs / Disc / StatusIcons）
+  Creatures/      （动物/物种）
+  VFX/            （干预 / 天气 / 灾害 / 环境）
+  UI/             （Icons / Panels / Fonts / Timeline / Chronicle）
+  Textures/       （Atlas / Tileable / LUT / Patterns）
+  Materials/  Shaders/  PostProcessing/
+</code></pre>
+<blockquote>
+<p>迁移前需<strong>程基岩确认无脚本/预制体引用旧路径</strong>（当前三目录为空，风险极低）。此为资产组织事项，不涉架构。</p>
+</blockquote>
+<h3 id="15-83">1.5 全局技术预算分配（圣经 §8.3 的资产层拆分）</h3>
+<p>圣经给出总预算，本节按资产类别<strong>分配到位</strong>，作为各类资产的硬约束来源。</p>
+<table>
+<thead>
+<tr>
+<th>预算项</th>
+<th>圣经总额</th>
+<th>地形/水</th>
+<th>植被</th>
+<th>建筑/聚落</th>
+<th>NPC/动物</th>
+<th>VFX</th>
+<th>UI</th>
+<th>余量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>三角面（同屏）</strong></td>
+<td>≤ 2 M</td>
+<td>≤ 400 k</td>
+<td>≤ 500 k</td>
+<td>≤ 600 k</td>
+<td>≤ 200 k</td>
+<td>≤ 150 k</td>
+<td>—</td>
+<td>≤ 150 k</td>
+</tr>
+<tr>
+<td><strong>Draw Call</strong></td>
+<td>≤ 2000</td>
+<td>≤ 160</td>
+<td>≤ 200</td>
+<td>≤ 400</td>
+<td>≤ 60</td>
+<td>≤ 120</td>
+<td>≤ 160</td>
+<td>≤ 900</td>
+</tr>
+<tr>
+<td><strong>粒子（同屏）</strong></td>
+<td>≤ 5000</td>
+<td>—</td>
+<td>—</td>
+<td>炊烟 600</td>
+<td>—</td>
+<td>天气 2000 / 干预 800 / 灾害 900 / 水花尘土 400</td>
+<td>300</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>纹理内存</strong></td>
+<td>≤ 2 GB</td>
+<td>≤ 700 MB</td>
+<td>≤ 250 MB</td>
+<td>≤ 400 MB</td>
+<td>≤ 100 MB</td>
+<td>≤ 150 MB</td>
+<td>≤ 150 MB</td>
+<td>≤ 250 MB</td>
+</tr>
+<tr>
+<td><strong>Shader 变体</strong></td>
+<td>≤ 20</td>
+<td>手绘 ≤5 / 水 ≤3</td>
+<td>（共用手绘）</td>
+<td>（共用手绘）</td>
+<td>NPC ≤3</td>
+<td>VFX ≤5</td>
+<td>UI 内置</td>
+<td>≤ 4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>渲染帧时间 ≤ 12 ms @1080p</strong>（余给模拟）为验收总闸——任何资产类别超预算，先降该类别，不得挤占模拟时间。</p>
+<hr />
+<h2 id="2-lod">2. 微缩沙盘低多边形模型 LOD 规范</h2>
+<h3 id="21">2.1 聚落分档的视觉密度换算（核心生产决策）</h3>
+<p>S3 聚落人口跨越 <strong>50 → 10,000,000+</strong>（五个数量级），<strong>绝不可能</strong>线性对应建模实例数。本节定义<strong>对数压缩的代表性实例映射</strong>：人口增长在低档表现为"建筑变多"，在高档表现为"街区块变多 + 高度/密度提升"，并设硬上限。</p>
+<table>
+<thead>
+<tr>
+<th>分档</th>
+<th>人口区间（S3 §2.1）</th>
+<th>视觉单元</th>
+<th>换算比</th>
+<th>实例数区间</th>
+<th>硬上限</th>
+<th>增长的视觉表达</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>村 Village</strong></td>
+<td>~50 – 2,000</td>
+<td>单栋建筑</td>
+<td>1 栋 ≈ 50 人</td>
+<td>2 – 40 栋</td>
+<td>40 栋</td>
+<td>栋数增加 + 田垄扩张</td>
+</tr>
+<tr>
+<td><strong>镇 Town</strong></td>
+<td>~2,000 – 20,000</td>
+<td>单栋建筑 + 城墙段</td>
+<td>1 栋 ≈ 200 人</td>
+<td>10 – 100 栋 + 12–24 墙段</td>
+<td>100 栋</td>
+<td>栋数 + 城墙闭合 + 市集出现</td>
+</tr>
+<tr>
+<td><strong>市 City</strong></td>
+<td>~20,000 – 1,000,000</td>
+<td><strong>街区簇</strong>（6–10 栋合并 mesh）</td>
+<td>1 簇 ≈ 10,000 人</td>
+<td>2 – 100 簇</td>
+<td>100 簇</td>
+<td>簇数 + 街区致密化 + 基础设施带</td>
+</tr>
+<tr>
+<td><strong>都市圈 Metropolis</strong></td>
+<td>~1,000,000 – 10,000,000+</td>
+<td><strong>街区块</strong>（宏观体块 + 天际线剪影）</td>
+<td>1 块 ≈ 200,000 人</td>
+<td>5 – 50 块</td>
+<td><strong>64 块</strong></td>
+<td>块数（封顶后）→ <strong>改为高度分布 + 密度贴图 + 夜间灯光密度</strong>表达继续增长</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>超上限规则（必须实现，否则 10M+ 人口会击穿预算）</strong>：达到硬上限后，人口继续增长<strong>不再增加实例</strong>，转由 ① 街区块高度曲线上移（塔冠层级 +1）② 密度贴图（<code>TEX_DENSITY_URBAN</code>）灰度提升 ③ 夜景灯光密度 表达。<strong>这是 S3「都市圈不设硬性封顶」在美术侧的可承受落法</strong>——人口无上限，视觉实例有上限。</p>
+<p><strong>国家层不产任何 3D 实体</strong>（S3 §2.12 国家 = 聚合统计）。国家的视觉 = 覆盖层（边界描边 + CVD 图案填充 + 名称标签 + 聚合统计部件），见 §7.5。<strong>明令禁止</strong>：按国家维度产出"国家专属建筑集""首都巨型地标""单一国家族视觉实体"。</p>
+</blockquote>
+<h3 id="22-lod">2.2 逐分档多边形预算与 LOD 层级</h3>
+<p>单实例与聚落簇的三角面预算（与圣经 §9.3 的 L0/L1/L2/L3 四级对齐；HLOD 全档 ≤ 500 面，符合圣经上限）：</p>
+<table>
+<thead>
+<tr>
+<th>分档</th>
+<th>主可见档位</th>
+<th>单实例 tri (L0)</th>
+<th>L1 (50%)</th>
+<th>L2 (20%)</th>
+<th>聚落 L0 总 tri</th>
+<th>聚落 L1</th>
+<th>聚落 L2</th>
+<th><strong>HLOD</strong>（占屏 &lt;10%）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>村</td>
+<td>Z0–Z1</td>
+<td>≤ 300</td>
+<td>≤ 150</td>
+<td>≤ 60</td>
+<td>≤ 12,000</td>
+<td>≤ 6,000</td>
+<td>≤ 2,400</td>
+<td><strong>≤ 200</strong></td>
+</tr>
+<tr>
+<td>镇</td>
+<td>Z0–Z2</td>
+<td>≤ 500（墙段 ≤ 200）</td>
+<td>≤ 250</td>
+<td>≤ 100</td>
+<td>≤ 55,000</td>
+<td>≤ 27,000</td>
+<td>≤ 11,000</td>
+<td><strong>≤ 300</strong></td>
+</tr>
+<tr>
+<td>市</td>
+<td>Z1–Z3</td>
+<td>≤ 1,200 / 街区簇</td>
+<td>≤ 600</td>
+<td>≤ 240</td>
+<td>≤ 120,000</td>
+<td>≤ 60,000</td>
+<td>≤ 24,000</td>
+<td><strong>≤ 400</strong></td>
+</tr>
+<tr>
+<td>都市圈</td>
+<td>Z1–Z3</td>
+<td>≤ 2,000 / 街区块</td>
+<td>≤ 1,000</td>
+<td>≤ 400</td>
+<td>≤ 128,000</td>
+<td>≤ 64,000</td>
+<td>≤ 26,000</td>
+<td><strong>≤ 500</strong>（天际线 billboard）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>LOD 切换与档位绑定</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>LOD</th>
+<th>触发档位 / 占屏</th>
+<th>面数</th>
+<th>表现</th>
+<th>描边</th>
+<th>边缘光</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0</td>
+<td>Z0（或占屏 ≥ 25%）</td>
+<td>100%</td>
+<td>全细节 + 独立纹理</td>
+<td>✅ 屏幕恒定 ≥1.5 px</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>L1</td>
+<td>Z1（占屏 10–25%）</td>
+<td>50%</td>
+<td>简化 + 共享 atlas</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>Z2（占屏 3–10%）</td>
+<td>20%</td>
+<td>极简 + atlas</td>
+<td>✅ <strong>必须保留</strong></td>
+<td>❌ 关闭</td>
+</tr>
+<tr>
+<td>L3 / HLOD</td>
+<td>Z3+（占屏 &lt;3%）</td>
+<td>≤ 500 面</td>
+<td>聚落合并单 mesh / billboard</td>
+<td>✅ <strong>烘入纹理</strong></td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>描边不可在远距丢失</strong>（圣经 §3.1 可读性兜底 + WCAG 1.4.11 ≥3:1）。L2 保留 shader 描边，L3/HLOD 的 billboard 纹理<strong>必须预烘深褐描边</strong>，否则聚落在 Z3 档糊成色块 → 违反"俯视可读"。这是 A1 风险在远距的延伸。</p>
+</blockquote>
+<p><strong>同屏聚落数上限</strong>：MVP 1 个；核心层 3–5 个；地缘模式（全球布满真实国家）下<strong>同屏 mesh 化聚落 ≤ 24 个</strong>，超出者一律转 HLOD → 符号（§2.4 Low 区规则）。</p>
+<h3 id="23-kit">2.3 时代形态 × 分档：模块 Kit 策略（资产量压缩关键）</h3>
+<p>5 时代 × 4 分档 = 20 种组合。<strong>不产 20 套独立建筑集</strong>（不可承受），而是：</p>
+<p><strong>建筑 = 时代 Kit（模块化）× 分档组合规则</strong></p>
+<table>
+<thead>
+<tr>
+<th>时代 Kit</th>
+<th>典型建筑（S3 §2.0.1）</th>
+<th>Kit 模块数</th>
+<th>屋顶几何编码</th>
+<th>剪影高度基准</th>
+<th>覆盖分档</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KIT_PRIMORDIAL</code> 远古</td>
+<td>窝棚 / 营火 / 晒架</td>
+<td>6–8</td>
+<td><strong>锥顶（茅草）</strong></td>
+<td>3 m</td>
+<td>村</td>
+</tr>
+<tr>
+<td><code>KIT_ANCIENT</code> 古代</td>
+<td>夯土屋 / 粮仓 / 城墙 / 神庙</td>
+<td>8–10</td>
+<td><strong>双坡顶（木/夯土）</strong></td>
+<td>5 m</td>
+<td>村 / 镇</td>
+</tr>
+<tr>
+<td><code>KIT_MEDIEVAL</code> 中古</td>
+<td>砖石城堡 / 水车 / 学院 / 官署</td>
+<td>8–10</td>
+<td><strong>歇山 + 瓦棱</strong></td>
+<td>9 m</td>
+<td>镇 / 市</td>
+</tr>
+<tr>
+<td><code>KIT_EARLYMODERN</code> 近代</td>
+<td>工厂 / 烟囱 / 港口 / 议事厅</td>
+<td>8–10</td>
+<td><strong>锯齿工业顶 + 烟囱</strong></td>
+<td>18 m</td>
+<td>市</td>
+</tr>
+<tr>
+<td><code>KIT_MODERN</code> 现代</td>
+<td>高楼 / 路网 / 电厂 / 信息枢纽</td>
+<td>8–10</td>
+<td><strong>平顶 + 塔冠</strong></td>
+<td>45 m</td>
+<td>市 / 都市圈</td>
+</tr>
+</tbody>
+</table>
+<p>模块拆分（圣经 §9.2 模块化复用）：<code>屋顶 / 墙体 / 地基 / 装饰</code> 四类独立，运行时组合 → 每 Kit 8–10 模块可组出 20–40 种外观。</p>
+<p><strong>A2 风险（跨技术等级形态辨识）的量化落法 —— 见新发现 AS-3</strong>：
+- 圣经 §9.6 A2 的缓解手段之一"屋顶色阶"<strong>实测无效</strong>：赭石 <code>#8B5E3C</code>（L=0.138）与石青 <code>#3A6B8C</code>（L=0.133）对比仅 <strong>1.03:1</strong>，俯视下明度几乎无差。
+- <strong>改以形状编码为主</strong>（与 AX-2 立场一致）：① 上表<strong>屋顶几何</strong>五档互异；② <strong>剪影高度阶梯，相邻时代比 ≥1.6×</strong>（3→5→9→18→45 m，实际比 1.67/1.8/2.0/2.5 ✅）；③ 密度递增。颜色仅辅助，不承载辨识职责。
+- 验收：任一时代对的建筑，在 Z1 档灰度化（模拟全色盲）截图下<strong>仍可由剪影区分</strong> → 通过。</p>
+<p><strong>时代过渡的视觉一致性</strong>（S3 E1 渐进生长 / 圣经 A5 建筑替换跳变）：过渡期 12–24 月内新旧 Kit 模块<strong>并存</strong>，替换按建筑逐个进行、每次替换播 1.5–2 s "生长"动画（地基上浮 + 描边淡入），<strong>禁止整聚落瞬时换皮</strong>。全部 Kit 共用同一 Shader / 调色板 / 纹理笔触尺度 → 画风统一（圣经 §1 全时代统一）。</p>
+<h3 id="24-mvp-vs">2.4 全球尺度：MVP 精算区 vs 低精度区（切换距离与简化规则）</h3>
+<blockquote>
+<p><strong>首要原则（本节最重要的技术美术决策）</strong>：<strong>S5 的 High/Mid/Low 是「数据/模拟精度」，不是「渲染网格密度」。</strong> 二者解耦——
+- <strong>数据精度</strong>由 S5 决定（起始区域逐 tile 真实高程/气候，其余聚合）；
+- <strong>渲染网格密度</strong>由相机决定，采用<strong>屏幕空间恒定密度</strong>（clipmap）：目标 <strong>每顶点 8–12 px</strong>，视野内地形恒定 ≈ 40 k tri，与档位无关。</p>
+<p>若把渲染密度绑到数据精度，Z0 放大到起始区域会需要 22,000 verts/° 的荒谬密度，而放大到 Low 区又会糊成一片。解耦后两个问题同时消失。</p>
+</blockquote>
+<p><strong>地形渲染规格</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>方案</td>
+<td>5 环 clipmap（geo-clipmap / CDLOD 类），每环 64×64 quads → 8,192 tri/环，<strong>合计 40,960 tri</strong>（预算 400 k 内，余量充足）</td>
+</tr>
+<tr>
+<td>顶点密度</td>
+<td>屏幕空间 8–12 px/顶点（1080p 下约 90×135 顶点/环视区）</td>
+</tr>
+<tr>
+<td>数据不足时的补足</td>
+<td>当「数据采样间距 &gt; 渲染顶点间距 × 4」→ 启用<strong>程序化分形位移</strong>：振幅 ≤ 该 tile 局部高程方差 × 0.35，频率随环递增；<strong>seed = tileId 确定性生成</strong>（禁用时间相关噪声，否则相机移动产生地形抖动 → 触碰 AX-1 视觉稳定）</td>
+</tr>
+<tr>
+<td>手绘细节层</td>
+<td>Z0/Z1 额外混入 detail 纹理（<code>TEX_DETAIL_*</code>，512 tileable，混合权重随距离衰减至 Z2 归零）→ "远看色块、近看笔触"（圣经 §4）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>S5 数据精度带 → 资产表现映射与切换距离</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>S5 精度带</th>
+<th>切换判据（S5 §2.3）</th>
+<th>建议阈值</th>
+<th>地形</th>
+<th>建筑</th>
+<th>NPC</th>
+<th>植被</th>
+<th>水面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>High</strong>（MVP 精算区）</td>
+<td><code>dist(tile, startCenter) ≤ startRegionRadius</code></td>
+<td>预设 <strong>6–12°</strong>（§2.2.2 预设表）</td>
+<td>真实高程 + 全套手绘纹理 + detail 层</td>
+<td><strong>逐实例 mesh</strong>（L0–L2）</td>
+<td>✅ 令牌实体（Z0–Z1）</td>
+<td>✅ 实例化 mesh</td>
+<td>波纹法线 + 半透明</td>
+</tr>
+<tr>
+<td><strong>Mid</strong>（相机附近）</td>
+<td><code>dist(tile, cameraFocus) ≤ MID_RADIUS</code></td>
+<td>建议 <strong>15°</strong></td>
+<td>区域级高程 + 共享 atlas，无 detail 层</td>
+<td><strong>HLOD 合并 mesh</strong></td>
+<td>❌ → 点状密度图</td>
+<td>Billboard + 密度图</td>
+<td>简化波纹（静态法线）</td>
+</tr>
+<tr>
+<td><strong>Low</strong>（其余地球）</td>
+<td>其余</td>
+<td>—</td>
+<td>大陆级 biome 色块 + 海岸线描边</td>
+<td>❌ <strong>不加载 mesh</strong> → 聚落符号 billboard</td>
+<td>❌</td>
+<td>❌ → biome 色块</td>
+<td>静态水面色</td>
+</tr>
+</tbody>
+</table>
+<p><strong>切换与防抖（必须实现）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>迟滞带（hysteresis）</strong></td>
+<td>High/Mid/Low 边界均设 <strong>±1.5°</strong> 迟滞 —— 进入用内边界、退出用外边界。防止相机在边界抖动导致 LOD 反复颠簸（AX-1 视觉稳定 + 性能尖刺）</td>
+</tr>
+<tr>
+<td><strong>过渡</strong></td>
+<td>dither cross-fade <strong>0.25 s</strong>；"减少动态" ON → <strong>0.5 s</strong> 且禁止 pop</td>
+</tr>
+<tr>
+<td><strong>预热半径</strong></td>
+<td>资产异步加载（Addressables）预热半径 = 各带边界 <strong>+2°</strong>，避免入带瞬间空白</td>
+</tr>
+<tr>
+<td><strong>简化步进量化</strong></td>
+<td>每降一级：实例数 <strong>×0.35</strong>、tri <strong>×0.5</strong>、纹理 mip <strong>降 1 级</strong>、shader 降级（Z2 起关边缘光，描边保留至 L2、L3 烘入）</td>
+</tr>
+<tr>
+<td><strong>已落子区域保护</strong></td>
+<td>呼应 S5 §3.2：相机移出后 S3 已落子聚落的区域<strong>保留其符号与统计可读性</strong>（符号不消失，只降为 billboard），避免"我的聚落不见了"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 手绘纹理规范</h2>
+<h3 id="31-texel-2k">3.1 分辨率与 texel 密度（按需分配，反对一律 2K）</h3>
+<p>俯视微缩尺度下建筑仅占屏 40–80 px（Z1 档），2K 贴图是纯浪费。<strong>texel 密度目标：Z0 档下屏幕 1:1 ~ 2:1，禁止过采样</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>资产类别</th>
+<th>单体分辨率</th>
+<th>归属 Atlas</th>
+<th>Atlas 尺寸</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>建筑模块（常规）</td>
+<td>256×256</td>
+<td><code>TEX_ATLAS_BLD_&lt;KIT&gt;</code></td>
+<td>2048×2048</td>
+<td>每 Kit 一张 atlas，8–10 模块绰绰有余</td>
+</tr>
+<tr>
+<td>建筑（英雄/地标：神庙/宫殿/学院/信息枢纽）</td>
+<td>512×512</td>
+<td>同上或独立</td>
+<td>2048</td>
+<td>仅地标级可用 512</td>
+</tr>
+<tr>
+<td>地形 tileable（每 biome：base + variant）</td>
+<td>512×512</td>
+<td><code>TEX_ATLAS_TER_&lt;BIOME&gt;</code></td>
+<td>2048</td>
+<td>必须 4 向无缝</td>
+</tr>
+<tr>
+<td>地形 detail（近距笔触层）</td>
+<td>512×512</td>
+<td><code>TEX_DETAIL_*</code></td>
+<td>1024</td>
+<td>仅 Z0/Z1 混入</td>
+</tr>
+<tr>
+<td>植被（叶纹/树冠，含四季变体）</td>
+<td>256×256</td>
+<td><code>TEX_ATLAS_VEG_SEASON</code></td>
+<td>2048</td>
+<td>四季共 atlas，UV 偏移切换</td>
+</tr>
+<tr>
+<td>NPC 令牌（体色/服饰/字形/状态）</td>
+<td>64×64 ~ 128×128</td>
+<td><code>TEX_ATLAS_CHR</code></td>
+<td>1024</td>
+<td><strong>常驻不流送</strong>（可读性关键路径）</td>
+</tr>
+<tr>
+<td>UI 图标</td>
+<td>128×128（源），Sprite Atlas 输出</td>
+<td><code>TEX_ATLAS_UI_ICO</code></td>
+<td>2048</td>
+<td><strong>常驻不流送</strong>；mipmap 关闭（像素精确）</td>
+</tr>
+<tr>
+<td>CVD 图案（6 种）</td>
+<td>256×256 tileable</td>
+<td><code>TEX_ATLAS_UI_PAT</code></td>
+<td>1024</td>
+<td>常驻</td>
+</tr>
+<tr>
+<td>水面法线</td>
+<td>512×512</td>
+<td>独立</td>
+<td>—</td>
+<td>唯一使用 normal map 的类别</td>
+</tr>
+<tr>
+<td>LUT（4 季 + 5 灾害）</td>
+<td>32×32×32（展开 1024×32）</td>
+<td>独立</td>
+<td>—</td>
+<td>无压缩（Volume 采样）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32">3.2 手绘风格执行标准（可验收）</h3>
+<table>
+<thead>
+<tr>
+<th>标准</th>
+<th>量化要求</th>
+<th>验收方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>笔触可见</td>
+<td>笔触宽度 <strong>5–15 px @512</strong> —— 保证 3 级 LOD（mip 降 2 级）后仍可辨"手绘"而非糊成噪点</td>
+<td>512 → 128 缩放后目视 + 与参考板对照</td>
+</tr>
+<tr>
+<td>笔触尺度匹配距离</td>
+<td>Z0 见笔触、Z2 见色块（圣经 §4）→ detail 层承担近距笔触，base 层承担远距色块</td>
+<td>Z0/Z1/Z2 三档截图并列检查</td>
+</tr>
+<tr>
+<td>无 PBR 写实</td>
+<td><strong>禁止</strong> metallic/roughness/AO 贴图（水面 normal 除外）；不依赖物理光照</td>
+<td>导入检查（§3.5 清单）</td>
+</tr>
+<tr>
+<td>饱和度</td>
+<td>整体 25%–35%（圣经 §2.1）；单张纹理平均饱和度 ≤ 40%</td>
+<td>直方图抽检</td>
+</tr>
+<tr>
+<td>描边一致</td>
+<td>纹理内<strong>不预画</strong>描边（除 L3 billboard）；描边统一由 shader 出，保证屏幕恒定宽度</td>
+<td>导入检查</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-tileability">3.3 可平铺性（Tileability）</h3>
+<p>所有地形 / 墙面 / 农田 / 水面纹理<strong>必须 4 向无缝</strong>：</p>
+<ol>
+<li><strong>接缝检测流程</strong>：50% offset 检查（水平 + 垂直）→ 高频差异区标记 → 修补；提交前须附 offset 检查截图。</li>
+<li><strong>禁止强方向性笔触</strong>：单一方向笔触在平铺时会形成可见条带（俯视大面积农田/草地尤其明显）→ 笔触方向须在 ±30° 内随机分布。</li>
+<li><strong>禁止高对比孤立特征</strong>：单个显眼元素（大石块/花丛）平铺后形成规则点阵 → 此类特征改为独立 decal / 实例化小物件，不进平铺纹理。</li>
+<li><strong>农田/田垄例外</strong>：田垄需<strong>有意的方向性</strong>（视觉锚点"田垄"是生机感来源），但须提供 4 个旋转变体并按聚落朝向随机取用。</li>
+</ol>
+<h3 id="34-windows-directx-pc">3.4 压缩与流送策略（Windows / DirectX PC 平台）</h3>
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>格式</th>
+<th>sRGB</th>
+<th>Mipmap</th>
+<th>流送</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>世界 albedo atlas（建筑/地形/植被）</td>
+<td><strong>BC1 (DXT1)</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅ 参与</td>
+<td>不透明，6:1 压缩，手绘低频内容压缩伪影不可见</td>
+</tr>
+<tr>
+<td>含 alpha 的世界纹理（植被叶片/decal）</td>
+<td><strong>BC7</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅ 参与</td>
+<td>alpha 边缘质量优先</td>
+</tr>
+<tr>
+<td>水面 normal</td>
+<td><strong>BC5</strong></td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+<td>双通道法线专用</td>
+</tr>
+<tr>
+<td>掩码 / 密度图（<code>TEX_DENSITY_URBAN</code> 等）</td>
+<td><strong>BC4</strong></td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+<td>单通道</td>
+</tr>
+<tr>
+<td><strong>UI 图标 / CVD 图案</strong></td>
+<td><strong>BC7</strong>（或未压缩 RGBA32 若 ≤4 MB）</td>
+<td>✅</td>
+<td>❌ 关闭</td>
+<td>❌ <strong>常驻</strong></td>
+<td>可读性关键路径，禁止流送导致的低 mip 闪现</td>
+</tr>
+<tr>
+<td><strong>NPC 令牌 atlas</strong></td>
+<td><strong>BC7</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>❌ <strong>常驻</strong></td>
+<td>同上（A1 可辨性关键路径）</td>
+</tr>
+<tr>
+<td>LUT</td>
+<td><strong>未压缩</strong></td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+<td>压缩会污染调色精度</td>
+</tr>
+</tbody>
+</table>
+<p><strong>流送预算（Unity Mipmap Streaming）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>流送内存预算</td>
+<td><strong>1.2 GB</strong>（总纹理 ≤2 GB 中，常驻 UI+NPC+LUT ≈ 250 MB，余量 550 MB 给非流送世界资源与波动）</td>
+</tr>
+<tr>
+<td>常驻（Non-Streaming）白名单</td>
+<td><code>TEX_ATLAS_UI_ICO</code> / <code>TEX_ATLAS_UI_PAT</code> / <code>TEX_ATLAS_CHR</code> / 全部 LUT / 通知卡与内容卡底</td>
+</tr>
+<tr>
+<td>Max Level Reduction</td>
+<td>2</td>
+</tr>
+<tr>
+<td>加载策略</td>
+<td>Addressables 按 S5 精度带分组（High 区组 / Mid 组 / Low 全球组），预热半径 +2°（§2.4）</td>
+</tr>
+<tr>
+<td><strong>禁止项</strong></td>
+<td>UI 图标与 NPC 令牌参与流送 —— 低 mip 闪现会瞬时破坏 AX-2 图标可辨性与 A1 令牌可读性</td>
+</tr>
+</tbody>
+</table>
+<h3 id="35-import-preset">3.5 导入设置检查清单（Import Preset，入库门槛）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>Mesh Compression</td>
+<td>Medium（建筑/植被）/ Off（NPC 令牌，避免顶点抖动）</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>Read/Write Enabled</td>
+<td><strong>Off</strong>（全部；开启会双倍内存）</td>
+</tr>
+<tr>
+<td>T3</td>
+<td>Normals / Tangents</td>
+<td>Import Normals；Tangents <strong>Calculate 仅水面</strong>，其余 None</td>
+</tr>
+<tr>
+<td>T4</td>
+<td>Scale Factor</td>
+<td>1.0（米制建模，缩放由 prefab 根节点 0.01 承担，§1.1）</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>Lightmap UV / Static</td>
+<td><strong>Off</strong>（无烘焙光照，NPR 实时）</td>
+</tr>
+<tr>
+<td>T6</td>
+<td>GPU Instancing（材质）</td>
+<td><strong>On</strong>（建筑/植被/NPC 必须）</td>
+</tr>
+<tr>
+<td>T7</td>
+<td>纹理 Max Size</td>
+<td>按 §3.1 上限，不得超；Aniso Level ≤ 2</td>
+</tr>
+<tr>
+<td>T8</td>
+<td>纹理 Filter</td>
+<td>Bilinear（世界）/ Bilinear + mip off（UI）</td>
+</tr>
+<tr>
+<td>T9</td>
+<td>命名合规</td>
+<td>符合 §1.3；不合规不予入库</td>
+</tr>
+<tr>
+<td>T10</td>
+<td>LOD Group</td>
+<td>建筑/植被必须挂 LOD Group，档位阈值同 §2.2</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-npc">4. NPC 令牌资产清单（三层兜底的资产化）</h2>
+<blockquote>
+<p>直接落地圣经 §3.3：每个令牌<strong>强制</strong>具备 ① 深褐描边 ② 地面投影盘 ③ 职业字形，<strong>三者缺一不予入库</strong>。职业体色仅辅助，不承载可辨性职责。</p>
+</blockquote>
+<h3 id="41">4.1 三层结构的资产分解与量化参数</h3>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>资产</th>
+<th>类型</th>
+<th>规格</th>
+<th>量化约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>① 描边</strong></td>
+<td><code>SHD_NPC</code>（outline 变体）</td>
+<td>Shader</td>
+<td>屏幕空间外扩描边</td>
+<td>深褐 <code>#3A2A1A</code>，<strong>屏幕恒定 ≥1.5 px</strong>（不随距离变细）；L0–L2 均启用；对青绿农田实测 <strong>3.50:1</strong> ✅ ≥3:1</td>
+</tr>
+<tr>
+<td><strong>② 投影盘</strong></td>
+<td><code>MOD_TOKEN_DISC</code> + <code>TEX_TOKEN_DISC</code></td>
+<td>Mesh(quad, 2 tri) + 纹理 64×64</td>
+<td>径向渐变黑盘</td>
+<td>直径 = 令牌宽度 <strong>×1.4</strong>，<strong>屏幕空间缩放</strong>（远距不缩小到消失）；<strong>alpha ≥60%（见 AS-1 修订，圣经原值 40%）</strong></td>
+</tr>
+<tr>
+<td><strong>③ 职业字形</strong></td>
+<td><code>CHR_GLYPH_*</code></td>
+<td>Sprite（<code>TEX_ATLAS_CHR</code> 内 32×32）</td>
+<td>单色字形</td>
+<td>暖白 <code>#F5F0E8</code> 填充 + 深褐 1 px 描边 → <strong>双极兜底</strong>：落浅体色时靠深褐边、落深盘时靠暖白填充，两向均 ≥4.5:1</td>
+</tr>
+<tr>
+<td>基座</td>
+<td><code>CHR_TOKEN_BASE_L00/L01/L02/L03</code></td>
+<td>Mesh</td>
+<td>简化人形</td>
+<td>L0 ≤120 tri / L1 ≤60 / L2 ≤24 / L3 = billboard quad（<strong>描边烘入纹理</strong>）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>投影盘 alpha 的实测依据（新发现 AS-1，P1）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>描边(深褐) vs 农田</th>
+<th>盘(disc) vs 农田</th>
+<th>令牌(亮叶绿) vs 盘</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>圣经原值 alpha 40%</td>
+<td>3.50:1 ✅</td>
+<td><strong>1.64:1</strong></td>
+<td>2.57:1</td>
+<td>盘过淡，Z1 距离下阴影几乎不可见；可读性仍由描边(3.50)+暖白字形保障</td>
+</tr>
+<tr>
+<td><strong>本规格 alpha 60%</strong></td>
+<td>3.50:1 ✅</td>
+<td><strong>2.14:1</strong></td>
+<td><strong>3.36:1</strong> ✅</td>
+<td>盘可读作接地阴影；令牌主体 vs 盘达标</td>
+</tr>
+<tr>
+<td>alpha 65%</td>
+<td>3.50:1 ✅</td>
+<td><strong>2.29:1</strong></td>
+<td><strong>3.59:1</strong> ✅</td>
+<td>略稳（推荐上限）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>投影盘不独立承担 WCAG 1.4.11</strong>：盘为深褐半透阴影，对农田分离度最深仅 <strong>3.50:1</strong>（即全不透明时，恰等于深褐描边本身；v1.0.0 误写为 3.2/3.52:1 系算术错误，已更正）。1.4.11 的"非文本对比 ≥3:1"由<strong>深褐描边(3.50:1) + 暖白字形(≥4.5:1)</strong> 承载。40%→60% 仅为<strong>阴影可见性优化</strong>（1.64→2.14:1），让令牌簇在繁忙农田上"托起"，不属达标项。</p>
+<p>WCAG 1.4.11 的「非文本对比 ≥3:1」由令牌<strong>描边</strong>（深褐 vs 农田 3.50:1）+ <strong>暖白字形</strong>承载；投影盘是装饰性接地阴影，不独立承担该阈值（盘对农田最深仅 3.50:1 且需全不透明、作为阴影不实用）。但盘太淡会丧失"把令牌簇从繁忙农田上托起"的视觉作用：40% 时盘 vs 农田仅 <strong>1.64:1</strong>，Z1 距离下阴影几乎不可见，密集农田上令牌簇像"浮"在纹理上。故建议圣经 §3.3 将投影盘 alpha 由 40% 提至 <strong>60%</strong>（实际 2.14:1）——阴影清晰可读且不压暗沙盘。<strong>P1，不阻断</strong>（可读性由描边 + 字形保障）。</p>
+</blockquote>
+<h3 id="42">4.2 职业体色（辅助识别，不承载可辨性）</h3>
+<table>
+<thead>
+<tr>
+<th>职业</th>
+<th>字形</th>
+<th>体色</th>
+<th>体色 vs 典型所在地形</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>农 Farmer</td>
+<td>麦穗</td>
+<td>亮叶绿 <code>#7CB342</code></td>
+<td>vs 农田 <code>#5B8C5A</code> = <strong>1.57:1</strong> ❌ &lt;3:1</td>
+<td><strong>实证圣经立场正确</strong>：体色差异（哪怕已提亮）无法承载可辨性，必须靠描边(3.50:1)+盘+字形</td>
+</tr>
+<tr>
+<td>猎 Hunter</td>
+<td>箭</td>
+<td>赭石 <code>#8B5E3C</code></td>
+<td>vs 森林/草地</td>
+<td>同上，靠三层</td>
+</tr>
+<tr>
+<td>工 Craftsman</td>
+<td>锤</td>
+<td>岩石灰 <code>#6B6B6B</code></td>
+<td>vs 石/地基</td>
+<td>同上，靠三层</td>
+</tr>
+<tr>
+<td>管理 Administrator</td>
+<td>冠</td>
+<td>石青 <code>#3A6B8C</code></td>
+<td>vs 建筑区</td>
+<td>同上，靠三层</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>不得</strong>新增"靠体色区分"的职业。核心层扩展职业（书吏/学者/祭司/士兵/商人/工程师）一律<strong>新增字形</strong>，体色可复用。</p>
+</blockquote>
+<h3 id="43-npc">4.3 NPC 令牌资产清单</h3>
+<p><strong>MVP（15 条）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>资产</th>
+<th>类型</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D-01~04</td>
+<td><code>CHR_TOKEN_BASE_L00/L01/L02/L03</code></td>
+<td>Mesh ×4</td>
+<td>基础人形 4 级 LOD</td>
+</tr>
+<tr>
+<td>D-05</td>
+<td><code>MOD_TOKEN_DISC</code> + <code>TEX_TOKEN_DISC</code></td>
+<td>Mesh + Tex</td>
+<td>投影盘（alpha 60%）</td>
+</tr>
+<tr>
+<td>D-06~09</td>
+<td><code>CHR_GLYPH_FARMER/HUNTER/CRAFTSMAN/ADMIN</code></td>
+<td>Sprite ×4</td>
+<td>麦穗 / 箭 / 锤 / 冠</td>
+</tr>
+<tr>
+<td>D-10~13</td>
+<td><code>UI_ICO_NPC_HUNGER/DISEASE/DEATH/HERO</code></td>
+<td>Sprite ×4</td>
+<td>饭碗 / 十字 / 碑 / 冠环；<strong>各自成对交付文字标签键</strong>（饥/病/亡/英，AX-2）</td>
+</tr>
+<tr>
+<td>D-14</td>
+<td><code>MAT_CHR_OCCUPATION</code>（4 色实例参数）</td>
+<td>Material</td>
+<td>单材质 + 实例化颜色，不做 4 份</td>
+</tr>
+<tr>
+<td>D-15</td>
+<td><code>ANM_TOKEN_IDLE/WALK/WORK/FALL</code></td>
+<td>动画集</td>
+<td>4 段，简化姿态可辨即可（圣经 §4 线条与笔触）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>核心层（14 条）</strong>：+6 职业字形（书吏卷简 / 学者书 / 祭司香环 / 士兵盾 / 商人秤 / 工程师规）+4 状态（衰老 / 受伤 / 迁徙 / 参与动荡）+2 动画（老年步态 / 病态）+2（关键个体高亮环 VFX、关系连线 decal）。</p>
+<p><strong>延展/远景（8 条）</strong>：+族群服饰图案叠层（复用 §7.4 CVD 图案，6）+2 世代传承标记。</p>
+<h3 id="44-npc-a4">4.4 NPC 性能规格（圣经 A4 风险）</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>渲染</td>
+<td>GPU Instancing 强制；同屏令牌 ≤ <strong>500</strong>（Z0 档），超出转点状 sprite 群体（Z1+）</td>
+</tr>
+<tr>
+<td>tri 预算</td>
+<td>500 × 120 = 60 k（NPC/动物 200 k 预算内）</td>
+</tr>
+<tr>
+<td>Draw Call</td>
+<td>≤ 3（基座 instanced + 盘 instanced + 字形/状态 batched）</td>
+</tr>
+<tr>
+<td>Z1 降级</td>
+<td>令牌 → 2–3 px 点 sprite（保留深褐描边像素 + 盘），<strong>职业字形隐藏，改由聚落面板文字承载</strong>（AX-2：信息不丢，换通道）</td>
+</tr>
+<tr>
+<td>Z2+</td>
+<td>群体密度图（<code>TEX_DENSITY_POP</code>），不再逐个体</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-ui-ax-2-cvd">5. UI 图标集（含灾害/危机 + AX-2 冗余 + CVD）</h2>
+<h3 id="51">5.1 图标通用规格</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>源尺寸 / 输出</td>
+<td>128×128 源 → Sprite Atlas 2048（<code>TEX_ATLAS_UI_ICO</code>）；显示基准 24 px，随全局字体缩放 75%–150% 同步缩放（圣经 §8.4）</td>
+</tr>
+<tr>
+<td>造型语言</td>
+<td>手绘简笔、<strong>形状编码优先</strong>、深褐 <code>#3A2A1A</code> 轮廓（圣经 §6.2）；线宽 ≥ 显示尺寸的 8%（24 px 下 ≥2 px），保证 75% 缩放下不断线</td>
+</tr>
+<tr>
+<td>面板内图标</td>
+<td>落暖白内容卡 <code>#F5F0E8</code> → 深褐 <strong>12.1:1</strong> ✅ AAA</td>
+</tr>
+<tr>
+<td><strong>世界层图标</strong></td>
+<td><strong>必须带暖白底板 + 深褐描边（双极兜底），并渲染于 L6 Overlay</strong> —— 见 §5.2 AS-2</td>
+</tr>
+<tr>
+<td>状态形状编码</td>
+<td>正常=<strong>圆</strong> / 注意=<strong>方</strong> / 警告=<strong>三角</strong> / 紧急=<strong>双环三角</strong> / 禁用=灰化+斜线 / 锁定=挂锁</td>
+</tr>
+<tr>
+<td>趋势形状编码</td>
+<td>上升=<strong>实心▲</strong> / 持平=<strong>─</strong> / 下降=<strong>空心▼</strong>（形状 + 填充双编码，不靠红绿）</td>
+</tr>
+<tr>
+<td><strong>AX-2 交付规则</strong></td>
+<td><strong>每个"意义性"图标必须成对交付：图标 asset + 文字标签字符串键。单独提交图标 = 不合规，不予入库。</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-as-2p0">5.2 世界层图标的双极兜底（新发现 AS-2，<strong>P0</strong>）</h3>
+<p><strong>实测缺陷</strong>：圣经 §6.2 规定灾害/前兆用朱砂 <code>#C0392B</code> 图标，但未规定世界层标记的底板。朱砂直接落世界底色时：</p>
+<table>
+<thead>
+<tr>
+<th>朱砂图标 vs 世界底色</th>
+<th>实测对比度</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>vs 赭石 <code>#8B5E3C</code>（山体/木结构/树干，占比 20%）</td>
+<td><strong>1.03:1</strong></td>
+<td>❌ 几乎不可辨</td>
+</tr>
+<tr>
+<td>vs 岩石灰 <code>#6B6B6B</code>（石/地基，10%）</td>
+<td><strong>1.03:1</strong></td>
+<td>❌ 几乎不可辨</td>
+</tr>
+<tr>
+<td>vs 青绿 <code>#5B8C5A</code>（农田/植被，20%）</td>
+<td><strong>1.38:1</strong></td>
+<td>❌ 不可辨</td>
+</tr>
+<tr>
+<td>vs 土黄 <code>#C4A35A</code>（旱地/路面，25%）</td>
+<td>2.26:1</td>
+<td>❌ &lt;3:1</td>
+</tr>
+<tr>
+<td>+ 兽患血红偏色 <code>#6B1A1A</code> 后处理</td>
+<td>更差</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+<p>朱砂是中等明度色，与大地色系<strong>全线</strong>明度接近——这是与 A1（NPC 农田 ≈1:1）同源、但落在<strong>灾害前兆图标</strong>上的缺陷。灾害前兆是 <strong>R3 安全阀</strong>信息，与 AX-2 同优先级 → <strong>P0</strong>。</p>
+<p><strong>强制修订（本规格落地，请圣经 v1.0.1 收录）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>规格</th>
+<th>实测</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 底板</td>
+<td>暖白 <code>#F5F0E8</code> 圆/圆角底板，外扩 ≥ 图标 20%（<strong>仅用于暗/中调大地底；亮调土黄上暖白底板仅 2.12:1 不达标，此时由深褐描边承运，见下）</strong></td>
+<td>暖白 vs 赭石 <strong>4.92:1</strong> ✅；vs 岩石灰 <strong>4.7:1</strong> ✅；vs 青绿 <strong>3.46:1</strong> ✅；vs 水面 <strong>3.99:1</strong> ✅；朱砂图标 on 暖白 <strong>4.79:1</strong> ✅ AA</td>
+</tr>
+<tr>
+<td>② 描边</td>
+<td>深褐 <code>#3A2A1A</code> ≥2 px 屏幕等效</td>
+<td>深褐 vs 土黄 <strong>5.70:1</strong> ✅（亮底兜底）</td>
+</tr>
+<tr>
+<td>③ 渲染层</td>
+<td><strong>L6 Overlay Canvas，渲染于后处理之后</strong></td>
+<td>灾害偏色/压暗/雪原<strong>不侵蚀</strong>标记对比（与圣经 §5.3「后处理只调世界渲染层」原则一致，且与 §6.1 内容卡修 F3 同构）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>双极兜底原理（实测互补，非双保险叠加）</strong>：深褐描边对<strong>亮调底</strong>（土黄 <code>#C4A35A</code>）<strong>5.72:1</strong> ✅，暖白底板对<strong>暗/中调底</strong>（赭石/岩石灰/青绿/水面）<strong>3.46–4.92:1</strong> ✅ —— 二者分工互补：<strong>亮底用描边、暗底用底板</strong>，任何大地色恒有一极 ≥3:1（土黄上暖白底板仅 2.12:1 由描边补；岩石灰上深褐描边仅 2.58:1 由底板补）。标记资产恒同时带「深褐描边 + 暖白底板」，背景偏哪极哪极生效。这与 NPC 令牌的"描边 + 投影盘"是同构思路，现推广到全部世界层标记（聚落/物种/资源/灾害/干预）。</p>
+</blockquote>
+<h3 id="53-ax-2">5.3 灾害 / 危机图标集（AX-2 核心交付）</h3>
+<p>每项 = <strong>形状编码图标 + 前兆变体 + 文字标签键</strong>。前兆 vs 已发生用<strong>填充编码</strong>（虚线轮廓/半填充 = 前兆；实填充 = 已发生），<strong>不靠颜色区分</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>图标</th>
+<th>形状编码</th>
+<th>文字标签键（AX-2 必交付）</th>
+<th>前兆变体</th>
+<th>层</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G-H1</td>
+<td><code>UI_ICO_HAZARD_DROUGHT</code></td>
+<td>裂地 + 枯日</td>
+<td><code>hazard.drought</code> = "旱灾" / <code>.omen</code> = "旱灾前兆"</td>
+<td>✅</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-H2</td>
+<td><code>UI_ICO_HAZARD_FLOOD</code></td>
+<td>波浪 + 屋</td>
+<td><code>hazard.flood</code> = "洪涝"</td>
+<td>✅</td>
+<td>MVP（气候干预反噬）</td>
+</tr>
+<tr>
+<td>G-H3</td>
+<td><code>UI_ICO_HAZARD_PLAGUE</code></td>
+<td>十字 + 菌点</td>
+<td><code>hazard.plague</code> = "疫病"</td>
+<td>✅</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-H4</td>
+<td><code>UI_ICO_HAZARD_BEAST</code></td>
+<td>爪印 + 齿</td>
+<td><code>hazard.beast</code> = "兽患"</td>
+<td>✅</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-H5</td>
+<td><code>UI_ICO_HAZARD_FAMINE</code></td>
+<td>空碗 + 倒穗</td>
+<td><code>hazard.famine</code> = "饥荒"</td>
+<td>✅</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-H6</td>
+<td><code>UI_ICO_HAZARD_WAR</code></td>
+<td>交叉刃</td>
+<td><code>hazard.war</code> = "战乱"</td>
+<td>✅</td>
+<td>核心层（S3 §2.10）</td>
+</tr>
+<tr>
+<td>G-H7</td>
+<td><code>UI_ICO_HAZARD_POLLUTION</code></td>
+<td>烟囱 + 雾</td>
+<td><code>hazard.pollution</code> = "污染"</td>
+<td>✅</td>
+<td>延展（近代起）</td>
+</tr>
+<tr>
+<td>G-H8</td>
+<td><code>UI_ICO_HAZARD_CLIMATE</code></td>
+<td>温标 + 波</td>
+<td><code>hazard.climate</code> = "气候危机"</td>
+<td>✅</td>
+<td>远景（现代 E3）</td>
+</tr>
+<tr>
+<td>G-C1</td>
+<td><code>UI_ICO_ALERT_WARN</code></td>
+<td><strong>惊叹三角</strong></td>
+<td><code>alert.warn</code> = "告"</td>
+<td>—</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-C2</td>
+<td><code>UI_ICO_ALERT_CRISIS</code></td>
+<td><strong>双环惊叹三角</strong></td>
+<td><code>alert.crisis</code> = "急" / "文明存亡危机"</td>
+<td>—</td>
+<td>MVP</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>危机图标的动效</strong>：仅 <code>UI_ICO_ALERT_CRISIS</code> 允许脉冲，参数见 §6.3（平滑脉冲，AX-1）。<strong>硬闪烁资产一律不产出</strong> —— 圣经 §6.4 允许"硬闪烁作可关闭选项、默认 OFF"，本规格的执行是<strong>该选项复用同一图标 + 提高脉冲曲线陡度</strong>，<strong>不单独交付闪烁序列帧/闪烁动画资产</strong>，从资产层面消除误默认开启的可能。</p>
+</blockquote>
+<h3 id="54-s1">5.4 干预图标集（S1）</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>图标</th>
+<th>形状</th>
+<th>标签键</th>
+<th>层</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G-I1</td>
+<td><code>UI_ICO_INTV_CLIMATE</code></td>
+<td>云 + 雨线</td>
+<td>"气候调节"</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-I2</td>
+<td><code>UI_ICO_INTV_RESOURCE</code></td>
+<td>掌 + 落粒</td>
+<td>"资源投放"</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-I3</td>
+<td><code>UI_ICO_INTV_GUIDE</code></td>
+<td>罗盘 + 旗</td>
+<td>"文明引导"</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-I4</td>
+<td><code>UI_ICO_INTV_SPECIES</code></td>
+<td>足印 + 箭</td>
+<td>"物种迁移"</td>
+<td>核心层</td>
+</tr>
+<tr>
+<td>G-I5</td>
+<td><code>UI_ICO_INTV_BLESSCURSE</code></td>
+<td>双面：云火 / 穗光</td>
+<td>"灾厄" / "恩赐"</td>
+<td>核心层</td>
+</tr>
+<tr>
+<td>G-E1</td>
+<td><code>UI_ICO_EMERG_RAIN</code></td>
+<td>云 + 金滴</td>
+<td>"天降甘霖"</td>
+<td>MVP</td>
+</tr>
+<tr>
+<td>G-E2</td>
+<td><code>UI_ICO_EMERG_SHIELD</code></td>
+<td>环 + 盾</td>
+<td>"神佑护盾"</td>
+<td>核心层</td>
+</tr>
+<tr>
+<td>G-E3</td>
+<td><code>UI_ICO_EMERG_SPRING</code></td>
+<td>泉 + 穗</td>
+<td>"生命之泉"</td>
+<td>核心层</td>
+</tr>
+<tr>
+<td>G-E4</td>
+<td><code>UI_ICO_COOLDOWN</code></td>
+<td>沙漏 + 环形进度</td>
+<td>"冷却 N 月"</td>
+<td>MVP（冷却灰化态，圣经禁用态 ≈3:1 豁免）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55-mvp-18-12">5.5 系统 / 资源 / 控制图标（MVP 18 + 核心 12）</h3>
+<ul>
+<li><strong>实体标记</strong>（圣经 §6.2）：<code>UI_ICO_SETTLEMENT</code>（屋）、<code>UI_ICO_SPECIES</code>（足印）、<code>UI_ICO_RESOURCE</code>（圆点）——<strong>各含世界层双极底板变体</strong>（§5.2）。</li>
+<li><strong>资源</strong>：粮（穗）/ 材料（木石）/ 奢侈（玉）/ 知识（简）/ 能源（闪，近代起）。</li>
+<li><strong>人口与社会</strong>：人口（人）/ 分工（分叉）/ 阶层（层级）/ 幸福（面）/ 承载力（容器刻度）。</li>
+<li><strong>时间控制</strong>：暂停 / 1× / 2× / 5× / 20×（数字 + 形状双编码，非仅高亮色）/ 时间轴刻度 / 季节 ×4。</li>
+<li><strong>导航与元 UI</strong>：折叠、展开、搜索、筛选、排序、锁定、通知铃、编年史（卷）、设置（齿）、<strong>可访问性（人环）</strong>、关闭、滚动条。</li>
+</ul>
+<h3 id="56-s3">5.6 政治 / 军事 / 族群图标（S3，核心层为主）</h3>
+<table>
+<thead>
+<tr>
+<th>组</th>
+<th>内容</th>
+<th>编码原则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>政体形态 9</td>
+<td>平等游群 / 酋邦 / 长老会 / 城邦 / 王国 / 帝国 / 封建领邦 / 民族国家 / 现代共和</td>
+<td>形状递进（环→锥→圆桌→塔→冠→双冠→分枝冠→旗→柱），<strong>不靠颜色区分</strong>；均附政体名文字</td>
+</tr>
+<tr>
+<td>军事 4</td>
+<td>军力（条）/ 战争（交叉刃）/ 驻防（盾）/ 围城（墙+锤）</td>
+<td>形状编码 + 数值文字</td>
+</tr>
+<tr>
+<td>族群 6</td>
+<td><strong>不产族群专属图标</strong>，改用 CVD 图案集（§5.7）叠加 + 族群名文字</td>
+<td>族群数量不可预知（S3 涌现分化）→ 图案 + 文字是唯一可扩展方案</td>
+</tr>
+<tr>
+<td>国家覆盖 4</td>
+<td>边界描边 / 图案填充 / 名称标签 / 聚合统计环</td>
+<td>见 §7.5，<strong>国家无 3D 实体</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="57-cvd-standard">5.7 CVD 友好配色与图案集（Standard 档 / 核心层）</h3>
+<p>圣经 §8.4 要求"易混色对（青绿↔土黄、朱砂↔赭石）安全化重映射或加图案"。本规格给出<strong>图案集</strong>作为主手段（比色相旋转更稳，且对全色盲同样有效）：</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>图案</th>
+<th>用途</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>J-01</td>
+<td><code>TEX_PAT_DIAG</code> 斜纹</td>
+<td>族群 A / 国家 A</td>
+<td>256 tileable，深褐 30% 密度</td>
+</tr>
+<tr>
+<td>J-02</td>
+<td><code>TEX_PAT_DOT</code> 点阵</td>
+<td>族群 B / 国家 B</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>J-03</td>
+<td><code>TEX_PAT_GRID</code> 网格</td>
+<td>族群 C</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>J-04</td>
+<td><code>TEX_PAT_WAVE</code> 波纹</td>
+<td>族群 D / 水域权属</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>J-05</td>
+<td><code>TEX_PAT_CROSS</code> 十字纹</td>
+<td>族群 E</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>J-06</td>
+<td><code>TEX_PAT_SOLID</code> 实填</td>
+<td>主体/默认</td>
+<td>同上</td>
+</tr>
+</tbody>
+</table>
+<p><strong>易混色对的实测与处置</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>易混对</th>
+<th>实测对比度</th>
+<th>CVD 模式处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>青绿 <code>#5B8C5A</code> ↔ 土黄 <code>#C4A35A</code></td>
+<td>1.63:1</td>
+<td>明度差不足 → <strong>强制图案区分</strong>（青绿区 <code>PAT_DIAG</code> / 土黄区无图案）+ 文字标签</td>
+</tr>
+<tr>
+<td>朱砂 <code>#C0392B</code> ↔ 赭石 <code>#8B5E3C</code></td>
+<td><strong>1.03:1</strong></td>
+<td>明度几乎相同 → <strong>朱砂一律带暖白底板</strong>（§5.2）+ 三角形状 + 文字；赭石区不得使用任何警示语义</td>
+</tr>
+</tbody>
+</table>
+<p><strong>CVD 模式的资产层要求</strong>：① 永久强制"图标 + 文字标签"叠加（关闭"仅图标"精简模式）；② 图案层开启；③ 危险信息<strong>非红色编码兜底</strong>（三角形状 + 深褐加粗边框），即使玩家完全丢失红色通道，仍可由形状+边框+文字识别危机。</p>
+<hr />
+<h2 id="6-swatch">6. 色彩 / 材质 Swatch（附实测对比度）</h2>
+<h3 id="61-swatch-21">6.1 世界层 swatch（全时代统一，圣经 §2.1）</h3>
+<table>
+<thead>
+<tr>
+<th>色名</th>
+<th>Hex</th>
+<th>面积占比</th>
+<th>使用场景</th>
+<th><strong>禁用场景</strong>（本规格新增约束）</th>
+<th>关键实测</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>土黄</td>
+<td><code>#C4A35A</code></td>
+<td>25%</td>
+<td>旱地、路面、土墙、旱季农田、茅草顶</td>
+<td>不作文本；不作警示语义</td>
+<td>vs 深褐描边 <strong>5.70:1</strong> ✅</td>
+</tr>
+<tr>
+<td>赭石</td>
+<td><code>#8B5E3C</code></td>
+<td>20%</td>
+<td>山体、木结构、陶器、树干、双坡顶</td>
+<td><strong>不得作为朱砂图标的直接底色</strong>（1.03:1，AS-2）</td>
+<td>vs 暖白底板 <strong>4.92:1</strong> ✅</td>
+</tr>
+<tr>
+<td>青绿</td>
+<td><code>#5B8C5A</code></td>
+<td>20%</td>
+<td>农田、草地、植被</td>
+<td><strong>不作文本</strong>（圣经 F2）；不作 NPC 体色</td>
+<td>vs 深褐描边 <strong>3.50:1</strong> ✅</td>
+</tr>
+<tr>
+<td>岩石灰</td>
+<td><code>#6B6B6B</code></td>
+<td>10%</td>
+<td>石头、地基、山岩</td>
+<td>不得作朱砂图标底色（1.03:1）</td>
+<td>vs 深褐 <strong>2.58:1</strong> ⚠ 略低于 3:1 → 岩石灰底上的标记改以<strong>暖白底板</strong>兜底（同 AS-2，4.7:1）；深褐描边作次级边</td>
+</tr>
+<tr>
+<td>水面灰蓝</td>
+<td><code>#5E7A8C</code></td>
+<td>8%</td>
+<td>河流、湖泊、海洋</td>
+<td>—</td>
+<td>vs 深褐 <strong>3.04:1</strong> ✅</td>
+</tr>
+<tr>
+<td>深褐</td>
+<td><code>#3A2A1A</code></td>
+<td>7%</td>
+<td><strong>轮廓线 / 正文 / 阴影 / NPC 描边 / 图标描边</strong></td>
+<td>—</td>
+<td>on 暖白 <strong>12.1:1</strong> ✅ AAA</td>
+</tr>
+<tr>
+<td>暖金</td>
+<td><code>#D4A84B</code></td>
+<td>3%</td>
+<td>干预特效、高亮、选中边框、<strong>深色主题文本</strong></td>
+<td><strong>浅底文本禁用</strong>（1.95:1，圣经 F1）</td>
+<td>on 深褐黑 <code>#1F1812</code> <strong>7.93:1</strong> ✅（圣经 F1 的 6.2 疑似基于更深的暗底 Hex，需 v1.0.1 对齐）</td>
+</tr>
+<tr>
+<td>朱砂红</td>
+<td><code>#C0392B</code></td>
+<td>3%</td>
+<td>警示图标、关键标记、危险边框</td>
+<td><strong>不作文本主体</strong>；世界层必须带暖白底板（AS-2）</td>
+<td>on 暖白 <strong>4.80:1</strong> ✅ AA</td>
+</tr>
+<tr>
+<td>石青</td>
+<td><code>#3A6B8C</code></td>
+<td>2%</td>
+<td>瓦顶、特殊建筑、管理职业体色</td>
+<td><strong>不作时代辨识的明度阶</strong>（vs 赭石 1.03:1，AS-3）</td>
+<td>vs 暖白 <strong>5.06:1</strong> ✅</td>
+</tr>
+<tr>
+<td>石绿</td>
+<td><code>#4A7C59</code></td>
+<td>2%</td>
+<td>深层植被、园林</td>
+<td>不作文本</td>
+<td>—</td>
+</tr>
+<tr>
+<td>亮叶绿</td>
+<td><code>#7CB342</code></td>
+<td>&lt;1%</td>
+<td>农职业 NPC 体色（圣经 §3.3）</td>
+<td><strong>体色不承载可辨性</strong>（vs 农田 1.57:1）</td>
+<td>vs 深褐描边 <strong>5.49:1</strong> ✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-ui-swatch4-23">6.2 UI 层 swatch（≤4 色 + 底色，圣经 §2.3）</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>Hex</th>
+<th>使用场景</th>
+<th>实测</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文字/轮廓</td>
+<td><code>#3A2A1A</code></td>
+<td>全部正文、图标轮廓、边框、描边</td>
+<td>on <code>#F5F0E8</code> <strong>12.1:1</strong></td>
+<td>✅ AAA</td>
+</tr>
+<tr>
+<td>内容卡底</td>
+<td><code>#F5F0E8</code></td>
+<td><strong>文本承载层，100% 不透明</strong>（圣经 §6.1 修 F3）</td>
+<td>—</td>
+<td>基准</td>
+</tr>
+<tr>
+<td>高亮/干预</td>
+<td><code>#D4A84B</code></td>
+<td>边框、下划线、填充、选中态；深色主题下可作文本</td>
+<td>浅底文本 1.95 ❌ / 深底（<code>#1F1812</code>）7.93 ✅</td>
+<td>仅装饰（浅）/ 可文本（深）</td>
+</tr>
+<tr>
+<td>警示/关键</td>
+<td><code>#C0392B</code></td>
+<td>警示图标、危险边框</td>
+<td>on 暖白 4.80:1</td>
+<td>✅ AA（语义由图标+文字冗余）</td>
+</tr>
+<tr>
+<td>正向状态</td>
+<td><code>#5B8C5A</code></td>
+<td>状态点、增长趋势图形</td>
+<td>图形 ≥3:1</td>
+<td>✅（<strong>非文本</strong>）</td>
+</tr>
+<tr>
+<td>绿调文本（需要时）</td>
+<td><code>#2F5330</code></td>
+<td>需绿色语义的文本</td>
+<td><strong>7.70:1</strong></td>
+<td>✅ AAA</td>
+</tr>
+<tr>
+<td>深色主题底</td>
+<td><code>#1F1812</code></td>
+<td>高对比主题背景</td>
+<td>暖白文本 <strong>15.5:1</strong></td>
+<td>✅ AAA</td>
+</tr>
+<tr>
+<td>禁用态</td>
+<td><code>#8C8C8C</code></td>
+<td>冷却中/不可用</td>
+<td>≈3.0:1</td>
+<td>⚠ 禁用态豁免</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-swatchmaterial-library-shd_handpainted">6.3 材质 swatch（Material Library，共用 <code>SHD_HANDPAINTED</code>）</h3>
+<table>
+<thead>
+<tr>
+<th>材质</th>
+<th>基色</th>
+<th>手绘特征</th>
+<th>变体</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MAT_TER_*</code>（6 biome）</td>
+<td>各 biome 基色</td>
+<td>4 向平铺 + detail 混合</td>
+<td>四季 ×4（LUT 层调，非独立纹理）</td>
+<td>圣经 A3：季节×灾害用参数化，不做独立 LUT 组合</td>
+</tr>
+<tr>
+<td><code>MAT_BLD_THATCH/WOOD/EARTH/BRICK/TILE/IRON/CONCRETE</code></td>
+<td>土黄/赭石/土黄/岩石灰/石青/岩石灰/岩石灰</td>
+<td>笔触 5–15 px</td>
+<td>每 Kit 复用</td>
+<td>7 种覆盖五时代</td>
+</tr>
+<tr>
+<td><code>MAT_VEG_*</code></td>
+<td>青绿/石绿</td>
+<td>叶纹可辨不写实</td>
+<td>四季 UV 偏移</td>
+<td>共享 mesh（圣经 §9.2）</td>
+</tr>
+<tr>
+<td><code>MAT_WATER</code></td>
+<td>水面灰蓝</td>
+<td>规整方向性波纹、半透明</td>
+<td>静态/动态（LOD）</td>
+<td>唯一含 normal</td>
+</tr>
+<tr>
+<td><code>MAT_CHR_OCCUPATION</code></td>
+<td>4 职业色</td>
+<td>纯色 + 简单纹理 + <strong>强制描边</strong></td>
+<td>实例化颜色参数</td>
+<td>不做 4 份材质</td>
+</tr>
+<tr>
+<td><code>MAT_UI_CARD</code></td>
+<td>暖白 100% 不透明</td>
+<td>圆角 + 深褐细边</td>
+<td>深色主题变体</td>
+<td>文本承载层</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-volume-ta">7. 后处理 Volume 参数（TA 实现清单）</h2>
+<blockquote>
+<p>交付形态：<strong>5 个 Volume Profile 资产</strong> + 1 份设置映射表。全部经 URP Volume 实现，Global（基础）+ Local（灾害区域）组合，<strong>可访问性覆盖层优先级最高</strong>（圣经 §8.4 接口契约）。</p>
+</blockquote>
+<h3 id="71-vol_global_baseglobalpriority-0">7.1 <code>VOL_GLOBAL_BASE</code>（Global，Priority 0）</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>参数</th>
+<th>值</th>
+<th>依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Color Adjustments</td>
+<td>Saturation</td>
+<td><strong>-20</strong></td>
+<td>圣经 §5.3</td>
+</tr>
+<tr>
+<td></td>
+<td>Contrast</td>
+<td><strong>0</strong></td>
+<td>文本对比由内容卡保障，不依赖世界对比</td>
+</tr>
+<tr>
+<td></td>
+<td>Post Exposure</td>
+<td>0</td>
+<td>—</td>
+</tr>
+<tr>
+<td>White Balance</td>
+<td>Temperature</td>
+<td>春 <strong>+8.1</strong> / 夏 <strong>+2.7</strong> / 秋 <strong>-5.4</strong> / 冬 <strong>-10.8</strong></td>
+<td>由 ΔK（+300/+100/-200/-400K）换算（1 Unity 单位 ≈ 37 K）</td>
+</tr>
+<tr>
+<td></td>
+<td>Tint</td>
+<td>0</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Bloom</td>
+<td>Intensity / Threshold / Scatter</td>
+<td><strong>0.35 / 1.1 / 0.6</strong></td>
+<td>弱 Bloom（干预光效 + 炊烟暖光）</td>
+</tr>
+<tr>
+<td>Vignette</td>
+<td>Intensity / Smoothness</td>
+<td><strong>0.18 / 0.4</strong></td>
+<td>弱暗角，微缩聚焦</td>
+</tr>
+<tr>
+<td>Tonemapping</td>
+<td>Mode</td>
+<td><strong>Neutral</strong></td>
+<td>圣经 §5.3</td>
+</tr>
+<tr>
+<td>Color Grading LUT</td>
+<td><code>TEX_LUT_SEASON_*</code> ×4</td>
+<td>Contribution <strong>1.0</strong>，季节间 lerp</td>
+<td>四季 LUT</td>
+</tr>
+<tr>
+<td><strong>禁用项</strong></td>
+<td>TAA / Motion Blur / Depth of Field / Film Grain / Chromatic Aberration</td>
+<td><strong>全部关闭</strong></td>
+<td>圣经 §8.1（FXAA/SMAA）；无运动模糊 = 晕动风险低</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-vol_disaster_localpriority-10">7.2 <code>VOL_DISASTER_*</code>（Local，Priority 10）</h3>
+<table>
+<thead>
+<tr>
+<th>Profile</th>
+<th>Color Filter</th>
+<th>Saturation</th>
+<th>Exposure</th>
+<th>LUT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VOL_DISASTER_DROUGHT</code></td>
+<td><code>#8B7D3C</code> @0.22</td>
+<td>-35</td>
+<td>-0.15</td>
+<td><code>TEX_LUT_HAZ_DROUGHT</code></td>
+</tr>
+<tr>
+<td><code>VOL_DISASTER_BEAST</code></td>
+<td><code>#6B1A1A</code> @0.25</td>
+<td>-25</td>
+<td>-0.20</td>
+<td><code>TEX_LUT_HAZ_BEAST</code></td>
+</tr>
+<tr>
+<td><code>VOL_DISASTER_PLAGUE</code></td>
+<td><code>#4A6B4A</code> @0.22</td>
+<td>-30</td>
+<td>-0.15</td>
+<td><code>TEX_LUT_HAZ_PLAGUE</code></td>
+</tr>
+<tr>
+<td><code>VOL_DISASTER_FAMINE</code></td>
+<td><code>#808080</code> @0.20</td>
+<td><strong>-55</strong></td>
+<td>-0.10</td>
+<td><code>TEX_LUT_HAZ_FAMINE</code></td>
+</tr>
+<tr>
+<td><code>VOL_DISASTER_FLOOD</code></td>
+<td><code>#3A5A7A</code> @0.25</td>
+<td>-20</td>
+<td>-0.15</td>
+<td><code>TEX_LUT_HAZ_FLOOD</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>过渡时长（AX-1 关联，必须实现）</strong>：灾害调色渐变 = <strong>1 游戏月</strong>（圣经 §2.4，不硬切）。但在 <strong>20× 加速</strong>下 1 游戏月的实时长会被压缩到极短 → 变成近似硬切的画面跳变，<strong>触碰 AX-1 光敏红线</strong>。故：</p>
+<blockquote>
+<p><strong>过渡时长 = max(1 游戏月的实时换算, 1.5 s 实时)</strong>。任何时间倍速下过渡实时长不得短于 <strong>1.5 s</strong>；"减少动态" ON 时不短于 <strong>2.5 s</strong>。<strong>这是 AX-1 在时间加速维度的补充约束，圣经未覆盖</strong>（本规格新增，随 AS-2 一并申请圣经 v1.0.1 收录）。</p>
+</blockquote>
+<h3 id="73-vol_access_highcontrastglobalpriority-100">7.3 <code>VOL_ACCESS_HIGHCONTRAST</code>（Global，Priority 100 — 高对比主题）</h3>
+<p>世界渲染核心不改，仅轻量对比增强 + UI 样式表切换（圣经 §8.4）：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>参数</th>
+<th>值</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Color Adjustments</td>
+<td>Contrast</td>
+<td><strong>+12</strong></td>
+<td>轻量增强，不破手绘质感</td>
+</tr>
+<tr>
+<td></td>
+<td>Saturation</td>
+<td><strong>-10</strong>（叠加基础 -20 → -30）</td>
+<td>降色相干扰，突出明度差</td>
+</tr>
+<tr>
+<td>Vignette</td>
+<td>Intensity</td>
+<td><strong>0</strong>（关闭）</td>
+<td>暗角会吞掉屏幕边缘的标记 → 高对比档必须关</td>
+</tr>
+<tr>
+<td>Bloom</td>
+<td>Intensity</td>
+<td><strong>×0.4 → 0.14</strong></td>
+<td>Bloom 会晕开图标边缘</td>
+</tr>
+<tr>
+<td>Color Grading LUT</td>
+<td>Contribution</td>
+<td><strong>0.5</strong></td>
+<td>削弱季节/灾害偏色，保标记对比恒定</td>
+</tr>
+<tr>
+<td>UI 样式表</td>
+<td>切 <code>UI_THEME_DARK</code></td>
+<td>底 <code>#1F1812</code> + 暖白文本 <strong>15.5:1</strong>、暖金文本 <strong>7.93:1</strong></td>
+<td>天然修复 F1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="74-vol_access_reducemotionglobalpriority-110">7.4 <code>VOL_ACCESS_REDUCEMOTION</code>（Global，Priority 110 — 减少动态 / 无闪烁）</h3>
+<p>圣经 §8.4 五项的量化落地：</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>项</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td><strong>危机脉冲 → 静态稳态</strong></td>
+<td>脉冲幅度 = <strong>0</strong>；改为持续实心朱砂 + 深褐加粗边框（<strong>语义不丢</strong>，AX-1）</td>
+</tr>
+<tr>
+<td>②</td>
+<td>季节 lerp</td>
+<td>过渡时长 <strong>×2</strong>；禁止即时切换</td>
+</tr>
+<tr>
+<td>③</td>
+<td>Bloom</td>
+<td>Intensity <strong>×0.5</strong>，且关闭 Bloom 强度动画</td>
+</tr>
+<tr>
+<td>④</td>
+<td>天气粒子</td>
+<td>雨/雪保留 <strong>30%</strong> 密度；尘/花瓣/萤火 <strong>关闭</strong>；总粒子上限强制 ≤ <strong>1500</strong>（§7.6）</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td>相机 / LOD</td>
+<td>LOD cross-fade <strong>0.5 s</strong> 且禁止 pop；相机缓动 ×1.5；水面波纹速度 ×0.5</td>
+</tr>
+<tr>
+<td>⑥</td>
+<td>灾害调色过渡</td>
+<td>最短实时长 ≥ <strong>2.5 s</strong>（§7.2）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="75-volume-s3">7.5 国家覆盖层 Volume 无关资产（S3 国家 = 聚合统计）</h3>
+<p>国家视觉<strong>不进 Volume</strong>、<strong>不产 3D 实体</strong>，为独立 Overlay 资产：</p>
+<table>
+<thead>
+<tr>
+<th>资产</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SHD_NATION_BORDER</code></td>
+<td>边界描边 shader：深褐 ≥2 px 屏幕恒定 + 暖白 1 px 内衬（双极兜底，Z3–Z5 可见）</td>
+</tr>
+<tr>
+<td><code>MAT_NATION_FILL</code></td>
+<td>CVD 图案填充（§5.7），alpha ≤ 18%（不遮挡地形可读性）</td>
+</tr>
+<tr>
+<td><code>UI_LABEL_NATION</code></td>
+<td>TMP 名称标签 + 聚合人口/军力数值（<strong>深褐文本 + 暖金下划线</strong>，修 F1）</td>
+</tr>
+<tr>
+<td><code>UI_ICO_NATION_STAT</code></td>
+<td>聚合统计环（人口/产出/军力/稳定度 四段环，形状+文字，非纯色扇形）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="76-volume-accessibilitysettings">7.6 设置开关 ↔ Volume / 参数映射（供程基岩接 <code>AccessibilitySettings</code>）</h3>
+<table>
+<thead>
+<tr>
+<th>设置项（游戏内 UI）</th>
+<th>默认</th>
+<th>作用对象</th>
+<th>具体参数</th>
+<th>关联约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>高对比主题</td>
+<td>OFF</td>
+<td><code>VOL_ACCESS_HIGHCONTRAST</code> + UI 样式表</td>
+<td>§7.3 全部</td>
+<td>Standard / 核心层；修 F1</td>
+</tr>
+<tr>
+<td><strong>减少动态 / 无闪烁</strong></td>
+<td>OFF（<strong>OS reduce-motion 时建议预勾</strong>）</td>
+<td><code>VOL_ACCESS_REDUCEMOTION</code> + 全局标志位</td>
+<td>§7.4 六项</td>
+<td><strong>AX-1 兜底（P0）</strong></td>
+</tr>
+<tr>
+<td>粒子数量上限</td>
+<td>5000（平衡）</td>
+<td>粒子系统上限</td>
+<td>高 8000 / 平衡 5000 / 低 2500；减少动态 ON → 强制 ≤1500</td>
+<td>性能 + 晕动</td>
+</tr>
+<tr>
+<td>全局字体缩放</td>
+<td>100%</td>
+<td>TMP 根缩放</td>
+<td>75%–150%，最小字号 ≥12 px@1080p</td>
+<td>Basic 预埋 + Standard 滑块</td>
+</tr>
+<tr>
+<td>CVD 模式</td>
+<td>OFF</td>
+<td>图案层 + 图标/文字强制叠加</td>
+<td>§5.7 三项</td>
+<td>Standard / 核心层</td>
+</tr>
+<tr>
+<td>危机频闪（实验性）</td>
+<td><strong>OFF（需二次确认）</strong></td>
+<td>脉冲曲线陡度</td>
+<td>复用同图标，仅改曲线；<strong>不产独立闪烁资产</strong></td>
+<td>圣经 §6.4；AX-1</td>
+</tr>
+<tr>
+<td>世界标记尺寸</td>
+<td>100%</td>
+<td>Overlay 图标缩放</td>
+<td>75%–150%</td>
+<td>与字体缩放独立（俯视小屏需求）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>com.unity.modules.accessibility</code> 1.0.0 <strong>仅作 OS 默认值来源</strong>（预勾建议），游戏内开关必须独立自实现生效（圣经 §8.4）。</p>
+</blockquote>
+<h3 id="77-ax-1">7.7 AX-1 可量化验收标准（本规格新增，供测试引用）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>标准</th>
+<th>阈值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AX1-V1</td>
+<td>危机脉冲频率</td>
+<td>≤ <strong>0.67 Hz</strong>（周期 1.5–2 s），远低于 WCAG 2.3.1 的 3 Hz 红线</td>
+</tr>
+<tr>
+<td>AX1-V2</td>
+<td>脉冲曲线</td>
+<td>ease-in-out（正弦），<strong>无瞬变 on/off</strong>；相对亮度变化幅度 ΔL ≤ <strong>40%</strong></td>
+</tr>
+<tr>
+<td>AX1-V3</td>
+<td>脉冲面积</td>
+<td>脉冲元素占屏面积 &lt; <strong>25%</strong></td>
+</tr>
+<tr>
+<td>AX1-V4</td>
+<td>全屏亮度稳定</td>
+<td>任意 1 s 窗口内全屏平均相对亮度变化 ≤ <strong>10%</strong>（涵盖灾害调色、LOD 切换、季节过渡）</td>
+</tr>
+<tr>
+<td>AX1-V5</td>
+<td>加速下不硬切</td>
+<td>20× 倍速下所有调色/LOD/季节过渡实时长 ≥ <strong>1.5 s</strong>（减少动态 ON ≥2.5 s）</td>
+</tr>
+<tr>
+<td>AX1-V6</td>
+<td>减少动态 ON 时</td>
+<td>脉冲幅度 = 0，且语义仍可读（图标+文字+边框）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-mvp">8. 资产分层清单（MVP / 核心 / 延展 + 垂直切片优先项）</h2>
+<h3 id="81-4">8.1 总量与分层（对齐概念 §4 范围分层 + 可访问性三档）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>类别</th>
+<th style="text-align: center;">MVP（Basic）</th>
+<th style="text-align: center;">核心层（Standard）</th>
+<th style="text-align: center;">延展/远景（Comprehensive）</th>
+<th style="text-align: center;">合计</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>地形与水体</td>
+<td style="text-align: center;">28</td>
+<td style="text-align: center;">22</td>
+<td style="text-align: center;">14</td>
+<td style="text-align: center;">64</td>
+</tr>
+<tr>
+<td>B</td>
+<td>植被</td>
+<td style="text-align: center;">16</td>
+<td style="text-align: center;">18</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">44</td>
+</tr>
+<tr>
+<td>C</td>
+<td>建筑（Kit / 街区簇 / 街区块）</td>
+<td style="text-align: center;">20</td>
+<td style="text-align: center;">46</td>
+<td style="text-align: center;">38</td>
+<td style="text-align: center;">104</td>
+</tr>
+<tr>
+<td>D</td>
+<td>NPC 令牌</td>
+<td style="text-align: center;">15</td>
+<td style="text-align: center;">14</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">37</td>
+</tr>
+<tr>
+<td>E</td>
+<td>动物 / 物种</td>
+<td style="text-align: center;">12</td>
+<td style="text-align: center;">18</td>
+<td style="text-align: center;">12</td>
+<td style="text-align: center;">42</td>
+</tr>
+<tr>
+<td>F</td>
+<td>VFX</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">16</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">36</td>
+</tr>
+<tr>
+<td>G</td>
+<td>UI 图标与部件</td>
+<td style="text-align: center;">65</td>
+<td style="text-align: center;">58</td>
+<td style="text-align: center;">24</td>
+<td style="text-align: center;">147</td>
+</tr>
+<tr>
+<td>H</td>
+<td>后处理 / LUT / Volume</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">21</td>
+</tr>
+<tr>
+<td>I</td>
+<td>Shader / 材质库</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">14</td>
+</tr>
+<tr>
+<td>J</td>
+<td>CVD 图案 / 可访问性资源</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">16</td>
+</tr>
+<tr>
+<td>K</td>
+<td>国家/政治/军事覆盖层</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">16</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">30</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>小计</strong></td>
+<td style="text-align: center;"><strong>190</strong></td>
+<td style="text-align: center;"><strong>228</strong></td>
+<td style="text-align: center;"><strong>137</strong></td>
+<td style="text-align: center;"><strong>555</strong></td>
+</tr>
+<tr>
+<td></td>
+<td><strong>累计</strong></td>
+<td style="text-align: center;"><strong>190</strong></td>
+<td style="text-align: center;"><strong>418</strong></td>
+<td style="text-align: center;"><strong>555</strong></td>
+<td style="text-align: center;">—</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>MVP <strong>190 条</strong>是"能验证核心循环"的最小完整集，非"半成品"——可访问性 Basic 六项全部含在内（SDF 字体、形状编码标记、持久通知日志、无 TAA、热键重映射资产、无硬闪烁资产）。</p>
+</blockquote>
+<h3 id="82-mvp-190">8.2 MVP 逐条目清单（190 条，按类别）</h3>
+<p><strong>A 地形与水体（28）</strong>：6 biome（草原/温带森林/荒漠/山地/河湖/海洋）× (base tileable + variant + MAT) = 18；<code>TEX_DETAIL_TERRAIN</code> ×2；clipmap 5 环网格预设 ×1；程序化位移配置 ×1；<code>SHD_HANDPAINTED</code>（地形变体）×1；水面（<code>MAT_WATER</code> + <code>TEX_WATER_NORMAL</code> + <code>SHD_WATER</code>）×3；海岸线描边 decal ×1；<code>TEX_DENSITY_POP</code> ×1。</p>
+<p><strong>B 植被（16）</strong>：5 种（草丛/灌木/阔叶树/针叶树/棕榈）× 3 LOD = 15（含 billboard）；<code>TEX_ATLAS_VEG_SEASON</code> ×1。</p>
+<p><strong>C 建筑（20）</strong>：<code>KIT_PRIMORDIAL</code> 模块 ×7（窝棚/茅棚/营火/晒架/兽皮架/水井/田垄）；<code>KIT_ANCIENT</code> 模块 ×7（夯土屋/粮仓/城墙段/城门/议事空地/市集摊/小神庙）；模块化组合规则资产（屋顶/墙体/地基 kit 定义）×3；<code>TEX_ATLAS_BLD_PRIMORDIAL</code> / <code>_ANCIENT</code> ×2；<code>ANM_BLD_GROWTH</code>（生长动画）×1。</p>
+<p><strong>D NPC 令牌（15）</strong>：见 §4.3。</p>
+<p><strong>E 动物 / 物种（12）</strong>：食草 3 + 食肉 3 = 6 种 × (低模 + billboard) = 12。</p>
+<p><strong>F VFX（10）</strong>：干预 3（降雨/资源投放/文明引导）+ 涟漪 ×1 + 炊烟 ×1 + 天气 2（雨/雪）+ 旱灾尘 ×1 + 丰收光 ×1 + 干预光标金环 ×1。</p>
+<p><strong>G UI（65）</strong>：图标 —— 灾害 5（G-H1~H5，各含前兆变体）+ 危机 2 + 干预 4（G-I1~I3, G-E1）+ 冷却 1 + 实体标记 3（含世界层双极底板变体）+ 资源 4 + 人口社会 5 + 时间控制 9 + 导航元 UI 12 = 45；面板部件 —— 内容卡 / 容器 / 边框 / 按钮 / 滑块 / 开关 / 滚动条 / 标签 / 工具提示 / 通知卡 = 10；字体 2（思源黑体 SDF 正文 + 数字变体）；时间轴 5；编年史 3。</p>
+<p><strong>H 后处理（9）</strong>：<code>TEX_LUT_SEASON_*</code> ×4；<code>TEX_LUT_HAZ_DROUGHT</code> ×1；<code>VOL_GLOBAL_BASE</code> / <code>VOL_DISASTER_DROUGHT</code> / <code>VOL_ACCESS_HIGHCONTRAST</code> / <code>VOL_ACCESS_REDUCEMOTION</code> ×4。</p>
+<p><strong>I Shader（5）</strong>：<code>SHD_HANDPAINTED</code>（≤5 变体）/ <code>SHD_WATER</code> / <code>SHD_NPC</code>（含 outline）/ <code>SHD_VFX</code> / <code>SHD_MARKER_OVERLAY</code>（L6 双极兜底标记）。</p>
+<p><strong>J CVD / 可访问性（6）</strong>：<code>TEX_PAT_*</code> ×6（§5.7）。</p>
+<p><strong>K 国家覆盖层（4）</strong>：<code>SHD_NATION_BORDER</code> / <code>MAT_NATION_FILL</code> / <code>UI_LABEL_NATION</code> / <code>UI_ICO_NATION_STAT</code>（MVP 沙盒模式仅需最简版，地缘模式全量在核心层）。</p>
+<h3 id="83-vs-1-vs-12phase-4">8.3 垂直切片优先项（VS-1 ~ VS-12，Phase 4 首批产出）</h3>
+<blockquote>
+<p><strong>垂直切片目标</strong>：一屏可玩、含完整可访问性底座的"晨雾河谷聚落"（概念 §5.4 场景一）+ "大旱降临"（场景二）。<strong>顺序即生产顺序</strong>——前 6 项完成即可跑通"读世界 → 干预 → 看后果"的视觉闭环。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>切片项</th>
+<th>内容</th>
+<th>为何优先</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VS-1</strong></td>
+<td>起始区域地形 + 水</td>
+<td>草原 + 河湖 2 biome、clipmap、water</td>
+<td>没有地面就没有世界</td>
+</tr>
+<tr>
+<td><strong>VS-2</strong></td>
+<td><code>KIT_PRIMORDIAL</code> 6 模块 + 生长动画</td>
+<td>村档聚落可见</td>
+<td>验证"微缩沙盘"第一印象</td>
+</tr>
+<tr>
+<td><strong>VS-3</strong></td>
+<td><strong>NPC 令牌三层结构完整</strong></td>
+<td>基座+描边+盘(60%)+4 字形+4 状态</td>
+<td><strong>A1 可读性 P0 验证</strong>；农田上可辨性是硬门槛</td>
+</tr>
+<tr>
+<td><strong>VS-4</strong></td>
+<td><strong>灾害/危机图标 + AS-2 双极兜底 + 文字标签</strong></td>
+<td>5 灾害 + 2 危机 + Overlay shader</td>
+<td><strong>AX-2 (P0) + AS-2 (P0)</strong>；R3 安全阀可读性</td>
+</tr>
+<tr>
+<td><strong>VS-5</strong></td>
+<td>干预 VFX 3 + 涟漪 + 金环光标</td>
+<td>干预可见</td>
+<td>验证 R1 agency 感</td>
+</tr>
+<tr>
+<td><strong>VS-6</strong></td>
+<td>UI 面板套件</td>
+<td>内容卡 + 通知卡 + 时间轴 + SDF 字体</td>
+<td>F3 修复验证 + 文本通道</td>
+</tr>
+<tr>
+<td><strong>VS-7</strong></td>
+<td>4 季 LUT + 旱灾 LUT + <code>VOL_GLOBAL_BASE</code></td>
+<td>季节/灾害调色</td>
+<td>场景二"世界正在缓慢死去"</td>
+</tr>
+<tr>
+<td><strong>VS-8</strong></td>
+<td><strong>可访问性 Volume ×2 + 设置映射</strong></td>
+<td>高对比 + 减少动态 + AX1-V1~V6 验收</td>
+<td><strong>AX-1 (P0)</strong>；不可后补</td>
+</tr>
+<tr>
+<td><strong>VS-9</strong></td>
+<td>5 核心 Shader + outline</td>
+<td>全资产渲染底座</td>
+<td>阻塞项</td>
+</tr>
+<tr>
+<td><strong>VS-10</strong></td>
+<td>LOD/HLOD 预设 + Z0–Z5 档位切换 + 迟滞</td>
+<td>全球尺度可跑</td>
+<td>验证 S5 V3/V4 性能假设</td>
+</tr>
+<tr>
+<td><strong>VS-11</strong></td>
+<td>CVD 图案集 6</td>
+<td>色觉缺陷兜底</td>
+<td>与 VS-4 同源，早做省返工</td>
+</tr>
+<tr>
+<td><strong>VS-12</strong></td>
+<td>植被 3 + 动物 2 + 炊烟</td>
+<td>生机感（Lived-in Vitality）</td>
+<td>情感基调，可最后补</td>
+</tr>
+</tbody>
+</table>
+<h3 id="84-73-4">8.4 与可访问性三档的对应（圣经 §7.3 / 分级 §4，映射不变）</h3>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>范围层</th>
+<th>本规格中的资产落位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic</strong></td>
+<td><strong>MVP</strong></td>
+<td>SDF 字体 ×2；形状编码图标全集（§5.1/5.3）；持久通知卡；无 TAA（§7.1 禁用项）；<strong>无硬闪烁资产</strong>（§5.3 注）；世界层双极兜底（§5.2）；NPC 三层（§4）</td>
+</tr>
+<tr>
+<td><strong>Standard</strong></td>
+<td><strong>核心层</strong></td>
+<td><code>VOL_ACCESS_HIGHCONTRAST</code> + <code>UI_THEME_DARK</code>；<code>VOL_ACCESS_REDUCEMOTION</code>；CVD 图案集 6；字体缩放响应式部件；键盘焦点态资产（焦点环 ×3 状态）</td>
+</tr>
+<tr>
+<td><strong>Comprehensive</strong></td>
+<td>延展/远景</td>
+<td>三型 CVD 预览 LUT ×3；地形可辨纹理（非仅色块）；粒度化动效控制部件；易读 CJK 字体 ×1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9">9. 资产验收与审计规则</h2>
+<h3 id="91-definition-of-done">9.1 入库门槛（Definition of Done，逐条硬性）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>门槛</th>
+<th>检查方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q1</td>
+<td>命名符合 §1.3</td>
+<td>脚本批量校验（正则）</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>tri 数在 §2.2 预算内</td>
+<td>导入报告</td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>纹理分辨率/格式符合 §3.1/§3.4</td>
+<td>导入预设 + 抽检</td>
+</tr>
+<tr>
+<td>Q4</td>
+<td>导入设置符合 §3.5 T1–T10</td>
+<td>Import Preset 强制</td>
+</tr>
+<tr>
+<td>Q5</td>
+<td>LOD Group 齐备且描边保留至 L2</td>
+<td>Z0/Z1/Z2/Z3 四档截图</td>
+</tr>
+<tr>
+<td>Q6</td>
+<td><strong>意义性图标附文字标签键</strong>（AX-2）</td>
+<td>缺标签键 = 拒收</td>
+</tr>
+<tr>
+<td>Q7</td>
+<td><strong>世界层标记含双极兜底 + 落 L6 Overlay</strong>（AS-2）</td>
+<td>在赭石/岩石灰/血红偏色底上截图验证 ≥3:1</td>
+</tr>
+<tr>
+<td>Q8</td>
+<td><strong>NPC 令牌三层齐备</strong>（描边/盘 ≥60%/字形）</td>
+<td>在青绿农田上截图验证</td>
+</tr>
+<tr>
+<td>Q9</td>
+<td>灰度化（全色盲模拟）后仍可辨</td>
+<td>灰度截图目视</td>
+</tr>
+<tr>
+<td>Q10</td>
+<td>无硬闪烁动画资产</td>
+<td>动画曲线检查</td>
+</tr>
+<tr>
+<td>Q11</td>
+<td>平铺纹理通过 50% offset 无缝检查</td>
+<td>附检查截图</td>
+</tr>
+<tr>
+<td>Q12</td>
+<td>偏离美术圣经处已显式标注并回批</td>
+<td>提交说明</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92">9.2 定期审计（每里程碑一次）</h3>
+<ul>
+<li><strong>孤立资产</strong>：<code>Assets/Art/**</code> 中无任何 prefab/场景/Addressables 引用者 → 列表并清理。</li>
+<li><strong>缺失引用</strong>：清单条目已排期但资产缺位 → 阻塞项上报。</li>
+<li><strong>预算漂移</strong>：按 §1.5 分类统计实际 tri / DC / 纹理内存，超 90% 预警、超 100% 阻断。</li>
+<li><strong>命名/格式违规</strong>：批量脚本扫描。</li>
+<li><strong>当前状态</strong>：<code>WorldSim/Assets/Art/{Sprites,Tilemaps,UI}</code> 三目录<strong>均为空</strong>，无既存资产需审计；无孤立资产、无违规命名。首次审计基线 = 本清单 190 条 MVP 全部待产。</li>
+</ul>
+<hr />
+<h2 id="10">10. 一致性对照（本规格 ↔ 美术圣经 / 可访问性分级）</h2>
+<table>
+<thead>
+<tr>
+<th>本规格章节</th>
+<th>对应圣经条款</th>
+<th>一致性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>§1.1 尺度</td>
+<td>§3.1/§3.2 微缩比例与相机</td>
+<td>✅ 一致（细化为双尺度，微缩感来源不变）</td>
+</tr>
+<tr>
+<td>§1.2 相机档位</td>
+<td>§9.3 LOD 距离（正交 Size 倍数）</td>
+<td>✅ 一致（绝对化为 Z0–Z5，不改分级逻辑）</td>
+</tr>
+<tr>
+<td>§1.3 命名</td>
+<td>§9.1 命名规范</td>
+<td>✅ 一致 + 3 项兼容扩展（待收录）</td>
+</tr>
+<tr>
+<td>§1.5 预算</td>
+<td>§8.3 性能预算</td>
+<td>✅ 一致（总额不变，拆分到类别）</td>
+</tr>
+<tr>
+<td>§2 LOD / 分档</td>
+<td>§3.1 低多边形、§9.3 LOD + HLOD ≤500 面</td>
+<td>✅ 一致（HLOD 全档 ≤500）</td>
+</tr>
+<tr>
+<td>§2.3 时代 Kit</td>
+<td>§1 全时代统一、§9.6 A2/A5</td>
+<td>⚠ <strong>A2 缓解手段修订</strong>（屋顶色阶 → 屋顶几何 + 剪影阶梯，AS-3）</td>
+</tr>
+<tr>
+<td>§2.4 全球 LOD</td>
+<td>§9.3 + S5 §2.3</td>
+<td>✅ 一致（数据精度/渲染密度解耦为本规格新增）</td>
+</tr>
+<tr>
+<td>§3 纹理</td>
+<td>§4 材质与手绘纹理、Atlas 2048</td>
+<td>✅ 一致（按需分配分辨率，反对一律 2K）</td>
+</tr>
+<tr>
+<td>§4 NPC 令牌</td>
+<td>§3.3 三层兜底、§9.6 A1</td>
+<td>⚠ <strong>投影盘 alpha 40%→60%</strong>（AS-1）</td>
+</tr>
+<tr>
+<td>§5.1/5.5 图标</td>
+<td>§6.2 形状编码为主、颜色为辅</td>
+<td>✅ 一致</td>
+</tr>
+<tr>
+<td>§5.2 世界层图标</td>
+<td>§6.2（未规定世界层底板）</td>
+<td>⚠ <strong>新增强制底板 + L6 Overlay</strong>（AS-2，<strong>P0</strong>）</td>
+</tr>
+<tr>
+<td>§5.3 灾害图标</td>
+<td>§6.2/§6.3/§7.1 AX-2</td>
+<td>✅ 一致 + 资产层"图标必配文字标签键"入库门槛</td>
+</tr>
+<tr>
+<td>§5.7 CVD</td>
+<td>§8.4 CVD 模式</td>
+<td>✅ 一致（图案集为主手段）</td>
+</tr>
+<tr>
+<td>§6 Swatch</td>
+<td>§2.1/§2.2/§2.3 + F1/F2/F3/A1 修订</td>
+<td>✅ 全部沿用，附实测值与禁用场景</td>
+</tr>
+<tr>
+<td>§7.1–7.4 Volume</td>
+<td>§5.3 后处理、§8.4 可访问性接口</td>
+<td>✅ 一致 + 量化参数</td>
+</tr>
+<tr>
+<td>§7.2 过渡时长</td>
+<td>§2.4「1 游戏月渐变不硬切」</td>
+<td>⚠ <strong>新增 20× 下最短 1.5 s 实时钳制</strong>（AX-1 补充）</td>
+</tr>
+<tr>
+<td>§7.5 国家覆盖</td>
+<td>S3 §2.12 国家=聚合统计</td>
+<td>✅ 一致（明令禁止单国家族 3D 实体）</td>
+</tr>
+<tr>
+<td>§7.6 设置映射</td>
+<td>§8.4 游戏内自实现开关</td>
+<td>✅ 一致</td>
+</tr>
+<tr>
+<td>§8.4 三档</td>
+<td>§7.3 + 分级 §4（MVP=Basic / 核心=Standard）</td>
+<td>✅ 映射不变</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11_1">11. 风险、待批项与协同</h2>
+<h3 id="111-v101">11.1 本规格新发现（请主理人裁决 + 圣经 v1.0.1 补丁）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>发现</th>
+<th>级别</th>
+<th>实测依据</th>
+<th>建议处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AS-2</strong></td>
+<td>世界层朱砂灾害图标落赭石/岩石灰/青绿底几乎不可辨</td>
+<td><strong>P0</strong></td>
+<td>朱砂 vs 赭石 <strong>1.03:1</strong>、vs 岩石灰 <strong>1.02:1</strong>、vs 青绿 <strong>1.38:1</strong>、vs 土黄 2.26:1（均 &lt;3:1）；且暖白底板在亮调土黄上仅 2.12:1，须以深褐描边互补</td>
+<td>强制<strong>深褐描边 + 暖白底板双极兜底</strong>（亮底用描边 5.72:1、暗/中底用底板 3.46–4.92:1，恒有一极 ≥3:1）+ 渲染于 <strong>L6 Overlay（后处理之后）</strong>。理由：灾害前兆是 R3 安全阀，与 AX-2 同优先级。<strong>本规格已落地，请圣经 §6.2 收录</strong></td>
+</tr>
+<tr>
+<td><strong>AS-1</strong></td>
+<td>NPC 投影盘 alpha 40% 过淡，Z1 距离下阴影不可见</td>
+<td>P1</td>
+<td>盘 vs 青绿农田 40% <strong>1.64:1</strong> / 60% <strong>2.14:1</strong>（盘最深仅 3.50:1 且需全不透明，非 1.4.11 载体；1.4.11 由描边 3.50:1 + 暖白字形承载）</td>
+<td>圣经 §3.3 投影盘 alpha <strong>40% → ≥60%</strong>（阴影可见性优化，非达标项）。不阻断</td>
+</tr>
+<tr>
+<td><strong>AS-3</strong></td>
+<td>圣经 §9.6 A2 的"屋顶色阶"缓解手段实测无效</td>
+<td>P1</td>
+<td>赭石 vs 石青 <strong>1.03:1</strong>（明度几乎相同）</td>
+<td>A2 缓解手段改为<strong>屋顶几何形状编码 + 剪影高度阶梯 ≥1.6×</strong>（本规格 §2.3 已落），颜色降为辅助</td>
+</tr>
+<tr>
+<td><strong>AS-4</strong></td>
+<td>灾害调色过渡在 20× 加速下压缩为近似硬切</td>
+<td>P1（AX-1 相邻）</td>
+<td>1 游戏月的实时长随倍速线性压缩</td>
+<td>过渡实时长钳制 <strong>≥1.5 s</strong>（减少动态 ON ≥2.5 s）。请圣经 §2.4 收录</td>
+</tr>
+<tr>
+<td>待批 ④</td>
+<td>命名前缀扩展 <code>VOL_</code> / <code>UI_ICO_</code> / <code>TEX_PAT_</code> / <code>TEX_LUT_</code></td>
+<td>P2</td>
+<td>—</td>
+<td>圣经 §9.1 前缀表收录</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>诚实标注</strong>：以上对比度均为按 WCAG 2.1 sRGB 相对亮度公式对本文档给定 Hex 的<strong>计算值</strong>（脚本可复现）。v1.0.1 已用 Python 逐对复算，纠正了 v1.0.0 中岩石灰/水面/暖金/石青/深色底/朱砂 vs 土黄/青绿 vs 土黄 共 7 处口算错误，并<strong>重写 AS-1 投影盘阈值框架</strong>（原 3.2/3.52:1 系不可能值，盘最深仅 3.50:1）。与圣经既有口径复核：深褐 on 暖白 12.13:1 / 暖白 vs 赭石 4.92:1 / 深褐 vs 青绿 3.50:1 三项吻合；<strong>暖金 on 深褐黑圣经 F1 记 6.2:1，本文件用 <code>#1F1812</code> 实算 7.93:1，疑似圣经暗底 Hex 更深，请圣经 v1.0.1 用统一暗底 Hex 复算对齐</strong>。落地后仍须在真机截图上复测（灾害偏色 + 高对比主题两种状态各一轮）。</p>
+</blockquote>
+<h3 id="112">11.2 继承风险的资产层缓解</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>圣经风险</th>
+<th>本规格缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1 俯视可读 vs 手绘风格（P0）</td>
+<td>§4 三层兜底资产化 + 盘提至 60% + 描边保留至 L2 / L3 烘入 + Q8 入库门槛</td>
+<td></td>
+</tr>
+<tr>
+<td>A2 跨技术等级形态辨识（P1）</td>
+<td>§2.3 屋顶几何 5 档 + 剪影 ≥1.6× 阶梯 + 灰度可辨验收（Q9）</td>
+<td></td>
+</tr>
+<tr>
+<td>A3 四季×灾害调色组合（P1）</td>
+<td>§7.1/§7.2 参数化叠加，4 季 LUT + 5 灾害 LUT，<strong>不做 20 组合独立 LUT</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>A4 大量 NPC 手绘 shader 性能（P1）</td>
+<td>§4.4 Instancing + ≤500 同屏 + Z1 点 sprite 降级 + DC ≤3</td>
+<td></td>
+</tr>
+<tr>
+<td>A5 建筑替换视觉跳变（P2）</td>
+<td>§2.3 逐建筑分批替换 + 1.5–2 s 生长动画，禁整聚落换皮</td>
+<td></td>
+</tr>
+<tr>
+<td>A6 远期内容密度差异（P2）</td>
+<td>§8.1 三档分层 + §2.1 超上限规则（人口无上限，实例有上限）</td>
+<td></td>
+</tr>
+<tr>
+<td>WM2 真实数据体量/性能（P1，S5）</td>
+<td>§2.4 数据精度/渲染密度解耦 + clipmap 恒定 40 k tri + 预热半径</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="113">11.3 协同待办（经主理人排期）</h3>
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>事项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>程基岩</strong>（架构）</td>
+<td>① 浮动原点/浮点精度方案 → 回批 §1.1；② <code>AccessibilitySettings</code> 接 §7.6 映射表；③ Addressables 按 S5 精度带分组 + 预热半径 +2°；④ 确认 <code>Assets/Art</code> 目录重整无脚本引用</td>
+</tr>
+<tr>
+<td><strong>文策渊</strong>（策划/UX）</td>
+<td>① UX 规格（<code>design/accessibility-requirements.md</code>）须引用本规格 §5（图标+文字冗余）、§7.6（设置项）、§8.4（三档）；② AX-2 灾害前兆<strong>设计侧</strong>（预警逻辑/时长/内容）——美术侧接口已备（§5.3 前兆变体可承载任意灾害类型）</td>
+</tr>
+<tr>
+<td><strong>阮和鸣</strong>（音频）</td>
+<td>AX-2 第三冗余通道（灾害前兆/紧急/关键状态变化音频）；本规格 §5.3 的标签键可直接复用为音频事件键</td>
+</tr>
+<tr>
+<td><strong>主理人</strong></td>
+<td>裁决 §11.1 的 AS-1/AS-2/AS-3/AS-4 + 命名扩展；AS-2 为 <strong>P0</strong>，建议在垂直切片（VS-4）前拍板</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="12">12. 评审检查清单</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>聚落分档（村/镇/市/都市圈）模型复杂度 + 多边形预算 + 远近 LOD 层级</td>
+<td>✅ §2.1/§2.2</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>人口五个数量级 → 视觉密度换算 + 硬上限 + 超上限表达</td>
+<td>✅ §2.1</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>全球尺度 MVP 精算区 vs 低精度区：切换距离 / 迟滞 / 简化规则量化</td>
+<td>✅ §2.4</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>手绘纹理：分辨率 / 手绘风格可验收标准 / 可平铺性 / 压缩 / 流送</td>
+<td>✅ §3</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>NPC 令牌资产清单（字形 + 描边 + 投影盘三层兜底）</td>
+<td>✅ §4</td>
+</tr>
+<tr>
+<td>S6</td>
+<td>UI 图标集：灾害/危机 + 文字标签冗余（AX-2）+ CVD 配色 + 形状编码</td>
+<td>✅ §5</td>
+</tr>
+<tr>
+<td>S7</td>
+<td>色彩/材质 swatch + 实测对比度达标值 + 使用/禁用场景</td>
+<td>✅ §6</td>
+</tr>
+<tr>
+<td>S8</td>
+<td>后处理 Volume 参数（高对比/减少动态/粒子上限）+ 设置开关映射</td>
+<td>✅ §7</td>
+</tr>
+<tr>
+<td>S9</td>
+<td>资产分层清单 MVP/核心/延展 + 优先级 + 垂直切片优先项</td>
+<td>✅ §8</td>
+</tr>
+<tr>
+<td>S10</td>
+<td>全时代统一风格（不随时代切画风，演进靠形态/内容）</td>
+<td>✅ §2.3</td>
+</tr>
+<tr>
+<td>S11</td>
+<td>国家层不做单国家族视觉实体（聚合统计 + 覆盖层）</td>
+<td>✅ §2.1 注 / §7.5</td>
+</tr>
+<tr>
+<td>S12</td>
+<td>AX-1 / AX-2 在资产层的强制落位 + 可量化验收</td>
+<td>✅ §5.3/§7.4/§7.7/§9.1</td>
+</tr>
+<tr>
+<td>S13</td>
+<td>与圣经一致性对照 + 偏离项显式标注</td>
+<td>✅ §10/§11.1</td>
+</tr>
+<tr>
+<td>S14</td>
+<td>元数据块齐全（项目/版本/日期/作者/阶段/输入/状态）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>S15</td>
+<td>未越界（无架构/代码/测试/UX 规格内容）</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>林绘澄注（美术总监）</strong>：本规格把圣经的"世界应长什么样"翻译成了 <strong>555 条资产（MVP 190 条）</strong> 的可排期清单，三个技术要点值得主理人特别注意：</p>
+<ol>
+<li><strong>人口无上限，视觉实例有上限</strong>。S3 允许都市圈长到千万级乃至亿级，但美术侧绝不可能线性建模——都市圈街区块<strong>硬上限 64 块</strong>，之后靠高度曲线 + 密度贴图 + 夜景灯光表达增长。这是"真实量级"在美术侧唯一可承受的落法，若策划侧要求"人口越多楼越多"的线性直觉，需要在此拍板。</li>
+<li><strong>数据精度与渲染密度必须解耦</strong>。S5 的 High/Mid/Low 决定"真实度"，相机档位决定"网格密度"（屏幕空间恒定 8–12 px/顶点）。若把两者绑死，Z0 放大到起始区域需要荒谬的顶点密度、放大到 Low 区又必然糊——解耦后两个问题同时消失，代价是 Low 区近距需程序化细节补足（且噪声必须确定性，否则相机移动引起地形抖动，反过来碰 AX-1）。</li>
+<li><strong>我在算对比度时挖出一个新 P0：AS-2</strong>。圣经把面板文本的对比问题解决得很干净（100% 不透明内容卡修 F3），但<strong>世界层</strong>的朱砂灾害图标没有对应的兜底——实测朱砂对赭石、岩石灰都是 <strong>1.03:1</strong>，对青绿 1.38:1，等于色弱玩家和普通玩家都可能在山地/石地上完全看不见灾害前兆。灾害前兆是 R3 安全阀信息，所以我按 P0 处理：强制暖白底板 + 深褐描边的"双极兜底"，并把标记挪到 L6 Overlay（后处理之后），让灾害偏色永远吃不掉它。这与 NPC 令牌"描边+投影盘"是同一套思路的推广。建议在垂直切片 VS-4 动工前拍板，一并把 AS-1（投影盘 40%→60%）、AS-3（A2 屋顶色阶实测无效，改几何编码）、AS-4（20× 下过渡钳制 ≥1.5 s）写进圣经 v1.0.1。</li>
+</ol>
+<p>立场不变：视觉一致性高于数量，可访问性是核心循环可达性的底座。垂直切片的前 4 项里有 3 项（VS-3/VS-4/VS-8）是可读性与安全项——这个顺序是刻意的，这类东西后补的代价是重做全部标记资产。</p>
+</blockquote>
+</div>
+</body>
+</html>

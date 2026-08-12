@@ -1,0 +1,17 @@
+{
+  "name": "WorldSim.Simulation.Time",
+  "rootNamespace": "WorldSim.Simulation.Time",
+  "references": [
+    "WorldSim.Simulation.Core",
+    "Unity.Mathematics"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

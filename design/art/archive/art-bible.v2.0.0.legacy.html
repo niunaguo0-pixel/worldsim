@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>WorldSim 美术圣经 v2.0.0</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 24px;
+  line-height: 1.8;
+  color: #1a1a1a;
+  background: #fafafa;
+}
+h1 { color: #1a1a1a; border-bottom: 2px solid #333; padding-bottom: 12px; }
+h2 { color: #2c3e50; margin-top: 40px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+h3 { color: #34495e; margin-top: 28px; }
+h4 { color: #555; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; background: #fff; }
+th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; }
+th { background: #f0f0f0; font-weight: 600; }
+code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: Consolas, monospace; }
+pre { background: #f4f4f4; padding: 16px; border-radius: 6px; overflow-x: auto; }
+blockquote { border-left: 4px solid #999; margin: 16px 0; padding-left: 16px; color: #555; }
+hr { border: none; border-top: 1px solid #ddd; margin: 32px 0; }
+</style>
+</head>
+<body>
+<hr />
+<p>项目名: WorldSim
+文档名: 美术圣经（Art Bible）
+版本: v2.0.0
+日期: 2026-08-12
+作者: 林绘澄 — 游戏美术总监
+阶段: Phase 1 — 概念孵化
+输入文档: <code>design/concept/game-concept.md</code> v1.1.0（第 5 章 视觉锚点）
+状态: 草稿（待评审）
+变更说明: v2.0.0 基于概念文档 v1.1.0 全面重写——取消"风格随时代演进"，改为全时代统一的微缩沙盘手绘风格。删除四时代分风格、过渡机制、EraProgress shader 等内容。</p>
+<hr />
+<h1 id="worldsim">WorldSim 美术圣经</h1>
+<blockquote>
+<p><strong>文档说明</strong>：本文档基于概念文档第 5 章"视觉锚点"产出，作为后续所有美术资源的基准规范。核心理念是"微缩沙盘手绘风格"——全时代一套美术风格，文明演进通过建筑形态、技术产物的内容变化传达，而非画面风格突变。所有美术人员（原画、3D、TA、UI、特效）须以本文档为唯一风格参照。</p>
+</blockquote>
+<hr />
+<h2 id="1-visual-identity-overview">1. 视觉身份概述（Visual Identity Overview）</h2>
+<p><strong>一句话定义</strong>：WorldSim 的视觉身份是"桌面上的活微缩世界"——玩家俯瞰一座手绘质感的微缩沙盘，世界中的万物以低多边形 + 手绘纹理呈现，始终维持统一的温润质感与尺度感。</p>
+<p><strong>核心视觉理念：全时代统一微缩沙盘风格（Unified Diorama Style）</strong></p>
+<p>本作最重要的视觉决策：美术风格全时代统一。无论文明处于远古洪荒还是现代都市，画面始终保持一致的微缩沙盘视觉语言。文明从茅棚到城邦到都市的演进，通过建筑形态、聚落规模、技术产物的变化来传达，画面风格本身始终如一。</p>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>风格统一</td>
+<td>全时代一套美术风格，不因文明阶段切换画面画风——时代感来自内容（建筑/技术/社会形态），不来自画风突变</td>
+</tr>
+<tr>
+<td>微缩尺度</td>
+<td>世界像一座可俯瞰的掌中微缩模型，有"桌面上的一盘小世界"的亲昵感与尺度感</td>
+</tr>
+<tr>
+<td>手绘温度</td>
+<td>低多边形 3D + 手绘纹理（Hand-Painted Texture），NPR 非写实渲染，画面有"人手做出来"的温度感</td>
+</tr>
+<tr>
+<td>俯视可读</td>
+<td>所有美术资源服务于俯瞰视角下的信息可读性——玩家一眼读懂地形、聚落、状态</td>
+</tr>
+</tbody>
+</table>
+<p><strong>视觉目标</strong>：玩家从开局到终局看到的是同一个世界的同一种画风——微缩沙盘上手绘质感的小世界。文明演进通过内容变化（建筑形态、聚落密度、技术产物）传达，画面风格本身始终如一。</p>
+<p><strong>六大风格关键词</strong>（详见概念文档 5.1）：</p>
+<ol>
+<li><strong>微缩沙盘（Diorama）</strong> — 可俯瞰的掌中世界尺度感</li>
+<li><strong>手绘温度（Hand-Painted Warmth）</strong> — 手绘纹理赋予画面温度感与匠人气质</li>
+<li><strong>层次分明（Layered Depth）</strong> — 地形高低、植被疏密、聚落分布形成纵深</li>
+<li><strong>生机盎然（Lived-in Vitality）</strong> — 炊烟、田垄、兽迹、水纹都在动</li>
+<li><strong>史诗质感（Epic Texture）</strong> — 微缩尺度中蕴含宏大气象</li>
+<li><strong>俯视可读（Top-Down Readability）</strong> — 俯瞰视角下一切信息一目了然</li>
+</ol>
+<p><strong>与 v1.0.0 的核心差异</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>v1.0.0（已废弃）</th>
+<th>v2.0.0（当前）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>风格理念</td>
+<td>风格随时代演进（Style Evolution）</td>
+<td>全时代统一微缩沙盘风格</td>
+</tr>
+<tr>
+<td>时代表达</td>
+<td>画面风格变化传达时代感</td>
+<td>建筑形态/技术产物变化传达时代感</td>
+</tr>
+<tr>
+<td>Shader 系统</td>
+<td>Universal Era Shader + _EraProgress 参数</td>
+<td>统一手绘风格 Shader，无需时代过渡</td>
+</tr>
+<tr>
+<td>色彩系统</td>
+<td>四时代各自色板 + 过渡插值</td>
+<td>单一色板 + 季节/灾害动态调色</td>
+</tr>
+<tr>
+<td>UI 系统</td>
+<td>古代卷轴 UI ↔ 现代数据面板 UI 过渡</td>
+<td>统一半透明手绘风 UI</td>
+</tr>
+<tr>
+<td>技术复杂度</td>
+<td>高（需实现风格平滑过渡）</td>
+<td>中（无需过渡机制，专注统一风格品质）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-style-guide">2. 风格指南（Style Guide）</h2>
+<h3 id="21">2.1 渲染特征</h3>
+<p><strong>整体渲染定位</strong>：NPR（Non-Photorealistic Rendering）手绘卡通风风格，低多边形建模 + 手绘纹理贴图。画面追求"桌面微缩模型"的质感——不是写实，不是像素，不是水墨，而是有手作温度的 3D 微缩世界。</p>
+<p><strong>渲染技术要点</strong>：
+- 低多边形建模（Low-Poly），面数克制，轮廓清晰
+- 手绘纹理（Hand-Painted Texture），笔触可见，有"画上去"的质感
+- 柔和方向光 + 环境光，阴影柔和不锐利
+- 微缩尺度阴影——阴影距离短、偏移小，营造"小世界"感
+- 无 PBR 写实材质——所有材质走手绘风，不依赖物理光照计算
+- 边缘描边（Outline）可选——建筑/角色可加细描边增强可读性</p>
+<h3 id="22">2.2 色彩规范</h3>
+<p><strong>统一色板</strong>（全时代通用）：</p>
+<table>
+<thead>
+<tr>
+<th>色彩角色</th>
+<th>色名</th>
+<th>Hex</th>
+<th>RGB</th>
+<th>面积占比</th>
+<th>使用范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主色</td>
+<td>土黄</td>
+<td><code>#C4A35A</code></td>
+<td>196,163,90</td>
+<td>25%</td>
+<td>旱地、路面、土墙、旱季农田</td>
+</tr>
+<tr>
+<td>主色</td>
+<td>赭石</td>
+<td><code>#8B5E3C</code></td>
+<td>139,94,60</td>
+<td>20%</td>
+<td>山体、木结构、陶器、树干</td>
+</tr>
+<tr>
+<td>主色</td>
+<td>青绿</td>
+<td><code>#5B8C5A</code></td>
+<td>91,140,90</td>
+<td>20%</td>
+<td>农田、草地、植被</td>
+</tr>
+<tr>
+<td>辅助色</td>
+<td>岩石灰</td>
+<td><code>#6B6B6B</code></td>
+<td>107,107,107</td>
+<td>10%</td>
+<td>石头、地基、山岩</td>
+</tr>
+<tr>
+<td>辅助色</td>
+<td>水面灰蓝</td>
+<td><code>#5E7A8C</code></td>
+<td>94,122,140</td>
+<td>8%</td>
+<td>河流、湖泊、海洋</td>
+</tr>
+<tr>
+<td>辅助色</td>
+<td>深褐</td>
+<td><code>#3A2A1A</code></td>
+<td>58,42,26</td>
+<td>7%</td>
+<td>轮廓线、文字、阴影</td>
+</tr>
+<tr>
+<td>点缀色</td>
+<td>暖金</td>
+<td><code>#D4A84B</code></td>
+<td>212,168,75</td>
+<td>3%</td>
+<td>干预特效、高亮、正面反馈</td>
+</tr>
+<tr>
+<td>点缀色</td>
+<td>朱砂红</td>
+<td><code>#C0392B</code></td>
+<td>192,57,43</td>
+<td>3%</td>
+<td>关键事件、警示、灾害标记</td>
+</tr>
+<tr>
+<td>点缀色</td>
+<td>石青</td>
+<td><code>#3A6B8C</code></td>
+<td>58,107,140</td>
+<td>2%</td>
+<td>屋顶瓦片、特殊建筑</td>
+</tr>
+<tr>
+<td>点缀色</td>
+<td>石绿</td>
+<td><code>#4A7C59</code></td>
+<td>74,124,89</td>
+<td>2%</td>
+<td>深层植被、园林</td>
+</tr>
+</tbody>
+</table>
+<p>色值约束：整体饱和度 25%-35%，大地色系主导，点缀色面积 ≤ 10%。不走鲜艳卡通，也不走暗黑写实——走"手绘微缩模型"的温润质感。</p>
+<h3 id="23">2.3 线条与笔触规范</h3>
+<ul>
+<li>地形轮廓：自然曲线，手绘质感的高度图 mesh</li>
+<li>水面：规整波纹纹理，有方向性，半透明</li>
+<li>植被：低多边形树冠/草丛 + 手绘纹理，叶形可辨但不写实</li>
+<li>建筑：低多边形 + 手绘木纹/瓦片纹理，直线为主但有手绘温度</li>
+<li>NPC：简化人形轮廓（俯视下约 3-5mm 等效），可辨姿态与职业</li>
+</ul>
+<h3 id="24">2.4 材质方向</h3>
+<table>
+<thead>
+<tr>
+<th>材质类型</th>
+<th>实现方式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>地形</td>
+<td>高度图驱动 mesh + 手绘纹理</td>
+<td>程序化生成高度图，手绘纹理按高度/坡度分配</td>
+</tr>
+<tr>
+<td>水面</td>
+<td>半透明 + 波纹法线 + 简单反射</td>
+<td>不追求写实水面，保持手绘质感</td>
+</tr>
+<tr>
+<td>植被</td>
+<td>低多边形 + 手绘纹理</td>
+<td>树冠/草丛用低模 + 手绘叶纹纹理</td>
+</tr>
+<tr>
+<td>建筑</td>
+<td>低多边形 + 手绘纹理</td>
+<td>木纹、瓦片、砖石纹理均为手绘风格</td>
+</tr>
+<tr>
+<td>NPC</td>
+<td>低多边形 + 纯色 + 简单纹理</td>
+<td>俯视下极小，以颜色和轮廓区分职业</td>
+</tr>
+</tbody>
+</table>
+<h3 id="25">2.5 光影方向</h3>
+<table>
+<thead>
+<tr>
+<th>光照项</th>
+<th>设定</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主光源</td>
+<td>柔和方向光（45°-60° 倾斜）</td>
+<td>模拟自然日光，与俯视相机角度配合</td>
+</tr>
+<tr>
+<td>环境光</td>
+<td>全局环境光（天空色驱动）</td>
+<td>保证阴影面不过暗，维持手绘质感</td>
+</tr>
+<tr>
+<td>阴影</td>
+<td>Soft Shadows，Shadow Distance ≤ 50m</td>
+<td>微缩尺度下阴影距离短，保证性能</td>
+</tr>
+<tr>
+<td>阴影偏移</td>
+<td>小偏移，短投影</td>
+<td>营造"小世界"尺度感</td>
+</tr>
+<tr>
+<td>四季色温</td>
+<td>全局光照色温随季节变化</td>
+<td>春暖偏黄 / 秋冷偏橙 / 冬冷偏蓝</td>
+</tr>
+<tr>
+<td>灾害光照</td>
+<td>灾害时全局压暗 + 偏色</td>
+<td>见第 3 章灾害调色</td>
+</tr>
+<tr>
+<td>暖色点缀</td>
+<td>聚落炊烟区域微弱暖色点光</td>
+<td>营造"有人住"的生机感</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-color-specification">3. 色彩规范（Color Specification）</h2>
+<h3 id="31">3.1 完整色板</h3>
+<blockquote>
+<p>全时代统一色板，详见第 2.2 节。以下补充季节、灾害、干预特效与 UI 配色。</p>
+</blockquote>
+<h3 id="32">3.2 季节调色</h3>
+<p>四季色温变化通过 URP Volume 的 Color Adjustments（色温/色调）和 Color Filters（LUT）实现。</p>
+<table>
+<thead>
+<tr>
+<th>季节</th>
+<th>色温偏移</th>
+<th>色调偏移</th>
+<th>LUT 描述</th>
+<th>参考色感</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>春</td>
+<td>+300K（暖）</td>
+<td>嫩绿 <code>#7DBE6F</code> + 桃粉 <code>#E8A0A0</code></td>
+<td>农田嫩绿，野花桃粉点缀</td>
+<td>春耕初忙</td>
+</tr>
+<tr>
+<td>夏</td>
+<td>+100K（微暖）</td>
+<td>浓绿 <code>#3A7A3A</code> + 明黄 <code>#E8C84A</code></td>
+<td>植被最浓密，作物金黄</td>
+<td>夏耘盛长</td>
+</tr>
+<tr>
+<td>秋</td>
+<td>-200K（微冷）</td>
+<td>金褐 <code>#B8862A</code> + 赭红 <code>#A05A3C</code></td>
+<td>农田金褐，树叶赭红</td>
+<td>秋收丰熟</td>
+</tr>
+<tr>
+<td>冬</td>
+<td>-400K（冷）</td>
+<td>灰白 <code>#D8D8D8</code> + 黛蓝 <code>#4A6080</code></td>
+<td>大地灰白，水面黛蓝</td>
+<td>冬藏寂寥</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33">3.3 灾害调色</h3>
+<p>灾害调色通过 URP Volume 的 Color Adjustments + Channel Mixer 实现偏色，覆盖在季节调色之上。</p>
+<table>
+<thead>
+<tr>
+<th>灾害类型</th>
+<th>偏色方向</th>
+<th>Hex 叠加色</th>
+<th>饱和度变化</th>
+<th>对比度变化</th>
+<th>暗角</th>
+<th>持续时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>旱季</td>
+<td>黄褐偏色</td>
+<td><code>#8B7D3C</code> 叠加 15%</td>
+<td>-20%</td>
+<td>+10%</td>
+<td>加深</td>
+<td>数 Turn</td>
+</tr>
+<tr>
+<td>兽患</td>
+<td>血红偏色</td>
+<td><code>#6B1A1A</code> 叠加 10%</td>
+<td>+5%（红色通道）</td>
+<td>+15%</td>
+<td>加深</td>
+<td>1-2 Turn</td>
+</tr>
+<tr>
+<td>疫病</td>
+<td>灰绿偏色</td>
+<td><code>#4A6B4A</code> 叠加 12%</td>
+<td>-25%</td>
+<td>-10%</td>
+<td>加深</td>
+<td>数 Turn</td>
+</tr>
+<tr>
+<td>饥荒</td>
+<td>灰白褪色</td>
+<td><code>#808080</code> 叠加 10%</td>
+<td>-30%</td>
+<td>-15%</td>
+<td>加深</td>
+<td>数 Turn</td>
+</tr>
+<tr>
+<td>洪涝</td>
+<td>灰蓝偏色</td>
+<td><code>#3A5A7A</code> 叠加 12%</td>
+<td>-10%</td>
+<td>+5%</td>
+<td>轻微</td>
+<td>数 Turn</td>
+</tr>
+</tbody>
+</table>
+<p>灾害调色过渡：灾害开始时 1 Turn 内渐变到位，结束时 1 Turn 内渐变恢复。不硬切。</p>
+<h3 id="34">3.4 干预特效配色</h3>
+<table>
+<thead>
+<tr>
+<th>特效阶段</th>
+<th>主色</th>
+<th>Hex</th>
+<th>辅助色</th>
+<th>Hex</th>
+<th>形态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>蓄力</td>
+<td>暖金</td>
+<td><code>#D4A84B</code></td>
+<td>—</td>
+<td>—</td>
+<td>光点汇聚 + 地面淡金色圆形预览</td>
+</tr>
+<tr>
+<td>释放</td>
+<td>暖金</td>
+<td><code>#D4A84B</code></td>
+<td>朱砂红</td>
+<td><code>#C0392B</code></td>
+<td>金色光环爆发 + 向上柱状光</td>
+</tr>
+<tr>
+<td>涟漪</td>
+<td>暖金</td>
+<td><code>#D4A84B</code></td>
+<td>—</td>
+<td>—</td>
+<td>涟漪从落点向外扩散 2-3 圈，渐隐</td>
+</tr>
+<tr>
+<td>残留</td>
+<td>暖金</td>
+<td><code>#D4A84B</code> 30% 透明</td>
+<td>—</td>
+<td>—</td>
+<td>落点保留淡金色微光，持续 1 Turn</td>
+</tr>
+</tbody>
+</table>
+<p>干预特效全时代统一——始终是金色光环 + 涟漪扩散，不因文明阶段变化。</p>
+<h3 id="35-ui">3.5 UI 配色规范</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>色名</th>
+<th>Hex</th>
+<th>使用范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文字/轮廓</td>
+<td>深褐</td>
+<td><code>#3A2A1A</code></td>
+<td>所有文字、图标轮廓、面板边框</td>
+</tr>
+<tr>
+<td>警示/关键</td>
+<td>朱砂红</td>
+<td><code>#C0392B</code></td>
+<td>警告标记、关键事件、危险状态</td>
+</tr>
+<tr>
+<td>高亮/干预</td>
+<td>暖金</td>
+<td><code>#D4A84B</code></td>
+<td>干预高亮、选中态、正面反馈</td>
+</tr>
+<tr>
+<td>正向状态</td>
+<td>青绿</td>
+<td><code>#5B8C5A</code></td>
+<td>正面状态、增长趋势</td>
+</tr>
+<tr>
+<td>面板底</td>
+<td>暖白</td>
+<td><code>#F5F0E8</code></td>
+<td>面板背景（半透明 85%）</td>
+</tr>
+<tr>
+<td>禁用态</td>
+<td>淡灰</td>
+<td><code>#8C8C8C</code></td>
+<td>禁用按钮、不可用选项</td>
+</tr>
+</tbody>
+</table>
+<p>约束：UI 用色不超过 4 色（深褐 + 暖金 + 朱砂 + 青绿），面板底色不计入。全时代统一，不随文明阶段变化。</p>
+<hr />
+<h2 id="4-terrain-environment-art">4. 地形与环境美术（Terrain &amp; Environment Art）</h2>
+<h3 id="41">4.1 类现实世界地图的视觉呈现方向</h3>
+<p>世界地图为程序化生成的大陆级地图，俯视呈现。视觉上需传达"微缩沙盘"的尺度感——不是卫星照片的真实感，而是"桌面上的一盘微缩世界"。</p>
+<p><strong>地图视觉层级</strong>（从底到顶）：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>内容</th>
+<th>渲染方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0 底层</td>
+<td>海洋/大水体</td>
+<td>半透明水面 + 深浅渐变</td>
+</tr>
+<tr>
+<td>L1 地形层</td>
+<td>山脉/平原/森林/荒漠</td>
+<td>高度图驱动 mesh + 手绘纹理</td>
+</tr>
+<tr>
+<td>L2 植被层</td>
+<td>草地/树木/灌木</td>
+<td>低模 + 手绘纹理</td>
+</tr>
+<tr>
+<td>L3 建筑层</td>
+<td>聚落/城市/基础设施</td>
+<td>低模 + 手绘纹理</td>
+</tr>
+<tr>
+<td>L4 动态层</td>
+<td>NPC/动物/天气粒子</td>
+<td>粒子/点状 sprite</td>
+</tr>
+<tr>
+<td>L5 特效层</td>
+<td>干预光效/灾害特效</td>
+<td>粒子 + shader</td>
+</tr>
+<tr>
+<td>L6 UI 叠加层</td>
+<td>标记/面板/光标</td>
+<td>uGUI Canvas</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42">4.2 各生物群系美术特征</h3>
+<blockquote>
+<p>全时代统一——同一生物群系始终使用相同的美术表现，不因文明阶段而变化。</p>
+</blockquote>
+<h4 id="_1">山脉</h4>
+<table>
+<thead>
+<tr>
+<th>美术特征</th>
+<th>色彩</th>
+<th>模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>手绘风格山体，有岩石纹理与高度层次</td>
+<td>赭石 <code>#8B5E3C</code> + 岩石灰 <code>#6B6B6B</code></td>
+<td>低面数 + 手绘石纹纹理</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_2">平原</h4>
+<table>
+<thead>
+<tr>
+<th>美术特征</th>
+<th>色彩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>手绘农田纹理，田垄可见，季节变化时颜色轮转</td>
+<td>青绿 <code>#5B8C5A</code>（春夏）→ 金褐 <code>#B8862A</code>（秋）→ 灰白 <code>#D8D8D8</code>（冬）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_3">森林</h4>
+<table>
+<thead>
+<tr>
+<th>美术特征</th>
+<th>色彩</th>
+<th>模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>低多边形树冠，手绘叶纹纹理，季节变化时颜色轮转</td>
+<td>石绿 <code>#4A7C59</code> + 青绿 <code>#5B8C5A</code>（春夏）→ 赭红 <code>#A05A3C</code>（秋）→ 灰白 <code>#D8D8D8</code>（冬）</td>
+<td>低模树冠 + 手绘纹理</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_4">河流与湖泊</h4>
+<table>
+<thead>
+<tr>
+<th>美术特征</th>
+<th>色彩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>半透明水面 + 波纹法线 + 简单反射</td>
+<td>水面灰蓝 <code>#5E7A8C</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="_5">荒漠</h4>
+<table>
+<thead>
+<tr>
+<th>美术特征</th>
+<th>色彩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>手绘沙地纹理，有风蚀纹理</td>
+<td>土黄 <code>#C4A35A</code> + 岩石灰 <code>#6B6B6B</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="43">4.3 地貌的视觉变化</h3>
+<blockquote>
+<p>地貌随文明发展产生的变化是内容层面的（人工化痕迹），而非画风层面的。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>地貌元素</th>
+<th>自然状态</th>
+<th>文明发展后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>海岸线</td>
+<td>自然曲线</td>
+<td>局部填海（直线码头/堤坝）</td>
+</tr>
+<tr>
+<td>河道</td>
+<td>自然蜿蜒</td>
+<td>局部灌溉渠/截弯取直</td>
+</tr>
+<tr>
+<td>森林边界</td>
+<td>自然边界</td>
+<td>人工砍伐边界（清晰）</td>
+</tr>
+<tr>
+<td>山体</td>
+<td>自然</td>
+<td>矿洞/隧道痕迹</td>
+</tr>
+<tr>
+<td>平原</td>
+<td>自然草地</td>
+<td>农田网格/道路</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44">4.4 天气与大气效果</h3>
+<table>
+<thead>
+<tr>
+<th>天气类型</th>
+<th>视觉效果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>晴天</td>
+<td>清晰可见，柔和日光</td>
+<td>暖光柔角，阴影短</td>
+</tr>
+<tr>
+<td>多云</td>
+<td>半透明云阴影在地表移动</td>
+<td>云阴影柔和</td>
+</tr>
+<tr>
+<td>雨天</td>
+<td>雨粒子 + 地面湿润反光</td>
+<td>透明雨粒 + 水洼反射</td>
+</tr>
+<tr>
+<td>雪天</td>
+<td>雪粒子 + 地表白色覆盖</td>
+<td>白色雪覆，建筑屋顶积雪</td>
+</tr>
+<tr>
+<td>雾天</td>
+<td>体积雾 + 能见度降低</td>
+<td>晨雾意境</td>
+</tr>
+<tr>
+<td>沙尘</td>
+<td>黄色粒子 + 能见度降低</td>
+<td>偏黄褐</td>
+</tr>
+</tbody>
+</table>
+<p>大气效果用 URP 的 Volumetric Fog（或自定义后处理近似）实现，所有天气状态通过全局参数控制强度。</p>
+<hr />
+<h2 id="5-architecture-settlement-art">5. 建筑与聚落美术（Architecture &amp; Settlement Art）</h2>
+<h3 id="51">5.1 建筑风格方向</h3>
+<blockquote>
+<p>全时代统一的渲染风格——所有建筑都是低多边形 + 手绘纹理。建筑的变化是形态与内容层面的（茅棚 → 木构 → 砖石 → … → 现代高楼），而非画风层面的。</p>
+</blockquote>
+<p>建筑演进路径（按文明技术等级，非美术风格切换）：</p>
+<table>
+<thead>
+<tr>
+<th>技术等级</th>
+<th>建筑类型</th>
+<th>美术特征</th>
+<th>色彩</th>
+<th>模型面数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T0 原始</td>
+<td>茅棚/窝棚</td>
+<td>极简三角形态，茅草顶</td>
+<td>土黄 <code>#C4A35A</code> + 赭石 <code>#8B5E3C</code></td>
+<td>≤50 面</td>
+</tr>
+<tr>
+<td>T1 古代早期</td>
+<td>木构建筑</td>
+<td>榫卯结构感，木墙瓦顶</td>
+<td>赭石 <code>#8B5E3C</code> + 石青 <code>#3A6B8C</code>（屋顶）</td>
+<td>100-200 面</td>
+</tr>
+<tr>
+<td>T2 古代鼎盛</td>
+<td>石木混合</td>
+<td>石基木墙，有围墙院落</td>
+<td>岩石灰 <code>#6B6B6B</code> + 赭石 <code>#8B5E3C</code></td>
+<td>200-400 面</td>
+</tr>
+<tr>
+<td>T3 城邦</td>
+<td>多层建筑</td>
+<td>有城防工事，路网</td>
+<td>岩石灰 <code>#6B6B6B</code> + 土黄 <code>#C4A35A</code></td>
+<td>300-600 面</td>
+</tr>
+<tr>
+<td>T4 中古</td>
+<td>砖石城堡</td>
+<td>砖墙、城墙、塔楼</td>
+<td>砖红 <code>#9C5B4A</code> + 岩石灰 <code>#6B6B6B</code></td>
+<td>400-800 面</td>
+</tr>
+<tr>
+<td>T5 近代</td>
+<td>工业建筑</td>
+<td>工厂、烟囱、砖石+铁构件</td>
+<td>工业暖灰 <code>#9A9088</code> + 砖红 <code>#9C5B4A</code></td>
+<td>400-800 面</td>
+</tr>
+<tr>
+<td>T6 现代</td>
+<td>现代建筑</td>
+<td>高楼、玻璃幕墙、道路网</td>
+<td>岩石灰 <code>#6B6B6B</code> + 水面灰蓝 <code>#5E7A8C</code>（玻璃）</td>
+<td>300-600 面</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键说明</strong>：所有技术等级的建筑使用相同的手绘纹理风格和渲染管线——T6 现代高楼与 T0 茅棚在画风上完全一致（低多边形 + 手绘纹理），只是形态和材质纹理不同（玻璃 vs 茅草）。这是"全时代统一风格"的核心体现。</p>
+<p>建筑模型规范：
+- 每个技术等级 3-5 种变体（民居/仓储/生产/防御/特殊）
+- 模块化组件：屋顶/墙体/地基可自由组合
+- 俯视可读性：屋顶是俯视下最主要的识别面——通过屋顶形状/颜色区分功能</p>
+<h3 id="52">5.2 聚落成长可视化</h3>
+<p>聚落成长分为 5 个视觉阶段，玩家通过画面直接读出聚落规模：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>名称</th>
+<th>人口</th>
+<th>视觉标志</th>
+<th>画面占地面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S0</td>
+<td>露营点</td>
+<td>1-5</td>
+<td>1-2 个茅棚，无固定设施</td>
+<td>极小（点状）</td>
+</tr>
+<tr>
+<td>S1</td>
+<td>村落</td>
+<td>5-20</td>
+<td>5-8 个建筑，有简单田垄</td>
+<td>小</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>聚落</td>
+<td>20-50</td>
+<td>10-15 个建筑，有仓储/生产区</td>
+<td>中</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>城镇</td>
+<td>50-200</td>
+<td>建筑密集，有围墙/集市</td>
+<td>大</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>城邦</td>
+<td>200+</td>
+<td>多层建筑，城防工事，路网</td>
+<td>很大</td>
+</tr>
+</tbody>
+</table>
+<p>聚落成长动画：新建筑以"从地面生长"的方式出现，持续约 2 秒——地基先出现，然后墙体升起，最后屋顶落定。全时代统一动画风格。</p>
+<hr />
+<h2 id="6-character-creature-art">6. 角色与生物美术（Character &amp; Creature Art）</h2>
+<h3 id="61-npc">6.1 NPC 视觉风格</h3>
+<p>NPC 在俯视尺度下极小（屏幕等效 3-5mm），视觉设计以"可读性优先"为原则。全时代统一风格——低多边形 + 纯色 + 简单纹理。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>规范</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>尺寸</td>
+<td>3-5mm 屏幕等效</td>
+<td>俯视下可辨识的最小尺寸</td>
+</tr>
+<tr>
+<td>视觉表达</td>
+<td>简化人形轮廓</td>
+<td>低多边形人形，可辨姿态</td>
+</tr>
+<tr>
+<td>颜色区分</td>
+<td>服饰色区分职业</td>
+<td>农=青绿 / 猎=赭石 / 工=土黄 / 管理=石青</td>
+</tr>
+<tr>
+<td>可读信息</td>
+<td>可辨职业与状态</td>
+<td>通过颜色和头顶图标</td>
+</tr>
+</tbody>
+</table>
+<p>NPC 状态可视化（俯视可读）：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>视觉标记</th>
+<th>颜色</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正常</td>
+<td>无额外标记</td>
+<td>服饰色</td>
+</tr>
+<tr>
+<td>饥饿</td>
+<td>头顶小图标（饭碗）</td>
+<td><code>#C0392B</code>（朱砂红）</td>
+</tr>
+<tr>
+<td>疾病</td>
+<td>头顶小图标（十字）</td>
+<td><code>#4A6B4A</code>（灰绿）</td>
+</tr>
+<tr>
+<td>死亡</td>
+<td>躺倒 + 渐隐</td>
+<td>灰色渐隐至透明</td>
+</tr>
+<tr>
+<td>英雄/关键个体</td>
+<td>金色描边光环</td>
+<td><code>#D4A84B</code>（暖金）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62">6.2 生物美术方向</h3>
+<h4 id="_6">动物</h4>
+<table>
+<thead>
+<tr>
+<th>动物类型</th>
+<th>视觉表达</th>
+<th>主色</th>
+<th>Hex</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>食草动物</td>
+<td>简化兽形轮廓</td>
+<td>赭褐</td>
+<td><code>#8B6B4A</code></td>
+</tr>
+<tr>
+<td>食肉动物</td>
+<td>简化兽形 + 暗色</td>
+<td>深灰褐</td>
+<td><code>#4A3A2A</code></td>
+</tr>
+<tr>
+<td>鱼类</td>
+<td>水面游动点</td>
+<td>银灰</td>
+<td><code>#A0A8B0</code></td>
+</tr>
+<tr>
+<td>鸟类</td>
+<td>天空飞掠点</td>
+<td>暖灰</td>
+<td><code>#9A8A7A</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="_7">植物</h4>
+<table>
+<thead>
+<tr>
+<th>植物类型</th>
+<th>视觉表达</th>
+<th>色彩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>野草</td>
+<td>低多边形草丛 + 手绘纹理</td>
+<td>青绿 <code>#5B8C5A</code></td>
+</tr>
+<tr>
+<td>树木</td>
+<td>低多边形树冠 + 手绘叶纹</td>
+<td>石绿 <code>#4A7C59</code> + 青绿 <code>#5B8C5A</code></td>
+</tr>
+<tr>
+<td>农作物</td>
+<td>田垄色块（随季节变化）</td>
+<td>春夏青绿 → 秋金褐 → 冬灰白</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-uihud-uihud-art">7. UI/HUD 美术（UI/HUD Art）</h2>
+<h3 id="71-ui">7.1 统一 UI 风格</h3>
+<p><strong>整体风格</strong>：半透明手绘风面板、简洁图标、可读性优先。全时代统一——不因文明阶段切换 UI 风格。</p>
+<table>
+<thead>
+<tr>
+<th>元素</th>
+<th>设计方向</th>
+<th>材质/纹理</th>
+<th>色彩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>面板边框</td>
+<td>半透明圆角面板，不遮挡主视野</td>
+<td>暖白纹理底 <code>#F5F0E8</code>（85% 不透明）+ 深褐细边框</td>
+<td>底 <code>#F5F0E8</code> + 边 <code>#3A2A1A</code></td>
+</tr>
+<tr>
+<td>图标</td>
+<td>手绘风简笔图标，线条清晰</td>
+<td>手绘矢量风格</td>
+<td>深褐 <code>#3A2A1A</code> + 暖金 <code>#D4A84B</code>（高亮）+ 朱砂 <code>#C0392B</code>（警告）</td>
+</tr>
+<tr>
+<td>字体</td>
+<td>无衬线体（思源黑体 / HarmonyOS Sans）</td>
+<td>清晰可读</td>
+<td>深褐 <code>#3A2A1A</code></td>
+</tr>
+<tr>
+<td>按钮</td>
+<td>圆角方块 + 悬停时高亮</td>
+<td>纯色半透明</td>
+<td>底 <code>#F5F0E8</code> + 悬停 <code>#D4A84B</code> 边框</td>
+</tr>
+<tr>
+<td>滚动条</td>
+<td>细条 + 圆角</td>
+<td>纯色</td>
+<td>淡灰 <code>#8C8C8C</code> + 滑块 <code>#D4A84B</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-ui">7.2 关键 UI 元素设计方向</h3>
+<h4 id="_8">信息面板</h4>
+<p>可折叠侧边面板，默认收起，hover 展开。分三层级：总览（聚落状态概览）→ 详情（人口/粮储/经济/科技）→ 逐项（可点击查看单条数据）。半透明底色不遮挡世界画面。数据以清晰数值/进度条呈现，关键数值用暖金标注。</p>
+<h4 id="_9">地图标记</h4>
+<table>
+<thead>
+<tr>
+<th>标记类型</th>
+<th>形态</th>
+<th>色彩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>聚落</td>
+<td>"屋"形手绘图标 + 人口数值</td>
+<td>深褐 <code>#3A2A1A</code></td>
+</tr>
+<tr>
+<td>物种</td>
+<td>"足印"手绘图标</td>
+<td>深褐 <code>#3A2A1A</code></td>
+</tr>
+<tr>
+<td>资源</td>
+<td>"圆点"手绘图标 + 数值</td>
+<td>深褐 <code>#3A2A1A</code></td>
+</tr>
+<tr>
+<td>灾害</td>
+<td>朱砂惊叹符</td>
+<td>朱砂红 <code>#C0392B</code></td>
+</tr>
+<tr>
+<td>干预落点</td>
+<td>金色光环 + 涟漪</td>
+<td>暖金 <code>#D4A84B</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="_10">干预光标</h4>
+<p>金色光环（内圈实心 + 外圈渐隐），释放时涟漪从落点向外扩散 2-3 圈，渐隐。色彩：暖金 <code>#D4A84B</code> + 朱砂 <code>#C0392B</code>。全时代统一。</p>
+<h4 id="_11">时间轴</h4>
+<p>底部细条形态。轴体为半透明条状，季节/年份以无衬线体小字标注。可拖拽加速/暂停；不同时间尺度下刻度自动切换。</p>
+<h4 id="_12">事件提示</h4>
+<p>右侧浮现的通知卡片，滑入动画（从右滑入，约 0.3s）。简洁卡片式，半透明底色。</p>
+<p>事件分级配色：</p>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>色彩</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正面</td>
+<td>暖金 <code>#D4A84B</code></td>
+<td>丰收、发现、灵感</td>
+</tr>
+<tr>
+<td>中性</td>
+<td>深褐 <code>#3A2A1A</code></td>
+<td>常规信息</td>
+</tr>
+<tr>
+<td>警告</td>
+<td>朱砂红 <code>#C0392B</code></td>
+<td>灾害前兆、资源告急</td>
+</tr>
+<tr>
+<td>紧急</td>
+<td>朱砂红 <code>#C0392B</code> 闪烁</td>
+<td>文明存亡危机</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_13">编年史</h4>
+<p>全屏阅览视图，打开时画面淡出为暗色铺底。文字以编年体格式排列，可上下滚动翻阅、搜索/筛选/缩放。</p>
+<hr />
+<h2 id="8-vfx-art">8. 特效美术（VFX Art）</h2>
+<h3 id="81">8.1 干预特效</h3>
+<p>干预特效是玩家行动的最直接视觉反馈，需满足"有重量"的 agency 感。全时代统一风格。</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>视觉表现</th>
+<th>色彩</th>
+<th>粒子参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>蓄力</td>
+<td>光标处金色光点汇聚，地面出现淡金色圆形预览</td>
+<td>暖金 <code>#D4A84B</code></td>
+<td>20-30 粒子，向上汇聚</td>
+</tr>
+<tr>
+<td>释放</td>
+<td>金色光环从落点爆发，向上扩散为柱状光</td>
+<td>暖金 <code>#D4A84B</code> + 朱砂 <code>#C0392B</code></td>
+<td>50-80 粒子，爆发式</td>
+</tr>
+<tr>
+<td>涟漪</td>
+<td>涟漪从落点向外扩散 2-3 圈，渐隐</td>
+<td>暖金 <code>#D4A84B</code> → 透明</td>
+<td>3 圈环形 shader，半径递增</td>
+</tr>
+<tr>
+<td>残留</td>
+<td>落点保留淡金色微光，持续 1 Turn</td>
+<td>暖金 <code>#D4A84B</code> 30% 透明</td>
+<td>点光源 + 面片</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82">8.2 环境特效</h3>
+<h4 id="_14">天气特效</h4>
+<table>
+<thead>
+<tr>
+<th>天气</th>
+<th>粒子类型</th>
+<th>色彩</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>雨</td>
+<td>雨线粒子（从上至下）</td>
+<td>透明 <code>#A0B0C0</code></td>
+<td>地面湿润反光</td>
+</tr>
+<tr>
+<td>雪</td>
+<td>雪花粒子（缓慢飘落）</td>
+<td>白 <code>#F5F0E8</code></td>
+<td>地表白色覆盖</td>
+</tr>
+<tr>
+<td>雾</td>
+<td>体积雾 / 半透明白色面片</td>
+<td>灰白 <code>#D0D0D0</code></td>
+<td>能见度降低</td>
+</tr>
+<tr>
+<td>沙尘</td>
+<td>黄色粒子（水平方向飘移）</td>
+<td>黄褐 <code>#8B7D3C</code></td>
+<td>能见度降低</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_15">季节变化特效</h4>
+<p>季节切换时，1 Turn 内全局过渡：
+- 植被颜色 lerp（春绿 → 夏浓 → 秋黄 → 冬灰）
+- 地表覆盖层变化（冬雪覆盖 / 秋落叶覆盖）
+- 天空色温 lerp
+- 粒子类型切换（春花瓣 / 夏无 / 秋落叶 / 冬雪花）</p>
+<h4 id="_16">灾害特效</h4>
+<table>
+<thead>
+<tr>
+<th>灾害</th>
+<th>视觉特效</th>
+<th>色彩</th>
+<th>持续</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>旱季</td>
+<td>地面龟裂纹理叠加，河流缩窄，作物褪色</td>
+<td>黄褐 <code>#8B7D3C</code> 叠加</td>
+<td>数 Turn</td>
+</tr>
+<tr>
+<td>兽患</td>
+<td>红色危险标记在兽群路径上闪烁，NPC 头顶惊恐图标</td>
+<td>血红 <code>#6B1A1A</code> 叠加</td>
+<td>1-2 Turn</td>
+</tr>
+<tr>
+<td>疫病</td>
+<td>绿色病菌粒子在聚落上空弥漫，NPC 头顶十字图标</td>
+<td>灰绿 <code>#4A6B4A</code> 叠加</td>
+<td>数 Turn</td>
+</tr>
+<tr>
+<td>洪涝</td>
+<td>水面上升，河流溢出，蓝色水纹扩散</td>
+<td>灰蓝 <code>#3A5A7A</code> 叠加</td>
+<td>数 Turn</td>
+</tr>
+<tr>
+<td>饥荒</td>
+<td>画面整体褪色去饱和，NPC 移动减速，饥荒图标</td>
+<td>灰白 <code>#808080</code> 叠加</td>
+<td>数 Turn</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-technical-art-direction">9. 技术美术方向（Technical Art Direction）</h2>
+<h3 id="91-urp">9.1 URP 渲染管线配置方向</h3>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>设定</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>渲染管线</td>
+<td>URP 17.0.4</td>
+<td>概念文档已确认</td>
+</tr>
+<tr>
+<td>相机</td>
+<td>正交相机（Orthographic）+ 可选透视微调</td>
+<td>俯视沙盘视角，正交保证一致性</td>
+</tr>
+<tr>
+<td>相机角度</td>
+<td>45°-60° 倾斜俯视</td>
+<td>既能看到地面布局，又有微缩纵深感</td>
+</tr>
+<tr>
+<td>阴影</td>
+<td>Soft Shadows，Shadow Distance ≤ 50m</td>
+<td>微缩尺度下阴影距离短，保证性能</td>
+</tr>
+<tr>
+<td>抗锯齿</td>
+<td>FXAA 或 SMAA</td>
+<td>性能优先，微缩尺度下 TAA 可能导致抖动</td>
+</tr>
+<tr>
+<td>色彩空间</td>
+<td>Linear</td>
+<td>保证 shader 和后处理的色彩准确性</td>
+</tr>
+<tr>
+<td>HDR</td>
+<td>开启</td>
+<td>后处理 Bloom（干预光效）需要 HDR</td>
+</tr>
+<tr>
+<td>MSAA</td>
+<td>关闭（用 FXAA 替代）</td>
+<td>URP 下 MSAA 与某些 shader feature 不兼容</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92-shader">9.2 统一 Shader 方案</h3>
+<blockquote>
+<p>v2.0.0 不再需要 Universal Era Shader 和 <code>_EraProgress</code> 参数。全时代使用同一套 Shader，无需风格过渡。</p>
+</blockquote>
+<p><strong>核心 Shader</strong>：WorldSim Hand-Painted Shader</p>
+<p>基于 URP Shader Graph 构建，支持手绘纹理风格的 NPR 渲染：</p>
+<pre><code>[WorldSim Hand-Painted Shader Graph]
+
+输入：
+  - Base Color（手绘基础色纹理）
+  - Normal（手绘法线贴图，可选）
+  - Occlusion（手绘 AO 贴图，可选）
+  - Rim Light Color（边缘光颜色，用于增强可读性）
+
+逻辑：
+  1. 基础色：采样手绘纹理
+  2. 光照：柔和方向光 + 环境光（URP Lit 基础上降低 PBR 权重）
+  3. 边缘光：Fresnel 边缘光，增强物体轮廓可读性
+  4. 饱和度：全局后处理控制（见 9.4）
+
+输出：
+  - Albedo（手绘基础色）
+  - Normal（手绘法线）
+  - Emission（干预光效/灾害偏色）
+</code></pre>
+<p><strong>Shader 变体控制</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>Shader</th>
+<th>用途</th>
+<th>变体数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WorldSim Hand-Painted</td>
+<td>建筑/地形/植被通用</td>
+<td>≤ 5</td>
+</tr>
+<tr>
+<td>WorldSim Water</td>
+<td>水面</td>
+<td>≤ 3</td>
+</tr>
+<tr>
+<td>WorldSim NPC</td>
+<td>NPC/生物（简化版，Instancing 优化）</td>
+<td>≤ 3</td>
+</tr>
+<tr>
+<td>WorldSim VFX</td>
+<td>粒子特效</td>
+<td>≤ 5</td>
+</tr>
+<tr>
+<td>UI Default</td>
+<td>uGUI 元素</td>
+<td>URP 内置</td>
+</tr>
+</tbody>
+</table>
+<p>全场景核心 Shader ≤ 5 个，变体总数 ≤ 20。</p>
+<h3 id="93">9.3 性能预算方向</h3>
+<p>大量实体渲染的性能策略：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>说明</th>
+<th>适用范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPU Instancing</td>
+<td>同类建筑/植被/NPC 使用相同 mesh + material，开启 GPU Instancing</td>
+<td>建筑、植被、NPC</td>
+</tr>
+<tr>
+<td>DOTS/ECS</td>
+<td>NPC 与生态模拟使用 DOTS 架构，数据驱动，批量处理</td>
+<td>NPC（数百-数千）</td>
+</tr>
+<tr>
+<td>LOD Group</td>
+<td>每个建筑/植被设 3 级 LOD：近（全细节）/ 中（简化）/ 远（Billboard/点）</td>
+<td>建筑、植被</td>
+</tr>
+<tr>
+<td>Tick-based 模拟</td>
+<td>生态/经济计算按 Turn 结算（非每帧），仅渲染层每帧更新</td>
+<td>生态、经济系统</td>
+</tr>
+<tr>
+<td>视锥剔除</td>
+<td>URP 内置视锥剔除 + 遮挡剔除</td>
+<td>全场景</td>
+</tr>
+<tr>
+<td>HLOD（层级 LOD）</td>
+<td>远视角下聚落合并为单一 HLOD mesh</td>
+<td>聚落、城市</td>
+</tr>
+<tr>
+<td>粒子池化</td>
+<td>干预特效/天气粒子使用对象池，避免运行时实例化</td>
+<td>粒子特效</td>
+</tr>
+</tbody>
+</table>
+<p>性能预算（目标 60 FPS @ 1080p，桌面 PC）：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>预算</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>渲染帧时间</td>
+<td>≤ 12ms（剩余给模拟逻辑）</td>
+</tr>
+<tr>
+<td>Draw Call</td>
+<td>≤ 2000（Instancing 后）</td>
+</tr>
+<tr>
+<td>三角面数</td>
+<td>≤ 2M（近景全细节 + 远景 LOD）</td>
+</tr>
+<tr>
+<td>粒子数</td>
+<td>≤ 5000 同屏</td>
+</tr>
+<tr>
+<td>纹理内存</td>
+<td>≤ 2GB（使用 Texture Atlas + 纹理压缩）</td>
+</tr>
+<tr>
+<td>Shader 变体数</td>
+<td>≤ 20</td>
+</tr>
+</tbody>
+</table>
+<h3 id="94">9.4 后处理方向</h3>
+<p>使用 URP Volume + Volume Override 实现：</p>
+<table>
+<thead>
+<tr>
+<th>后处理项</th>
+<th>设定</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Color Adjustments — Saturation</td>
+<td>-20%</td>
+<td>压低饱和度，维持手绘温润质感</td>
+</tr>
+<tr>
+<td>Color Adjustments — Contrast</td>
+<td>+0%</td>
+<td>自然对比度</td>
+</tr>
+<tr>
+<td>Color Adjustments — Color Filter</td>
+<td>无（季节/灾害通过 White Balance + Filter 动态控制）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>White Balance — Temperature</td>
+<td>随季节动态变化（+300K 春 ~ -400K 冬）</td>
+<td>季节色温轮转</td>
+</tr>
+<tr>
+<td>Bloom</td>
+<td>弱（干预光效 + 炊烟暖光）</td>
+<td>HDR 支持下的柔和光晕</td>
+</tr>
+<tr>
+<td>Vignette</td>
+<td>弱</td>
+<td>微缩沙盘的聚焦感</td>
+</tr>
+<tr>
+<td>Tonemapping</td>
+<td>Neutral</td>
+<td>中性色调映射</td>
+</tr>
+<tr>
+<td>Color Grading LUT</td>
+<td>四季 LUT（×4）</td>
+<td>季节调色</td>
+</tr>
+<tr>
+<td>Sharpen</td>
+<td>无</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>后处理 Volume 使用 URP 的 Local Volume + Global Volume 组合：
+- Global Volume：基础后处理（色温/对比度/饱和度）
+- Local Volume：灾害调色 Volume，在灾害区域触发，覆盖 Global Volume
+- 季节 LUT 通过 Runtime 切换 LUT Texture 实现</p>
+<hr />
+<h2 id="10-art-production-standards">10. 美术生产规范（Art Production Standards）</h2>
+<h3 id="101">10.1 资源命名规范</h3>
+<pre><code>[类型]_[分类]_[名称]_[变体]_[LOD]
+
+示例：
+  BLD_RES_HOUSE_WOOD_L02     // 建筑_住宅_房子_木构_LOD2
+  VEG_TREE_PINE_AUTUMN_L01   // 植被_树_松树_秋季_LOD1
+  VFX_INTERVENTION_GOLD      // 特效_干预_金色
+  UI_PANEL_INFO              // UI_面板_信息
+  TEX_TILE_GRASS_SPRING      // 纹理_地形_草地_春季
+  MAT_BLD_WOOD               // 材质_建筑_木构
+  SHD_HANDPAINTED            // Shader_手绘
+</code></pre>
+<p>类型前缀：</p>
+<table>
+<thead>
+<tr>
+<th>前缀</th>
+<th>类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BLD</td>
+<td>建筑（Building）</td>
+</tr>
+<tr>
+<td>VEG</td>
+<td>植被（Vegetation）</td>
+</tr>
+<tr>
+<td>CHR</td>
+<td>角色（Character）</td>
+</tr>
+<tr>
+<td>CRE</td>
+<td>生物（Creature）</td>
+</tr>
+<tr>
+<td>TER</td>
+<td>地形（Terrain）</td>
+</tr>
+<tr>
+<td>VFX</td>
+<td>特效（VFX）</td>
+</tr>
+<tr>
+<td>UI</td>
+<td>界面（UI）</td>
+</tr>
+<tr>
+<td>TEX</td>
+<td>纹理（Texture）</td>
+</tr>
+<tr>
+<td>MAT</td>
+<td>材质（Material）</td>
+</tr>
+<tr>
+<td>SHD</td>
+<td>Shader</td>
+</tr>
+<tr>
+<td>MOD</td>
+<td>模型（Model/Mesh）</td>
+</tr>
+<tr>
+<td>ANM</td>
+<td>动画（Animation）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="102">10.2 模块化与复用策略</h3>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>建筑模块化</td>
+<td>屋顶/墙体/地基/装饰件独立制作，运行时组合</td>
+<td>屋顶 5 种 × 墙体 4 种 × 地基 2 种 = 40 种组合</td>
+</tr>
+<tr>
+<td>植被共享 mesh</td>
+<td>同类植物共享基础 mesh，通过缩放/旋转/纹理变化产生差异</td>
+<td>松树 mesh × 3 种缩放 × 4 季纹理 = 12 种变体</td>
+</tr>
+<tr>
+<td>NPC 模板化</td>
+<td>基础人形 mesh + 服饰/工具附件，按职业组合</td>
+<td>基础 mesh + 3 种服饰 + 3 种工具 = 9 种组合</td>
+</tr>
+<tr>
+<td>纹理图集</td>
+<td>同类资源合并到 Atlas，减少 Draw Call</td>
+<td>建筑纹理 Atlas（2048×2048，含 16 个建筑纹理）</td>
+</tr>
+<tr>
+<td>Shader 统一</td>
+<td>尽可能使用 WorldSim Hand-Painted Shader，减少 Shader 变体数</td>
+<td>全场景 ≤ 5 个核心 Shader</td>
+</tr>
+</tbody>
+</table>
+<h3 id="103-lod">10.3 LOD 策略</h3>
+<table>
+<thead>
+<tr>
+<th>LOD 级别</th>
+<th>距离（正交相机 Size 倍数）</th>
+<th>面数</th>
+<th>表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LOD0</td>
+<td>0 - 0.5×</td>
+<td>100%</td>
+<td>全细节模型 + 完整纹理</td>
+</tr>
+<tr>
+<td>LOD1</td>
+<td>0.5× - 1.5×</td>
+<td>50%</td>
+<td>简化模型 + 共享纹理</td>
+</tr>
+<tr>
+<td>LOD2</td>
+<td>1.5× - 3×</td>
+<td>20%</td>
+<td>极简模型 + Atlas 纹理</td>
+</tr>
+<tr>
+<td>LOD3（Billboard/点）</td>
+<td>3×+</td>
+<td>≤10 面</td>
+<td>Billboard 面片 / 点</td>
+</tr>
+</tbody>
+</table>
+<p>LOD 切换距离基于正交相机的 Size（Orthographic Size）动态计算，而非绝对距离——保证缩放视角时 LOD 正确响应。</p>
+<p>HLOD 策略：当视角缩远到整个聚落/城市在屏幕中占面 &lt; 10% 时，聚落内所有建筑合并为单一 HLOD mesh，面数 ≤ 500，以色块表示聚落轮廓。</p>
+<h3 id="104">10.4 参考资料收集方向</h3>
+<table>
+<thead>
+<tr>
+<th>领域</th>
+<th>参考方向</th>
+<th>具体参考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>微缩模型</td>
+<td>桌游微缩模型/战棋模型</td>
+<td>Warhammer 桌游模型、D&amp;D 微缩模型、建筑沙盘模型</td>
+</tr>
+<tr>
+<td>手绘纹理</td>
+<td>手绘游戏纹理风格</td>
+<td>Heroes of M&amp;M III、Northgard、Trine 系列、Divinity: Original Sin</td>
+</tr>
+<tr>
+<td>自然参考</td>
+<td>地貌参考</td>
+<td>国家地理俯瞰摄影、地貌学图鉴</td>
+</tr>
+<tr>
+<td>建筑参考</td>
+<td>中国古建筑</td>
+<td>《营造法式》、中国古建筑图解、各时代民居形制</td>
+</tr>
+<tr>
+<td>参考游戏</td>
+<td>风格参考</td>
+<td>RimWorld（俯视可读性）、Anno 1800（聚落成长）、Northgard（低多边形手绘风）、Minecraft（微缩沙盘感）</td>
+</tr>
+</tbody>
+</table>
+<p>参考资料以 PureRef 板形式组织，每个生物群系一块板，每个 UI 模块一块板。</p>
+<hr />
+<h2 id="11">11. 美术风险与未决问题</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>风险</th>
+<th>优先级</th>
+<th>说明</th>
+<th>缓解方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>俯视可读性与手绘风格之间的矛盾</td>
+<td>P0</td>
+<td>手绘纹理在俯视小尺度下可能细节过多导致辨识困难——纹理追求美感，但玩法要求信息可读。</td>
+<td>1) NPC 始终保持最小可视尺寸（≥ 3mm 屏幕等效），即使远处也用点状 sprite 保底；2) 关键信息（聚落状态/灾害/资源）通过 UI 叠加层补充可读性，不完全依赖画面；3) 地形与 NPC 之间始终保持明度差 ≥ 30%；4) 手绘纹理的笔触尺度需与俯视距离匹配——远处看是色块，近处看是笔触。</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>建筑跨技术等级的形态差异在统一风格下的辨识度</td>
+<td>P1</td>
+<td>T0 茅棚与 T6 现代高楼在画风上完全一致（低多边形 + 手绘纹理），需要确保玩家能通过形态差异辨识技术等级，而非依赖画风变化。</td>
+<td>1) 每个技术等级的建筑轮廓/剪影需有明确差异（茅棚三角 → 木构人字顶 → 砖石方盒 → 高楼矩形）；2) 屋顶颜色按技术等级渐变（茅草土黄 → 瓦顶石青 → 砖红 → 混凝土灰）；3) 聚落密度和高度随技术等级递增，从画面密度即可感知文明阶段。</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>四季×灾害的调色组合</td>
+<td>P1</td>
+<td>4 个季节 × 5 种灾害 = 20 种调色组合，如果每种都用独立 LUT，资源量与维护成本较高。</td>
+<td>使用参数化后处理而非独立 LUT：季节调色通过 White Balance + Color Adjustments 参数组合实现（4 组参数），灾害调色通过 Color Filter 叠加实现（5 组参数）。组合在运行时动态计算，不需要预制所有 LUT。</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>大量 NPC 在手绘 shader 下的渲染性能</td>
+<td>P1</td>
+<td>数百-数千 NPC 在手绘 shader 下渲染，每个 NPC 如果独立 Draw Call 会瞬间爆。</td>
+<td>1) DOTS/ECS + GPU Instancing 批量渲染；2) NPC 使用相同 material + Instanced 属性传递颜色差异；3) 远处 NPC 降级为点状 sprite（Billboard）；4) 帧率优先于个体精度——NPC 在俯视下本就是点状。</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>建筑模型跨技术等级替换的视觉跳变</td>
+<td>P2</td>
+<td>建筑从木构替换为砖石再替换为混凝土，如果直接切换 mesh 会有视觉跳变。</td>
+<td>1) 建筑替换分批进行（按聚落逐栋替换，非全局切换）；2) 替换时播放"生长/建造"动画（旧建筑淡出 + 新建筑从地面生长）；3) 同一建筑位的多技术等级版本共用相同地基 footprint，确保替换时位置对齐。</td>
+</tr>
+<tr>
+<td>A6</td>
+<td>统一风格下远期内容（现代都市）与早期内容（远古聚落）的画面密度差异</td>
+<td>P2</td>
+<td>虽然画风统一，但现代都市（高楼密布、道路网格）与远古聚落（几间茅棚、大片空地）的画面信息密度差异巨大，可能导致"换了个游戏"的感觉。</td>
+<td>1) 这是内容层面的差异而非画风层面——通过聚落成长系统自然过渡（S0→S4 的渐进）；2) 早期阶段的空旷感是设计意图（"天地初开"），后期阶段的密集感也是设计意图（"文明拥挤"），两者都是正确的体验；3) 统一画风确保即使是现代都市，也仍然是"手绘微缩沙盘"而非"写实城市模拟"。</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_17">评审检查清单</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>视觉身份概述</td>
+<td>一句话定义 + 核心视觉理念（全时代统一）+ 视觉目标 + 六大风格关键词 + 与 v1.0.0 差异说明</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>风格指南完整性</td>
+<td>渲染特征 + 统一色板（含 Hex）+ 线条笔触 + 材质方向 + 光影方向</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>色彩规范完整性</td>
+<td>统一色板（Hex）+ 四季调色 + 灾害调色 + 干预特效配色 + UI 配色</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>地形与环境美术</td>
+<td>类现实地图呈现 + 五种生物群系美术特征 + 地貌变化 + 天气大气效果</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>建筑与聚落美术</td>
+<td>七级建筑技术等级方向 + 聚落成长可视化</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A6</td>
+<td>角色与生物美术</td>
+<td>NPC 可读性设计 + 生物美术方向</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A7</td>
+<td>UI/HUD 美术</td>
+<td>统一 UI 风格 + 6 项关键 UI 元素设计方向</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A8</td>
+<td>特效美术</td>
+<td>干预特效 + 环境特效（天气/季节/灾害）</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A9</td>
+<td>技术美术方向</td>
+<td>URP 配置 + 统一 Shader 方案 + 性能预算 + 后处理方向</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A10</td>
+<td>美术生产规范</td>
+<td>命名规范 + 模块化策略 + LOD 策略 + 参考资料方向</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A11</td>
+<td>美术风险</td>
+<td>≥ 5 个风险点，标注优先级，有缓解方向</td>
+<td>⏳ 待评审</td>
+</tr>
+<tr>
+<td>A12</td>
+<td>元数据块</td>
+<td>项目名、版本、日期、作者、阶段齐全</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>A13</td>
+<td>术语英文标注</td>
+<td>关键术语首次出现附英文原文</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>A14</td>
+<td>色值具体性</td>
+<td>所有色值给出 Hex 代码，无泛泛描述</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>A15</td>
+<td>URP 技术约束</td>
+<td>考虑 URP 渲染管线实际约束（Shader Graph、Volume、Instancing）</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>A16</td>
+<td>俯视可读性</td>
+<td>所有美术设计考虑俯瞰视角下的信息可读性</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>A17</td>
+<td>全时代统一性</td>
+<td>所有美术规范不因文明阶段而变化——建筑/角色/UI/特效全时代统一</td>
+<td>✅ 已完成</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>林绘澄注</strong>：v2.0.0 美术圣经的核心变化是取消"风格随时代演进"，改为全时代统一的微缩沙盘手绘风格。这大幅简化了技术管线——不再需要 Universal Era Shader、_EraProgress 参数、风格过渡机制、分时代色板/UI/VFX。核心赌注从"能否实现风格平滑过渡"变为"能否在统一风格下通过建筑形态与内容变化传达足够的时代感"（A2/A6）。建议 MVP 阶段先做两件事验证：(1) 实现 WorldSim Hand-Painted Shader 原型，验证手绘纹理在俯视下的可读性与美感；(2) 制作一个包含 3 种生物群系 + 1 个聚落（T0-T2 建筑等级）的微型场景，验证统一风格下的俯视可读性（A1）与建筑技术等级辨识度（A2）。</p>
+<p><strong>与概念文档的对齐说明</strong>：本文档所有视觉方向均基于概念文档 v1.1.0 第 5 章"视觉锚点"产出。全时代统一微缩沙盘手绘风格，与概念文档 v1.1.0 的视觉方向完全对齐。技术风险 A1 对应概念文档 T1/T4（性能与模拟计算），A4 对应 T1（大量实体渲染）。v1.0.0 中的 T7（视觉风格平滑过渡）已随概念文档 v1.1.0 取消。</p>
+</blockquote>
+</body>
+</html>

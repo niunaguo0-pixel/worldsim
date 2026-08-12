@@ -1,0 +1,17 @@
+{
+  "name": "WorldSim.Simulation.Intervention",
+  "rootNamespace": "WorldSim.Simulation.Intervention",
+  "references": [
+    "WorldSim.Simulation.Core",
+    "Unity.Mathematics"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

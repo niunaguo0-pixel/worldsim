@@ -1,0 +1,5 @@
+{
+  "unityEditor": "6000.0.81f1",
+  "burst": "1.8.30",
+  "notes": "B2/B8 single source of truth for CI pins; never use latest."
+}

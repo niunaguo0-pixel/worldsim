@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 3 出口控制清单（Control Checklist）</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 control-checklist.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#phase-3-control-checklist">Phase 3 出口控制清单（Control Checklist）</a><ul>
+<li><a href="#a-gate-0-ci-p0-s4-73">A. Gate-0 确定性 CI 门禁项（P0，未通过不得进入后续系统实装 — S4 §7.3）</a></li>
+<li><a href="#b-adr-44-2026-08-12">B. ADR 待用户确认项（已清零：4/4 已接受，2026-08-12 用户拍板）</a></li>
+<li><a href="#c-architecture-reviewmd-5-concernsadr-concerns-b2b4">C. 架构评审阻塞项（来自 architecture-review.md §5；判定维持 CONCERNS，ADR 锁定后 CONCERNS 收敛为 B2–B4 执行项）</a></li>
+<li><a href="#d-phase-4">D. Phase 4 预制作入口条件</a></li>
+<li><a href="#e-phase-3">E. Phase 3 交付物清单（本批次已产出）</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="phase-3-control-checklist">Phase 3 出口控制清单（Control Checklist）</h1>
+<blockquote>
+<p>本清单是 Phase 3 技术搭建的<strong>出口门</strong>：进入 Phase 4 预制作前，下列四类项须全部满足。
+优先级：P0（Gate-0 确定性）&gt; ADR 用户确认 &gt; 架构评审阻塞项清零 &gt; Phase 4 入口条件就绪。</p>
+</blockquote>
+<hr />
+<h2 id="a-gate-0-ci-p0-s4-73">A. Gate-0 确定性 CI 门禁项（P0，未通过不得进入后续系统实装 — S4 §7.3）</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>门禁项</th>
+<th>通过标准</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G0-1</td>
+<td>固定步长唯一时间源</td>
+<td>代码审计：模拟核心零 <code>Time.deltaTime</code>/墙钟/帧计数引用</td>
+<td>☐ 待做</td>
+</tr>
+<tr>
+<td>G0-2</td>
+<td>双频 pass 按边界时间戳升序合并</td>
+<td><code>Update</code> 用 §3.3 修正伪代码（week 先 month 后，同刻确定）</td>
+<td>☐ 待做</td>
+</tr>
+<tr>
+<td>G0-3</td>
+<td>稳定 ID 排序遍历</td>
+<td><code>activeEntities</code> 及所有聚落/政体/物种集合遍历前 <code>SortedByStableId</code></td>
+<td>☐ 待做</td>
+</tr>
+<tr>
+<td>G0-4</td>
+<td>RNG 分流入档</td>
+<td><code>RngRegistry</code> 每子系统独立流（xoshiro256<strong>，非 <code>System.Random</code>，内部状态 256-bit = 4×uint64）；</strong>全部 4 个 uint64 随 <code>WorldState</code> 序列化**（R-N3：仅存 128-bit 会破坏序列致 Gate-0 路径④分叉）</td>
+<td>☐ 待做</td>
+</tr>
+<tr>
+<td>G0-5</td>
+<td>禁不确定并发与浮点漂移</td>
+<td>并行仅叶子、固定块序归约、禁 fast-math；关键量 <code>Quantize</code></td>
+<td>☐ 待做（Gate-0 串行期可暂缓并行）</td>
+</tr>
+<tr>
+<td>G0-6</td>
+<td>四路 Replay 哈希一致</td>
+<td>同 seed + 同干预序列：①1× ②20× ③变速(含暂停) ④存读档；≥120 游戏月；每月指标哈希（人口/资源/物种/科技/稳定度/RNG 状态）逐月完全一致</td>
+<td>☐ 待做</td>
+</tr>
+<tr>
+<td>G0-7</td>
+<td>哈希函数确定</td>
+<td>用 FNV-1a/xxHash over 确定性字节流；禁 <code>string.GetHashCode</code></td>
+<td>☐ 待做</td>
+</tr>
+<tr>
+<td>G0-8</td>
+<td>三级回退可用</td>
+<td>实现降速度档 / 串行化定点化 / lockstep 三档切换钩子（未触发不强制启用）</td>
+<td>☐ 待做</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Gate-0 测试以 EditMode headless 运行（<code>WorldSim.Tests</code>），CI（<code>-runTests -testFilter Gate0Determinism</code>）红即阻断合入。</p>
+</blockquote>
+<hr />
+<h2 id="b-adr-44-2026-08-12">B. ADR 待用户确认项（已清零：4/4 已接受，2026-08-12 用户拍板）</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>ADR</th>
+<th>采纳选项</th>
+<th>状态</th>
+<th>不采之备选（已否决，见各 ADR 被否决备选）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U1</td>
+<td>ADR-001 仿真范式</td>
+<td><strong>C 确定性数据导向核心+有序流水线</strong></td>
+<td>✅ 已接受</td>
+<td>A 全量 ECS / B MonoBehaviour OOP</td>
+</tr>
+<tr>
+<td>U2</td>
+<td>ADR-002 确定性数学</td>
+<td><strong>2 float+禁fast-math+量化写回+<code>Fix</code>兜底</strong></td>
+<td>✅ 已接受</td>
+<td>1 全局定点 / 3 容差比对</td>
+</tr>
+<tr>
+<td>U3</td>
+<td>ADR-003 CLI/CI</td>
+<td><strong>A 本地CLI脚本+GitHub Actions(Gate-0自动门禁)</strong></td>
+<td>✅ 已接受</td>
+<td>B 仅本地手动 / C Cloud Build（延展）</td>
+</tr>
+<tr>
+<td>U4</td>
+<td>ADR-004 序列化</td>
+<td><strong>1 全量二进制快照+命令日志+LOD分块+delta</strong></td>
+<td>✅ 已接受</td>
+<td>2 纯命令日志 / 3 JSON 全量</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>4 条 ADR 已于 2026-08-12 经主理人游承峰转呈用户拍板，状态由"提议"转"已接受"。架构文档（<code>worldsim-architecture.md</code>）已据此定稿，与 ADR 完全一致、无悬空选项。</p>
+</blockquote>
+<hr />
+<h2 id="c-architecture-reviewmd-5-concernsadr-concerns-b2b4">C. 架构评审阻塞项（来自 architecture-review.md §5；判定维持 CONCERNS，ADR 锁定后 CONCERNS 收敛为 B2–B4 执行项）</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>阻塞项</th>
+<th>状态</th>
+<th>阻断 Phase 4？</th>
+<th>归属</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B1</td>
+<td>ADR-002 选项 2 确认（非全局定点）</td>
+<td>✅ 已解决（2026-08-12 用户采纳选项 2）</td>
+<td>原：是</td>
+<td>用户</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>CI 锁定同 Unity 版本 + 同 Burst 设置</td>
+<td>⏳ Phase 4 入口条件（须排期）</td>
+<td>是</td>
+<td>工程</td>
+</tr>
+<tr>
+<td>B3</td>
+<td><code>Quantize</code> + 确定性指标哈希 + Gate-0 测试入 CI</td>
+<td>⏳ Phase 4 入口条件（须排期）</td>
+<td>是（Gate-0）</td>
+<td>工程</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>真实地球数据获取/导入管线 + region-presets 消费</td>
+<td>⏳ Phase 4 入口条件（须排期）</td>
+<td>是（MVP 真实地图）</td>
+<td>Phase 4 预制作</td>
+</tr>
+<tr>
+<td>B5</td>
+<td>S5 空间映射落地"绝不指定单国家族"红线</td>
+<td>建议（Phase 4 落实）</td>
+<td>建议</td>
+<td>Phase 4 预制作</td>
+</tr>
+<tr>
+<td>B6</td>
+<td>核心层全开月级 pass 预算 profiler 验证</td>
+<td>建议（Phase 4 验证）</td>
+<td>否（有回退杠杆）</td>
+<td>Phase 4</td>
+</tr>
+<tr>
+<td>B7</td>
+<td>AI Navigation 寻路不入模拟核心</td>
+<td>建议（Phase 4 确认）</td>
+<td>建议</td>
+<td>Phase 4</td>
+</tr>
+<tr>
+<td>B8</td>
+<td><code>com.unity.burst</code> 固定版本入 <code>Packages/manifest.json</code> + CI <code>assert-burst-pinned</code>（V0-8）</td>
+<td>⏳ Phase 4 入口条件（须排期）</td>
+<td>是（与 B2 同源：同 Burst 设置）</td>
+<td>工程（Sprint 1 实现）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>判定：架构评审判定（<code>architecture-review.md</code>）维持 <strong>CONCERNS</strong>；但 ADR-001~004 已锁定，原 CONCERNS 收敛为 <strong>B2–B4 执行项</strong>。B1 已随 ADR-002 选项 2 采纳而清零；<strong>B2–B4 保持为 Phase 4 预制作入口条件，须 Phase 4 启动时排期</strong>（详见 §D）。B6/B7 为建议项，有既定缓解杠杆，不阻断。<strong>B8（R-N2）为新增 Phase 4 入口/验收项：Burst 依赖须固定版本锁入 manifest 并由 CI 断言 pinned，因 Gate-0 确定性依赖"同 Burst 设置"（B2）；manifest 实际修改属 Sprint 1 代码工程动作，本清单仅标注入口/验收条件，不在本文修改 manifest。</strong></p>
+</blockquote>
+<hr />
+<h2 id="d-phase-4">D. Phase 4 预制作入口条件</h2>
+<p>进入 Phase 4（实际写代码 / 建场景 / 装配 prefab）前须满足：
+1. ✅ A 类 Gate-0 门禁（G0-1~G0-8）全部通过并接入 CI。
+2. ✅ B 类 ADR 选项（U1–U4）经用户确认。
+3. ⏳ C 类阻塞项（来自 architecture-review.md §5）：B1 ✅ 已解决（2026-08-12 ADR-002 选项 2 采纳）；B2/B3/B4/B8 ⏳ 转 Phase 4 入口条件（须排期），须 Sprint 1 闭环（与 §C 一致）。
+4. ✅ <code>WorldSim.Simulation.*</code> asmdef 创建，且 CI 静态检查"禁止引用 UnityEngine.CoreModule"通过（落实 ADR-001 确定性边界）。
+5. ✅ <code>WorldSim.Editor.BuildScript.cs</code> + Gate-0 测试骨架就位（落实 ADR-003）。
+6. ✅ New Game 装配 + <code>region-presets.json</code> 导入器可用（落实 B4）。
+7. ✅ 模块化开关框架（S7）配置结构就位（MVP 默认关科技/政治/宗教/文化/法律/军事/族群）。
+8. ✅ 视觉：NPR 微缩沙盘渲染原型（低多边形+手绘纹理+URP）由林绘澄美术圣经驱动，不与确定性冲突（表现层插值不回写逻辑态）。
+9. ☐ <code>com.unity.burst</code> 以固定版本加入 <code>Packages/manifest.json</code>（R-N2 / V0-8 验收项），且 CI 加入 <code>assert-burst-pinned</code> 静态检查，断言 Burst 版本锁定（落实 B2"同 Burst 设置"）。注：manifest 实际修改属 Sprint 1 代码工程动作，本清单仅将其标注为 Phase 4 入口/验收项，不在本文修改 manifest（R-N2 仅文档标注）。</p>
+<blockquote>
+<p>环境核对笔记 <code>docs/unity-setup-complete.md</code>（Unity 6000.0.81f1 / CLI v1.0.0-beta.3 已确认）为 ADR-003 的事实基础，本文不重写。</p>
+</blockquote>
+<hr />
+<h2 id="e-phase-3">E. Phase 3 交付物清单（本批次已产出）</h2>
+<ul>
+<li>[x] <code>docs/architecture/worldsim-architecture.md</code>（主架构）</li>
+<li>[x] <code>docs/architecture/adr/ADR-001-simulation-paradigm.md</code></li>
+<li>[x] <code>docs/architecture/adr/ADR-002-determinism-rng.md</code></li>
+<li>[x] <code>docs/architecture/adr/ADR-003-unity-cli-ci.md</code></li>
+<li>[x] <code>docs/architecture/adr/ADR-004-serialization-lod.md</code></li>
+<li>[x] <code>docs/architecture/architecture-review.md</code>（判定：CONCERNS）</li>
+<li>[x] <code>docs/architecture/control-checklist.md</code>（本文件）</li>
+</ul>
+<blockquote>
+<p>未产出（属 Phase 4，不在本批次授权范围）：任何实现代码、美术规格、测试用例文件。</p>
+</blockquote>
+</div>
+</body>
+</html>

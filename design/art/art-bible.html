@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldSim 美术圣经（Art Bible）</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 art-bible.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#worldsim-art-bible">WorldSim 美术圣经（Art Bible）</a><ul>
+<li><a href="#1-visual-identity-overview">1. 视觉身份概述（Visual Identity Overview）</a></li>
+<li><a href="#2-color-system">2. 色彩系统（Color System）</a><ul>
+<li><a href="#21">2.1 统一色板（全时代通用）</a></li>
+<li><a href="#22-wcag-21srgb">2.2 对比度规范（WCAG 2.1，sRGB 相对亮度法）</a></li>
+<li><a href="#23-ui-4">2.3 UI 用色约束（≤4 色 + 底色）</a></li>
+<li><a href="#24">2.4 季节与灾害调色（参数化，全时代统一）</a></li>
+</ul>
+</li>
+<li><a href="#3-form-proportion">3. 形体与比例（Form &amp; Proportion — 微缩沙盘低多边形）</a><ul>
+<li><a href="#31">3.1 几何语言</a></li>
+<li><a href="#32">3.2 相机与尺度</a></li>
+<li><a href="#33-npc">3.3 NPC 令牌规范（可读性与可辨性兜底）</a></li>
+<li><a href="#34-l0l6">3.4 空间层级（俯视七层 L0–L6）</a></li>
+</ul>
+</li>
+<li><a href="#4-material-hand-painted-texture">4. 材质与手绘纹理规范（Material &amp; Hand-Painted Texture）</a></li>
+<li><a href="#5-npr-lighting-npr-post-processing">5. 光照与 NPR 后处理（Lighting &amp; NPR Post-processing）</a><ul>
+<li><a href="#51">5.1 光照方向</a></li>
+<li><a href="#52-npr">5.2 NPR 渲染定位</a></li>
+<li><a href="#53-urp-volume">5.3 后处理调色（URP Volume）</a></li>
+</ul>
+</li>
+<li><a href="#6-ui-ui-icon-system">6. UI / 图标体系（UI / Icon System）</a><ul>
+<li><a href="#61-ui-f3">6.1 统一 UI 风格与面板兜底（修复 F3）</a></li>
+<li><a href="#62">6.2 图标系统（形状编码为主、颜色为辅）</a></li>
+<li><a href="#63-ui">6.3 关键 UI 元素</a></li>
+<li><a href="#64-ax-1-ui-p0">6.4 AX-1 在 UI 的体现（P0 安全项）</a></li>
+</ul>
+</li>
+<li><a href="#7-accessibility">7. 可访问性章节（Accessibility — 强制约束）</a><ul>
+<li><a href="#71-p0">7.1 三条 P0 安全约束（不可协商）</a></li>
+<li><a href="#72">7.2 上轮对比度缺陷修订（已落本圣经）</a></li>
+<li><a href="#73">7.3 三档映射（与项目范围分层对齐，本版确认不变）</a></li>
+</ul>
+</li>
+<li><a href="#8-technical-art-interface-urp-volume">8. 技术美术对接（Technical Art Interface / URP Volume）</a><ul>
+<li><a href="#81-urp">8.1 URP 渲染管线配置</a></li>
+<li><a href="#82-shader">8.2 统一 Shader 方案</a></li>
+<li><a href="#83">8.3 性能预算</a></li>
+<li><a href="#84-ta-urp-volume-p0">8.4 可访问性后处理接口（TA 经 URP Volume 实现，P0 落地要求）</a></li>
+</ul>
+</li>
+<li><a href="#9">9. 资产生产管线约定 + 版本与评审状态</a><ul>
+<li><a href="#91">9.1 资源命名规范</a></li>
+<li><a href="#92">9.2 模块化与复用</a></li>
+<li><a href="#93-lod">9.3 LOD 策略</a></li>
+<li><a href="#94">9.4 参考资料</a></li>
+<li><a href="#95">9.5 版本与评审状态</a></li>
+<li><a href="#96-t1t4">9.6 美术风险与未决（对齐概念文档 T1/T4）</a></li>
+<li><a href="#97">9.7 评审检查清单</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="worldsim-art-bible">WorldSim 美术圣经（Art Bible）</h1>
+<blockquote>
+<p><strong>文档说明</strong>：本文档基于概念文档第 5 章"视觉锚点"延展为完整美术圣经，是后续所有美术资产（原画、3D、TA、UI、特效、VFX）的唯一风格基准。核心理念是"微缩沙盘手绘风格"——全时代一套美术语言，文明演进通过建筑形态、技术产物、社会形态的内容变化传达，而非画面风格突变。视觉一致性高于数量：任何资产偏离本圣经须显式标注并经美术总监回批。</p>
+<p><strong>安全红线（强制）</strong>：本圣经含三条 P0 级安全约束——<strong>AX-1（光敏/癫痫安全：危机不用硬闪烁）</strong>、<strong>AX-2（信息不单靠颜色，与 R3 安全阀同优先级）</strong>、<strong>AS-2（世界层灾害/危机图标落地对比兜底：双极兜底 + L6 Overlay，与 AX-2 同优先级 P0）</strong>。三者不可协商、不可默认关闭，落地优先级高于美术偏好。</p>
+</blockquote>
+<hr />
+<h2 id="1-visual-identity-overview">1. 视觉身份概述（Visual Identity Overview）</h2>
+<p><strong>一句话定义</strong>：WorldSim 的视觉身份是"桌面上的活微缩世界"——玩家俯瞰一座手绘质感的微缩沙盘，万物以低多边形 + 手绘纹理呈现，始终维持统一的温润质感与尺度感。</p>
+<p><strong>核心视觉理念：全时代统一微缩沙盘风格（Unified Diorama Style）</strong></p>
+<p>本作最重要的视觉决策（概念文档 §5.1）：美术风格全时代统一。无论文明处于远古洪荒还是现代都市，画面始终保持一致的微缩沙盘视觉语言。文明从茅棚到城邦到都市的演进，通过建筑形态、聚落规模、技术产物的变化来传达，画面风格本身始终如一。</p>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>风格统一</td>
+<td>全时代一套美术风格，不因文明阶段切换画风——时代感来自内容（建筑/技术/社会形态），不来自画风突变</td>
+</tr>
+<tr>
+<td>微缩尺度</td>
+<td>世界像一座可俯瞰的掌中微缩模型，有"桌面上的一盘小世界"的亲昵感与尺度感</td>
+</tr>
+<tr>
+<td>手绘温度</td>
+<td>低多边形 3D + 手绘纹理（Hand-Painted Texture），NPR 非写实渲染，画面有"人手做出来"的温度感</td>
+</tr>
+<tr>
+<td>俯视可读</td>
+<td>所有美术资源服务于俯瞰视角下的信息可读性——玩家一眼读懂地形、聚落、状态</td>
+</tr>
+</tbody>
+</table>
+<p><strong>六大风格关键词</strong>（与概念文档 §5.1 对齐）：</p>
+<ol>
+<li><strong>微缩沙盘（Diorama）</strong> — 可俯瞰的掌中世界尺度感</li>
+<li><strong>手绘温度（Hand-Painted Warmth）</strong> — 手绘纹理赋予画面温度感与匠人气质</li>
+<li><strong>层次分明（Layered Depth）</strong> — 地形高低、植被疏密、聚落分布形成纵深</li>
+<li><strong>生机盎然（Lived-in Vitality）</strong> — 炊烟、田垄、兽迹、水纹都在动</li>
+<li><strong>史诗质感（Epic Texture）</strong> — 微缩尺度中蕴含宏大气象</li>
+<li><strong>俯视可读（Top-Down Readability）</strong> — 俯瞰视角下一切信息一目了然</li>
+</ol>
+<p><strong>视觉目标</strong>：玩家从开局到终局看到的是同一个世界的同一种画风——微缩沙盘上手绘质感的小世界。文明演进通过内容变化（建筑形态、聚落密度、技术产物）传达，画面风格本身始终如一。</p>
+<hr />
+<h2 id="2-color-system">2. 色彩系统（Color System）</h2>
+<h3 id="21">2.1 统一色板（全时代通用）</h3>
+<table>
+<thead>
+<tr>
+<th>色彩角色</th>
+<th>色名</th>
+<th>Hex</th>
+<th>RGB</th>
+<th>面积占比</th>
+<th>使用范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主色</td>
+<td>土黄</td>
+<td><code>#C4A35A</code></td>
+<td>196,163,90</td>
+<td>25%</td>
+<td>旱地、路面、土墙、旱季农田</td>
+</tr>
+<tr>
+<td>主色</td>
+<td>赭石</td>
+<td><code>#8B5E3C</code></td>
+<td>139,94,60</td>
+<td>20%</td>
+<td>山体、木结构、陶器、树干</td>
+</tr>
+<tr>
+<td>主色</td>
+<td>青绿</td>
+<td><code>#5B8C5A</code></td>
+<td>91,140,90</td>
+<td>20%</td>
+<td>农田、草地、植被（<strong>地形/大图形用，不作文本</strong>）</td>
+</tr>
+<tr>
+<td>辅助色</td>
+<td>岩石灰</td>
+<td><code>#6B6B6B</code></td>
+<td>107,107,107</td>
+<td>10%</td>
+<td>石头、地基、山岩</td>
+</tr>
+<tr>
+<td>辅助色</td>
+<td>水面灰蓝</td>
+<td><code>#5E7A8C</code></td>
+<td>94,122,140</td>
+<td>8%</td>
+<td>河流、湖泊、海洋</td>
+</tr>
+<tr>
+<td>辅助色</td>
+<td>深褐</td>
+<td><code>#3A2A1A</code></td>
+<td>58,42,26</td>
+<td>7%</td>
+<td><strong>轮廓线、正文文字、阴影、NPC 描边</strong></td>
+</tr>
+<tr>
+<td>点缀色</td>
+<td>暖金</td>
+<td><code>#D4A84B</code></td>
+<td>212,168,75</td>
+<td>3%</td>
+<td>干预特效、高亮、正面反馈（<strong>仅填充/边框/大图形/深色主题文本</strong>）</td>
+</tr>
+<tr>
+<td>点缀色</td>
+<td>朱砂红</td>
+<td><code>#C0392B</code></td>
+<td>192,57,43</td>
+<td>3%</td>
+<td><strong>警示图标、关键事件标记、危险状态边框</strong>（不作文本主体）</td>
+</tr>
+<tr>
+<td>点缀色</td>
+<td>石青</td>
+<td><code>#3A6B8C</code></td>
+<td>58,107,140</td>
+<td>2%</td>
+<td>屋顶瓦片、特殊建筑</td>
+</tr>
+<tr>
+<td>点缀色</td>
+<td>石绿</td>
+<td><code>#4A7C59</code></td>
+<td>74,124,89</td>
+<td>2%</td>
+<td>深层植被、园林</td>
+</tr>
+</tbody>
+</table>
+<p>色值约束：整体饱和度 25%–35%，大地色系主导，点缀色面积 ≤ 10%。不走鲜艳卡通，也不走暗黑写实——走"手绘微缩模型"的温润质感。</p>
+<h3 id="22-wcag-21srgb">2.2 对比度规范（WCAG 2.1，sRGB 相对亮度法）</h3>
+<blockquote>
+<p>本圣经强制：面板正文文字一律深褐 <code>#3A2A1A</code>（在暖白面板上 12.1:1，超 AAA）；任何"意义性文本"不得依赖低对比点缀色。点缀色仅作<strong>填充 / 边框 / 大图形 / 图标</strong>或<strong>深色主题文本</strong>。以下为本版核算与<strong>上轮缺陷修订结果</strong>。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>文本/图形</th>
+<th>前（v2.0.0 草稿）</th>
+<th>对比度</th>
+<th>判定</th>
+<th><strong>本版修订（v1.0.0）</strong></th>
+<th>修订后对比度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>面板正文文字</td>
+<td>深褐 <code>#3A2A1A</code> on 暖白 <code>#F5F0E8</code></td>
+<td>12.1:1</td>
+<td>✅ AAA</td>
+<td>维持（不变）</td>
+<td><strong>12.1:1 ✅ AAA</strong></td>
+</tr>
+<tr>
+<td><strong>暖金关键数值（F1）</strong></td>
+<td>暖金 <code>#D4A84B</code> 文本 on 暖白</td>
+<td><strong>1.95:1</strong></td>
+<td>❌ 严重失败</td>
+<td><strong>改为深褐文本 <code>#3A2A1A</code> + 暖金 <code>#D4A84B</code> 边框/下划线装饰（金色仅装饰，信息在文字）；深色主题下暖金可作文本</strong></td>
+<td><strong>文本 12.1:1 ✅ AAA</strong>；暖金 on 深底 <code>#1F1812</code> <strong>7.9:1</strong> ✅ AA</td>
+</tr>
+<tr>
+<td><strong>青绿状态文本（F2）</strong></td>
+<td>青绿 <code>#5B8C5A</code> 文本 on 暖白</td>
+<td><strong>3.5:1</strong></td>
+<td>❌ 普通文本 FAIL</td>
+<td><strong>状态文本改深褐 <code>#3A2A1A</code> + 青绿 <code>#5B8C5A</code> 状态点/图标（红/绿色仅作图形）；如需绿调文本用暗绿变体 <code>#2F5330</code></strong></td>
+<td><strong>文本 12.1:1 ✅ AAA</strong>；暗绿 <code>#2F5330</code> 文本 7.7:1 ✅ AAA</td>
+</tr>
+<tr>
+<td>警示文本</td>
+<td>朱砂 <code>#C0392B</code> 文本 on 暖白</td>
+<td>4.8:1</td>
+<td>⚠ AA 通过（文本可用）</td>
+<td><strong>维持朱砂可作文本（AA），但强制叠加朱砂图标 + 文字标签（见 AX-2）</strong>；警示卡用深色左边框</td>
+<td>朱砂文本 4.8:1 ✅ AA；语义由图标+文字冗余</td>
+</tr>
+<tr>
+<td>禁用态文字</td>
+<td>淡灰 <code>#8C8C8C</code> on 暖白</td>
+<td>≈3.0:1</td>
+<td>⚠ 普通文本 FAIL（禁用态可接受）</td>
+<td>维持，保 ≥3:1</td>
+<td>≈3:1（保留，禁用态豁免）</td>
+</tr>
+<tr>
+<td>暖金高亮（深色主题）</td>
+<td>暖金 <code>#D4A84B</code> on 深褐黑 <code>#1F1812</code></td>
+<td><strong>7.9:1</strong></td>
+<td>✅</td>
+<td>维持（高对比/深色主题启用）</td>
+<td><strong>7.9:1</strong> ✅</td>
+</tr>
+<tr>
+<td>地图标记轮廓</td>
+<td>深褐 <code>#3A2A1A</code> on 土黄 <code>#C4A35A</code></td>
+<td>5.7:1</td>
+<td>✅</td>
+<td>维持</td>
+<td>5.7:1 ✅</td>
+</tr>
+<tr>
+<td><strong>农职业 NPC（F3→A1）</strong></td>
+<td>青绿 <code>#5B8C5A</code> NPC on 青绿农田（≈1:1）</td>
+<td><strong>≈1:1</strong></td>
+<td>❌ 几乎不可辨</td>
+<td><strong>NPC 令牌强制深褐描边 <code>#3A2A1A</code>（≥1.5px）+ 深色地面投影盘 + 职业字形（麦穗/箭/锤/冠）；农职业体色改用更亮叶绿 <code>#7CB342</code> 强化区分</strong></td>
+<td><strong>描边对地 ≥3.5:1（≥3:1 图形对比 ✅），且不靠颜色辨职业</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>通用图形对比（WCAG 1.4.11）</strong>：所有 UI 组件、地图标记、NPC 令牌与相邻背景的<strong>非文本对比须 ≥3:1</strong>。深色描边/投影盘是满足该约束的兜底手段（不依赖体色明度）。</p>
+<h3 id="23-ui-4">2.3 UI 用色约束（≤4 色 + 底色）</h3>
+<p>UI 信息用色不超过 4 色（深褐 + 暖金 + 朱砂 + 青绿），面板底色不计入。全时代统一，不随文明阶段变化：</p>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>色名</th>
+<th>Hex</th>
+<th>使用范围</th>
+<th>对比底线</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文字/轮廓</td>
+<td>深褐</td>
+<td><code>#3A2A1A</code></td>
+<td>所有正文、图标轮廓、面板边框、NPC 描边</td>
+<td>≥12:1（AAA）</td>
+</tr>
+<tr>
+<td>高亮/干预</td>
+<td>暖金</td>
+<td><code>#D4A84B</code></td>
+<td>干预高亮、选中态、正面反馈（边框/填充/大图形；文本仅深色主题）</td>
+<td>图形 ≥3:1 / 深色主题文本 ≥6:1（#1F1812 实测 <strong>7.9:1</strong> ✅ AA）</td>
+</tr>
+<tr>
+<td>警示/关键</td>
+<td>朱砂红</td>
+<td><code>#C0392B</code></td>
+<td>警示图标、关键事件标记、危险状态边框（<strong>非文本主体</strong>）</td>
+<td>图形 ≥3:1 / 文本 AA 4.8:1</td>
+</tr>
+<tr>
+<td>正向状态</td>
+<td>青绿</td>
+<td><code>#5B8C5A</code></td>
+<td>正面状态点/图标、增长趋势图形（<strong>非文本</strong>）</td>
+<td>图形 ≥3:1</td>
+</tr>
+<tr>
+<td>面板底</td>
+<td>暖白</td>
+<td><code>#F5F0E8</code></td>
+<td>面板内容卡（<strong>100% 不透明</strong>，见 §6.1）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>暗底（高对比主题）</td>
+<td>深褐黑</td>
+<td><code>#1F1812</code></td>
+<td>高对比/深色主题背景</td>
+<td>暖白文本 15:1（AAA）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24">2.4 季节与灾害调色（参数化，全时代统一）</h3>
+<p>四季色温轮转 + 灾害偏色通过 URP Volume 实现（详见 §5.3 / §8）。调色为<strong>世界渲染层参数</strong>，不触及 UI 文本对比（UI 文本永远落在 §6.1 的实色内容卡上）。</p>
+<table>
+<thead>
+<tr>
+<th>季节</th>
+<th>色温偏移</th>
+<th>参考色感</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>春</td>
+<td>+300K（暖）</td>
+<td>嫩绿 <code>#7DBE6F</code> + 桃粉 <code>#E8A0A0</code></td>
+</tr>
+<tr>
+<td>夏</td>
+<td>+100K（微暖）</td>
+<td>浓绿 <code>#3A7A3A</code> + 明黄 <code>#E8C84A</code></td>
+</tr>
+<tr>
+<td>秋</td>
+<td>-200K（微冷）</td>
+<td>金褐 <code>#B8862A</code> + 赭红 <code>#A05A3C</code></td>
+</tr>
+<tr>
+<td>冬</td>
+<td>-400K（冷）</td>
+<td>灰白 <code>#D8D8D8</code> + 黛蓝 <code>#4A6080</code></td>
+</tr>
+</tbody>
+</table>
+<p>灾害调色（覆盖于季节之上，1 游戏月内渐变到位，不硬切）：旱季黄褐偏色 <code>#8B7D3C</code>、兽患血红偏色 <code>#6B1A1A</code>、疫病灰绿偏色 <code>#4A6B4A</code>、饥荒灰白褪色 <code>#808080</code>、洪涝灰蓝偏色 <code>#3A5A7A</code>。</p>
+<blockquote>
+<p><strong>[v1.0.1 AS-4 过渡时长钳制（P1，与 AX-1 相邻）]</strong> 过渡按"1 游戏月渐变不硬切"设计，但 <strong>20× 加速下 1 游戏月的实时长被压缩至极短，近似硬切，触碰 AX-1 光敏红线</strong>。故过渡实时长钳制为 <strong>max(1 游戏月实时换算, 1.5 s)</strong>——任何时间倍速下不得短于 <strong>1.5 s</strong>；"减少动态/无闪烁"开启时不得短于 <strong>2.5 s</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="3-form-proportion">3. 形体与比例（Form &amp; Proportion — 微缩沙盘低多边形）</h2>
+<h3 id="31">3.1 几何语言</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>规范</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>建模方式</td>
+<td>低多边形（Low-Poly）</td>
+<td>面数克制、轮廓清晰、可读优先</td>
+</tr>
+<tr>
+<td>比例感</td>
+<td>微缩沙盘</td>
+<td>世界像掌中模型；建筑/生物比例服务于"俯瞰可读"而非写实</td>
+</tr>
+<tr>
+<td>描边</td>
+<td><strong>强制细描边（可读性兜底）</strong></td>
+<td>建筑/角色/标记统一深褐 <code>#3A2A1A</code> 细描边（≥1.5px 等效），保证俯视下轮廓可辨、满足 ≥3:1 图形对比（A1）</td>
+</tr>
+<tr>
+<td>光影尺度</td>
+<td>微缩阴影</td>
+<td>短投影、小偏移，营造"小世界"尺度感</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32">3.2 相机与尺度</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>设定</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>相机</td>
+<td>正交相机（Orthographic）+ 可选透视微调</td>
+<td>俯视沙盘视角，正交保证一致性</td>
+</tr>
+<tr>
+<td>角度</td>
+<td>45°–60° 倾斜俯视</td>
+<td>兼顾地面布局与微缩纵深</td>
+</tr>
+<tr>
+<td>NPC 屏幕等效</td>
+<td>3–5mm（最小可视）</td>
+<td>俯视极小；远处降级为点状 sprite 保底（A1）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-npc">3.3 NPC 令牌规范（可读性与可辨性兜底）</h3>
+<blockquote>
+<p>直接响应上轮缺陷"农职业 NPC 置青绿农田 ≈1:1"与风险 A1（地形与 NPC 明度差 ≥30%）。</p>
+</blockquote>
+<p>每个 NPC 令牌（无论职业/状态）<strong>强制</strong>具备以下三层可读结构，确保不靠颜色辨识：</p>
+<ol>
+<li><strong>深色描边</strong>：深褐 <code>#3A2A1A</code> 轮廓 ≥1.5px 等效，描边对地（含青绿农田 <code>#5B8C5A</code>）对比 ≥3.5:1（≥3:1 图形对比 ✅）。</li>
+<li><strong>地面投影盘（AS-1 修订：alpha 40%→60%）</strong>：令牌下方一层半透明深色盘（<code>#000000</code> @ ~60% alpha，原 40% 过淡、Z1 距离下阴影几乎不可见；提至 60% 增强地面分离度，vs 青绿农田 2.14:1），将令牌与任意地形底色物理隔离。</li>
+<li><strong>职业字形（icon，非颜色）</strong>：农=麦穗 / 猎=箭 / 工=锤 / 管理=冠。职业区分<strong>绝不只靠服饰色</strong>。</li>
+</ol>
+<p>职业体色（服饰）作为辅助识别，农职业改用更亮叶绿 <code>#7CB342</code>（区别于农田 <code>#5B8C5A</code>），但体色差异不承载"可辨性"职责——描边+投影盘+字形才是兜底。</p>
+<p>NPC 状态可视化（同样不靠颜色单通道）：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>视觉标记</th>
+<th>颜色（图形用）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正常</td>
+<td>无额外标记</td>
+<td>服饰色</td>
+</tr>
+<tr>
+<td>饥饿</td>
+<td>头顶图标（饭碗）+ 文字标签"饥"</td>
+<td>朱砂 <code>#C0392B</code> 图标</td>
+</tr>
+<tr>
+<td>疾病</td>
+<td>头顶图标（十字）+ 文字标签"病"</td>
+<td>灰绿 <code>#4A6B4A</code> 图标</td>
+</tr>
+<tr>
+<td>死亡</td>
+<td>躺倒 + 渐隐 + 文字标签"亡"</td>
+<td>灰色渐隐</td>
+</tr>
+<tr>
+<td>英雄/关键个体</td>
+<td>暖金 <code>#D4A84B</code> 描边光环 + 文字标签"英"</td>
+<td>暖金（图形）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-l0l6">3.4 空间层级（俯视七层 L0–L6）</h3>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>内容</th>
+<th>渲染方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0 底层</td>
+<td>海洋/大水体</td>
+<td>半透明水面 + 深浅渐变</td>
+</tr>
+<tr>
+<td>L1 地形层</td>
+<td>山脉/平原/森林/荒漠</td>
+<td>高度图 mesh + 手绘纹理</td>
+</tr>
+<tr>
+<td>L2 植被层</td>
+<td>草地/树木/灌木</td>
+<td>低模 + 手绘纹理</td>
+</tr>
+<tr>
+<td>L3 建筑层</td>
+<td>聚落/城市/基础设施</td>
+<td>低模 + 手绘纹理</td>
+</tr>
+<tr>
+<td>L4 动态层</td>
+<td>NPC/动物/天气粒子</td>
+<td>粒子/点状 sprite（NPC 见 §3.3）</td>
+</tr>
+<tr>
+<td>L5 特效层</td>
+<td>干预光效/灾害特效</td>
+<td>粒子 + shader</td>
+</tr>
+<tr>
+<td>L6 UI 叠加层</td>
+<td>标记/面板/光标</td>
+<td>uGUI Canvas（见 §6）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-material-hand-painted-texture">4. 材质与手绘纹理规范（Material &amp; Hand-Painted Texture）</h2>
+<table>
+<thead>
+<tr>
+<th>材质类型</th>
+<th>实现方式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>地形</td>
+<td>高度图驱动 mesh + 手绘纹理</td>
+<td>程序化高度图，手绘纹理按高度/坡度分配</td>
+</tr>
+<tr>
+<td>水面</td>
+<td>半透明 + 波纹法线 + 简单反射</td>
+<td>不追求写实，保持手绘质感</td>
+</tr>
+<tr>
+<td>植被</td>
+<td>低多边形 + 手绘纹理</td>
+<td>树冠/草丛低模 + 手绘叶纹</td>
+</tr>
+<tr>
+<td>建筑</td>
+<td>低多边形 + 手绘纹理</td>
+<td>木纹/瓦片/砖石均为手绘风</td>
+</tr>
+<tr>
+<td>NPC</td>
+<td>低多边形 + 纯色 + 简单纹理 + <strong>强制描边</strong></td>
+<td>俯视极小，以颜色+轮廓+字形区分职业（§3.3）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>手绘纹理规范</strong>：
+- 笔触可见、有"画上去"的质感，避免冷冰冰纯 CG 感。
+- 笔触尺度需与俯视距离匹配——远处看是色块、近处看是笔触（呼应 A1）。
+- 无 PBR 写实材质，所有材质走手绘风，不依赖物理光照计算。
+- 同类资源合并 <strong>Texture Atlas（2048×2048）</strong> 减少 Draw Call。</p>
+<p><strong>线条与笔触</strong>：地形轮廓自然曲线；水面规整波纹有方向性、半透明；植被叶形可辨但不写实；建筑直线为主但有手绘温度；NPC 简化人形可辨姿态。</p>
+<hr />
+<h2 id="5-npr-lighting-npr-post-processing">5. 光照与 NPR 后处理（Lighting &amp; NPR Post-processing）</h2>
+<h3 id="51">5.1 光照方向</h3>
+<table>
+<thead>
+<tr>
+<th>光照项</th>
+<th>设定</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主光源</td>
+<td>柔和方向光（45°–60° 倾斜）</td>
+<td>模拟自然日光，配合俯视相机</td>
+</tr>
+<tr>
+<td>环境光</td>
+<td>全局环境光（天空色驱动）</td>
+<td>阴影面不过暗，维持手绘质感</td>
+</tr>
+<tr>
+<td>阴影</td>
+<td>Soft Shadows，Shadow Distance ≤ 50m</td>
+<td>微缩尺度短阴影距离，保性能</td>
+</tr>
+<tr>
+<td>阴影偏移</td>
+<td>小偏移、短投影</td>
+<td>"小世界"尺度感</td>
+</tr>
+<tr>
+<td>四季色温</td>
+<td>全局光照色温随季节变化</td>
+<td>春暖 → 冬冷</td>
+</tr>
+<tr>
+<td>灾害光照</td>
+<td>灾害时全局压暗 + 偏色（渐变，不硬切）</td>
+<td>见 §2.4</td>
+</tr>
+<tr>
+<td>暖色点缀</td>
+<td>聚落炊烟区域微弱暖色点光</td>
+<td>"有人住"的生机感</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-npr">5.2 NPR 渲染定位</h3>
+<p>NPR（Non-Photorealistic Rendering）手绘卡通风：低多边形建模 + 手绘纹理；柔和方向光 + 环境光，阴影柔和不锐利；边缘光（Fresnel Rim Light）增强物体轮廓可读性；无 PBR、无 TAA（微缩尺度下 TAA 可能抖动，改用 FXAA/SMAA，见 §8）。</p>
+<h3 id="53-urp-volume">5.3 后处理调色（URP Volume）</h3>
+<p>季节/灾害调色经 URP Volume 的 Color Adjustments（色温/对比/饱和度）+ Color Filter（LUT）实现：</p>
+<table>
+<thead>
+<tr>
+<th>后处理项</th>
+<th>设定</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Saturation</td>
+<td>-20%</td>
+<td>压低饱和度，维持手绘温润</td>
+</tr>
+<tr>
+<td>Contrast</td>
+<td>+0%（自然）</td>
+<td>文本对比由 UI 实色卡保障，不依赖世界对比</td>
+</tr>
+<tr>
+<td>White Balance（色温）</td>
+<td>随季节动态（+300K 春 ~ -400K 冬）</td>
+<td>季节色温轮转</td>
+</tr>
+<tr>
+<td>Bloom</td>
+<td>弱（干预光效 + 炊烟暖光）</td>
+<td>HDR 柔和光晕</td>
+</tr>
+<tr>
+<td>Vignette</td>
+<td>弱</td>
+<td>微缩沙盘聚焦感</td>
+</tr>
+<tr>
+<td>Tonemapping</td>
+<td>Neutral</td>
+<td>中性色调映射</td>
+</tr>
+<tr>
+<td>Color Grading LUT</td>
+<td>四季 LUT（×4，参数化叠加灾害偏色）</td>
+<td>季节/灾害调色</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>关键原则</strong>：后处理只调"世界渲染层"。UI 文本对比由 §6.1 的实色内容卡锁定，不受季节/灾害压暗侵蚀（直接修复上轮 F3 风险）。</p>
+</blockquote>
+<hr />
+<h2 id="6-ui-ui-icon-system">6. UI / 图标体系（UI / Icon System）</h2>
+<h3 id="61-ui-f3">6.1 统一 UI 风格与面板兜底（修复 F3）</h3>
+<ul>
+<li><strong>整体</strong>：半透明手绘风面板、简洁图标、可读性优先；全时代统一。</li>
+<li><strong>面板结构（双层）</strong>：面板<strong>容器</strong>可 85% 半透明（不遮挡世界），但<strong>文本承载的内容卡</strong>必须为 <strong>暖白 <code>#F5F0E8</code> 100% 不透明</strong>圆角卡 + 深褐 <code>#3A2A1A</code> 细边框。→ 文本永远落在实色底，<strong>不受世界底色/灾害压暗/雪原侵蚀</strong>（修复 F3）。</li>
+<li><strong>字体</strong>：全部 UI 文本走 <strong>TextMeshPro SDF 矢量字体</strong>（禁用位图字体，否则缩放糊化）；基准 100%，CJK 小字号保笔画完整（正文用思源黑体/HarmonyOS Sans 等无衬线，不用手绘装饰体作正文）。</li>
+<li><strong>按钮</strong>：圆角方块 + 悬停高亮（深褐边框 / 暖金边框，非纯色填充文本）。</li>
+</ul>
+<h3 id="62">6.2 图标系统（形状编码为主、颜色为辅）</h3>
+<blockquote>
+<p>落实 WCAG 1.4.1"信息不单靠颜色"（AX-2 基础）。所有意义通道同时具备形状/图标 + 文字标签。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>标记类型</th>
+<th>形态（形状编码）</th>
+<th>色彩（图形用）</th>
+<th>文字标签</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>聚落</td>
+<td>"屋"形图标 + 人口数值</td>
+<td>深褐 <code>#3A2A1A</code></td>
+<td>名称/人口</td>
+</tr>
+<tr>
+<td>物种</td>
+<td>"足印"图标</td>
+<td>深褐 <code>#3A2A1A</code></td>
+<td>物种名</td>
+</tr>
+<tr>
+<td>资源</td>
+<td>"圆点"图标 + 数值</td>
+<td>深褐 <code>#3A2A1A</code></td>
+<td>资源名</td>
+</tr>
+<tr>
+<td><strong>灾害/前兆</strong></td>
+<td><strong>朱砂惊叹三角图标</strong></td>
+<td>朱砂 <code>#C0392B</code>（图形）</td>
+<td><strong>"旱灾前兆"等文字</strong></td>
+</tr>
+<tr>
+<td><strong>紧急/危机</strong></td>
+<td><strong>朱砂双环惊叹图标</strong></td>
+<td>朱砂 <code>#C0392B</code>（图形）</td>
+<td><strong>"文明存亡危机"等文字</strong></td>
+</tr>
+<tr>
+<td>干预落点</td>
+<td>金色光环 + 涟漪</td>
+<td>暖金 <code>#D4A84B</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>正向状态</td>
+<td>青绿圆点 + 标签</td>
+<td>青绿 <code>#5B8C5A</code>（图形）</td>
+<td>状态文字（深褐）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>[v1.0.1 强制约束 — AS-2（P0）世界层灾害/危机图标双极兜底 + L6 Overlay]</strong> 实测朱砂 <code>#C0392B</code> 灾害图标直接落世界底色时 vs 赭石 <code>#8B5E3C</code> / 岩石灰 <code>#6B6B6B</code> 仅 <strong>1.03:1</strong>、vs 青绿 <code>#5B8C5A</code> <strong>1.38:1</strong>、vs 土黄 <code>#C4A35A</code> 2.26:1，全线 &lt;3:1（朱砂中等明度与大地色系明度接近）——灾害前兆是 R3 安全阀信息，故<strong>升格 P0</strong>，与 AX-2 并列。所有<strong>世界层标记</strong>（聚落/物种/资源/灾害/干预/国家覆盖）强制具备：① <strong>暖白底板 <code>#F5F0E8</code></strong>（圆/圆角，外扩 ≥ 图标 20%，承运暗/中调底：vs 赭石 4.92:1 / 岩石灰 4.7:1 / 青绿 3.46:1 / 水面 3.99:1 ✅）；② <strong>深褐描边 <code>#3A2A1A</code> ≥2px 屏幕等效</strong>（承运亮调底：vs 土黄 5.70:1 ✅）；③ <strong>渲染于 L6 Overlay（uGUI Canvas，后处理之后，见 §3.4）</strong>，灾害偏色/压暗/雪原不侵蚀标记对比（与 §6.1 内容卡修 F3 同构）。双极互补：任何大地色恒有一极 ≥3:1（土黄上暖白底板仅 2.12:1 由描边补；岩石灰上深褐描边仅 2.58:1 由底板补）。<strong>本约束与 AX-2（图标+文字冗余）并列 P0，不可协商、不可默认关闭。</strong> 渲染路径技术可行性已确认：<code>docs/architecture/worldsim-architecture.md</code> v1.0.2 §12 已确认 AS-2 之 URP L6 Overlay（世界层灾害/危机图标渲染于后处理之后）技术路径可行（Render Objects Renderer Feature + <code>AfterRenderingPostProcessing</code> + 专用 Rendering Layer）；<strong>Sprint 01 仅需验证集成选择</strong>（uGUI 世界空间 Canvas vs Sprite/Quad + 专用 Rendering Layer），须在季节 + 灾害调色 Volume 激活下截图比对，确认标记对比不受侵蚀、世界锚定稳定。</p>
+</blockquote>
+<h3 id="63-ui">6.3 关键 UI 元素</h3>
+<ul>
+<li><strong>信息面板</strong>：可折叠侧边，默认收起；三层（总览→详情→逐项）；<strong>关键数值 = 深褐文本 + 暖金边框/下划线</strong>（非暖金文本，修复 F1）。</li>
+<li><strong>时间轴</strong>：底部细条，季节/年份标注，可拖拽/点击设值（替代拖拽以助可访问性）。</li>
+<li><strong>事件提示（右侧滑入卡）</strong>：约 0.3s 滑入；<strong>不瞬时消失</strong>——进入可滚动、可回看的通知日志（与干预系统历史面板、S6 编年史同源）；紧急/关键事件持续至玩家确认。</li>
+<li><strong>编年史</strong>：全屏阅览，暗色铺底，可搜索/筛选/缩放（缩放与全局字体缩放联动）。</li>
+<li><strong>事件分级（视觉）</strong>：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>视觉编码（图标+文字，非纯色）</th>
+<th>图形色</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正面</td>
+<td>暖金图标 + 文字"丰/发/灵"</td>
+<td>暖金 <code>#D4A84B</code></td>
+</tr>
+<tr>
+<td>中性</td>
+<td>深褐图标 + 文字</td>
+<td>深褐 <code>#3A2A1A</code></td>
+</tr>
+<tr>
+<td>警告</td>
+<td>朱砂惊叹三角 + 文字"告"</td>
+<td>朱砂 <code>#C0392B</code></td>
+</tr>
+<tr>
+<td><strong>紧急</strong></td>
+<td><strong>朱砂双环惊叹 + 文字"急" + 平滑脉冲（见 AX-1）</strong></td>
+<td>朱砂 <code>#C0392B</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="64-ax-1-ui-p0">6.4 AX-1 在 UI 的体现（P0 安全项）</h3>
+<p>紧急/危机事件<strong>禁止硬闪烁（hard flash / 频闪）</strong>为默认表现。默认采用：
+- <strong>平滑脉冲（呼吸）</strong>：朱砂图标/边框明度在 ~1.5–2s 周期内缓变（0%→100% 缓入缓出，<strong>无瞬变黑/白跳变</strong>），肉眼可感但不触发光敏。
+- 叠加图标 + 文字（AX-2），意义不依赖动效本身。
+- <strong>硬闪烁（频闪）仅作可关闭选项，默认 OFF</strong>；开启路径在设置 → 可访问性 → "危机频闪（实验性，光敏风险）"，需二次确认。</p>
+<hr />
+<h2 id="7-accessibility">7. 可访问性章节（Accessibility — 强制约束）</h2>
+<blockquote>
+<p>本作是中文上帝视角俯瞰模拟，"读世界即玩法"——可读、可辨、可控即核心循环可达性底座，故可访问性为基础要求而非锦上添花。本圣经承载美术侧编码；UX 规格（<code>design/accessibility-requirements.md</code>，概念文档 §规划、Phase 2 待产出）须引用本分级。</p>
+</blockquote>
+<h3 id="71-p0">7.1 三条 P0 安全约束（不可协商）</h3>
+<p><strong>AX-1 — 危机不用硬闪烁（光敏/癫痫安全，与 WCAG 2.3.1 对齐）</strong>
+- 灾害/文明存亡危机的视觉提示<strong>默认平滑脉冲 + 全局"减少动态/无闪烁"开关兜底</strong>（见 §8.4）。
+- 硬闪烁（sub-3Hz 频闪或任何瞬变 on/off）仅作可关闭选项，<strong>默认关闭</strong>，开启需二次确认。
+- 落地：§6.3 事件分级"紧急"、§6.4。优先级 <strong>P0 安全项</strong>。</p>
+<p><strong>AX-2 — 意义不单靠颜色（与 R3 安全阀同优先级 P0）</strong>
+- 灾害/紧急提示必须同时具备 <strong>图标 + 文字</strong>冗余；颜色仅作强化，不作唯一通道（WCAG 1.4.1）。
+- <strong>音频冗余由 audio-director（阮和鸣）后续补全</strong>——本圣经仅做视觉编码占位（图标+文字已具备），音频通道待 <code>design/accessibility-requirements.md</code> / 音频 GDD 接入。
+- 落地：§6.2 图标系统、§3.3 NPC 字形、§6.3 事件卡。优先级 <strong>P0（与 R3 同档）</strong>。</p>
+<p><strong>AS-2 — 世界层灾害/危机图标落地对比兜底（与 AX-2 同优先级 P0）</strong>
+- 世界层（L6 Overlay）的灾害/危机/标记图标必须采用"双极兜底"：<strong>暖白底板 <code>#F5F0E8</code> + 深褐描边 <code>#3A2A1A</code></strong>，渲染于 L6 Overlay（后处理之后），确保落任何大地色底均 ≥3:1 图形对比（WCAG 1.4.11）。
+- 理由：朱砂灾害图标直接落赭石/岩石灰底实测仅 1.03:1，灾害前兆是 R3 安全阀信息，不可不可辨（与 AX-2 同源，属"读世界即玩法"可达性底座）。
+- 落地：§6.2（世界层图标双极兜底强制约束）。优先级 <strong>P0（与 AX-2 同档）</strong>。</p>
+<blockquote>
+<p><strong>协同点（待 Phase 4 排期）</strong>：AX-2 的"意义不单靠颜色"是<strong>视觉编码</strong>层；其背后的<strong>灾害前兆安全阀设计</strong>（何时预警、预警时长、前兆信号的内容）由 <strong>design-strategist（文策渊）协同 S2 生态模拟 / S6 涌现叙事</strong>负责（R3 安全阀的设计侧）。美术总监只负责把前兆/危机信号做成语义冗余的视觉编码（图标+文字+非频闪动效），不定义预警逻辑本身。该协同在 Phase 4 排期，本圣经已预留接口（§6.2/§6.3 的形状+文字编码可承载任意灾害类型）。</p>
+</blockquote>
+<h3 id="72">7.2 上轮对比度缺陷修订（已落本圣经）</h3>
+<table>
+<thead>
+<tr>
+<th>缺陷</th>
+<th>原值</th>
+<th>修订方案（落位）</th>
+<th>修订后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1 暖金关键数值</td>
+<td>1.95:1 失败</td>
+<td>深褐文本 + 暖金边框/下划线；暖金文本限深色主题（§2.2 / §6.1）</td>
+<td>文本 12.1:1 ✅ AAA</td>
+</tr>
+<tr>
+<td>F2 青绿状态文本</td>
+<td>3.5:1 失败</td>
+<td>深褐文本 + 青绿状态点/图标；绿调文本用暗绿 <code>#2F5330</code>（§2.2 / §6.2）</td>
+<td>文本 12.1:1；暗绿 7.7:1 ✅ AAA</td>
+</tr>
+<tr>
+<td>F3 半透明面板侵蚀</td>
+<td>世界底色侵蚀文本</td>
+<td>文本落 100% 不透明暖白内容卡（§6.1）</td>
+<td>文本恒 ≥12:1，不受世界底色影响</td>
+</tr>
+<tr>
+<td>A1/NPC 农田 ≈1:1</td>
+<td>≈1:1 不可辨</td>
+<td>强制描边 + 地面投影盘 + 职业字形；农用亮叶绿（§3.3）</td>
+<td>描边对地 ≥3.5:1（≥3:1 图形 ✅），不靠颜色辨职业</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73">7.3 三档映射（与项目范围分层对齐，本版确认不变）</h3>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>含义</th>
+<th>计划落地范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic（基础档）</strong></td>
+<td>每可发布构建必备底线</td>
+<td><strong>MVP</strong></td>
+</tr>
+<tr>
+<td><strong>Standard（标准档）</strong></td>
+<td>严肃 PC 模拟应有质量</td>
+<td><strong>核心层</strong></td>
+</tr>
+<tr>
+<td><strong>Comprehensive（完备档）</strong></td>
+<td>示范性细粒度定制</td>
+<td>延展/远景层</td>
+</tr>
+</tbody>
+</table>
+<p><strong>确认</strong>：MVP=Basic、核心层=Standard 的映射<strong>不变</strong>（详见 <code>docs/art/accessibility-grade.md</code> 特性矩阵）。本圣经已把 Basic 六项（SDF 字体、形状编码标记、持久通知日志、无 TAA、热键可重映射、无硬闪烁）作为架构预埋写入规范，核心层 Standard（CVD 模式、高对比主题、减少动态总开关、全局字体缩放、完整键盘导航、可检索日志）由 §8 后处理接口支撑。</p>
+<hr />
+<h2 id="8-technical-art-interface-urp-volume">8. 技术美术对接（Technical Art Interface / URP Volume）</h2>
+<h3 id="81-urp">8.1 URP 渲染管线配置</h3>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>设定</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>渲染管线</td>
+<td>URP 17.0.4</td>
+<td>概念文档已确认</td>
+</tr>
+<tr>
+<td>相机</td>
+<td>正交 + 可选透视微调</td>
+<td>俯视沙盘</td>
+</tr>
+<tr>
+<td>抗锯齿</td>
+<td>FXAA 或 SMAA</td>
+<td>性能优先；微缩尺度 TAA 可能抖动（无 TAA → 无运动模糊风险）</td>
+</tr>
+<tr>
+<td>色彩空间</td>
+<td>Linear</td>
+<td>shader/后处理色彩准确</td>
+</tr>
+<tr>
+<td>HDR</td>
+<td>开启</td>
+<td>Bloom（干预光效）需 HDR</td>
+</tr>
+<tr>
+<td>MSAA</td>
+<td>关闭（FXAA 替代）</td>
+<td>URP 下与部分 shader feature 不兼容</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82-shader">8.2 统一 Shader 方案</h3>
+<p><strong>WorldSim Hand-Painted Shader</strong>（URP Shader Graph，NPR 手绘风）：
+- 输入：Base Color（手绘纹理）、Normal（可选）、Occlusion（可选）、Rim Light Color（边缘光增强可读性）。
+- 逻辑：基础色采样 → 柔和方向光+环境光（降 PBR 权重）→ Fresnel 边缘光 → 全局饱和度后处理。
+- 变体：WorldSim Hand-Painted（建筑/地形/植被，≤5）、WorldSim Water（≤3）、WorldSim NPC（≤3，Instancing）、WorldSim VFX（≤5）、UI Default（URP 内置）。核心 Shader ≤5，变体总数 ≤20。</p>
+<h3 id="83">8.3 性能预算</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>预算</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>渲染帧时间</td>
+<td>≤ 12ms @ 1080p（余给模拟）</td>
+</tr>
+<tr>
+<td>Draw Call</td>
+<td>≤ 2000（Instancing 后）</td>
+</tr>
+<tr>
+<td>三角面数</td>
+<td>≤ 2M</td>
+</tr>
+<tr>
+<td><strong>粒子数</strong></td>
+<td><strong>≤ 5000 同屏（见 §8.4 可调上限）</strong></td>
+</tr>
+<tr>
+<td>纹理内存</td>
+<td>≤ 2GB（Atlas + 压缩）</td>
+</tr>
+<tr>
+<td>Shader 变体</td>
+<td>≤ 20</td>
+</tr>
+</tbody>
+</table>
+<p>策略：GPU Instancing、DOTS/ECS（NPC/生态）、LOD Group（3 级 + Billboard）、Tick-based 模拟、视锥剔除、HLOD、粒子对象池。</p>
+<h3 id="84-ta-urp-volume-p0">8.4 可访问性后处理接口（TA 经 URP Volume 实现，P0 落地要求）</h3>
+<p>技术美术（TA）须经 URP Volume + 游戏内设置实现以下可访问性开关，<strong>全部为游戏内自实现开关（桌面 PC 不能只靠 OS 同步）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>开关/接口</th>
+<th>实现方式（URP Volume + 设置）</th>
+<th>对齐约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>高对比主题</strong></td>
+<td>独立 Volume Profile / UI 样式表切换为深色主题（深褐黑 <code>#1F1812</code> 底 + 暖白文本 15:1、暖金文本 <strong>7.9:1</strong> ✅ AA）；不改动世界渲染核心，仅 UI 样式 + 轻量对比增强</td>
+<td>修复 F1（暖金在深底可用）；Standard 档</td>
+</tr>
+<tr>
+<td><strong>减少动态 / 无闪烁</strong></td>
+<td>全局标志位驱动：① 危机脉冲强制为静态稳态（AX-1）；② 季节 lerp 平滑/即时化；③ Bloom 衰减；④ 非必要天气粒子削弱/关闭；⑤ 相机与 LOD 跳变过渡平滑</td>
+<td>AX-1 安全兜底；Standard 档</td>
+</tr>
+<tr>
+<td><strong>粒子数量上限可调</strong></td>
+<td>暴露同屏粒子上限（预算 ≤5000）为设置项；"减少动态"开启时自动下调</td>
+<td>性能档兼晕动缓解档；并入减少动态</td>
+</tr>
+<tr>
+<td><strong>字体缩放滑块</strong></td>
+<td>全局 UI 文本缩放 75%–150%（相对单位布局不破版），与编年史缩放联动；最小字号下限 ≥12px@1080p</td>
+<td>Basic 预埋 SDF；Standard 滑块</td>
+</tr>
+<tr>
+<td><strong>色觉缺陷（CVD）模式</strong></td>
+<td>永久强制"图标+文字标签"叠加；易混色对（青绿↔土黄、朱砂↔赭石）安全化重映射/加图案；危险信息非红色编码（三角符+边框）</td>
+<td>3.1/3.7；Standard 档</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>com.unity.modules.accessibility</code> 1.0.0 的使用边界</strong>：该 Unity 内置无障碍模块<strong>仅作 OS 默认值的来源</strong>（如读取 OS reduce-motion / 粗体偏好作为游戏内开关的初始勾选建议），<strong>绝不</strong>作为唯一同步通道——游戏内设置必须自实现、独立生效，确保桌面 PC 玩家不依赖系统设置即可获得完整可访问性。</p>
+<p><strong>接口契约（供程基岩/TA 对齐）</strong>：设置菜单暴露上述开关 → 写入 <code>AccessibilitySettings</code> 运行时配置 → 驱动 URP Volume Override 与 UI 样式表；Volume 使用 Global（基础后处理）+ Local（灾害区域）组合，可访问性覆盖层优先级高于季节/灾害调色。</p>
+<hr />
+<h2 id="9">9. 资产生产管线约定 + 版本与评审状态</h2>
+<h3 id="91">9.1 资源命名规范</h3>
+<pre><code>[类型]_[分类]_[名称]_[变体]_[LOD]
+
+示例：
+  BLD_RES_HOUSE_WOOD_L02     // 建筑_住宅_房子_木构_LOD2
+  VEG_TREE_PINE_AUTUMN_L01   // 植被_树_松树_秋季_LOD1
+  CHR_FARMER_L01             // 角色_农_叶绿_LOD1（含描边+字形）
+  VFX_INTERVENTION_GOLD      // 特效_干预_金色
+  UI_PANEL_INFO              // UI_面板_信息
+  TEX_TILE_GRASS_SPRING      // 纹理_地形_草地_春季
+  MAT_BLD_WOOD               // 材质_建筑_木构
+  SHD_HANDPAINTED            // Shader_手绘
+</code></pre>
+<p>类型前缀：BLD 建筑 / VEG 植被 / CHR 角色 / CRE 生物 / TER 地形 / VFX 特效 / UI 界面 / TEX 纹理 / MAT 材质 / SHD Shader / MOD 模型 / ANM 动画 / <strong>VOL 后处理 Volume Profile（v1.0.1 新增顶层前缀）</strong>。</p>
+<blockquote>
+<p><strong>[v1.0.1 命名扩展]</strong>（与 asset-spec v1.0.1 §1.3 对齐）三类资产超出原前缀表，现扩展并强制：
+- <code>VOL_</code>：后处理 Volume Profile（独立于 BLD/VEG/... 的顶层前缀），如 <code>VOL_ACCESS_HIGHCONTRAST</code>、<code>VOL_DISASTER_DROUGHT</code>。
+- <code>UI_ICO_</code>：<code>UI_</code> 下二级分类"UI 图标"，如 <code>UI_ICO_HAZARD_DROUGHT</code>（灾害/危机图标须成对交付文字标签键，AX-2）。
+- <code>TEX_PAT_</code>：<code>TEX_</code> 下二级"CVD 图案纹理"（可平铺），如 <code>TEX_PAT_DIAG</code>（斜纹）。
+- <code>TEX_LUT_</code>：<code>TEX_</code> 下二级"调色 LUT"，如 <code>TEX_LUT_SEASON_AUTUMN</code>、<code>TEX_LUT_HAZ_DROUGHT</code>。</p>
+</blockquote>
+<h3 id="92">9.2 模块化与复用</h3>
+<ul>
+<li>建筑模块化（屋顶/墙体/地基/装饰独立，运行时组合）；植被共享 mesh（缩放/旋转/四季纹理变化）；NPC 模板化（基础人形 + 服饰/工具/字形附件，按职业组合）；纹理图集；Shader 统一（全场景 ≤5 核心 Shader）。</li>
+</ul>
+<h3 id="93-lod">9.3 LOD 策略</h3>
+<table>
+<thead>
+<tr>
+<th>LOD</th>
+<th>距离（正交 Size 倍数）</th>
+<th>面数</th>
+<th>表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0</td>
+<td>0–0.5×</td>
+<td>100%</td>
+<td>全细节 + 完整纹理</td>
+</tr>
+<tr>
+<td>L1</td>
+<td>0.5–1.5×</td>
+<td>50%</td>
+<td>简化 + 共享纹理</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>1.5–3×</td>
+<td>20%</td>
+<td>极简 + Atlas</td>
+</tr>
+<tr>
+<td>L3</td>
+<td>3×+</td>
+<td>≤10 面</td>
+<td>Billboard/点（NPC 远处降级点 sprite 保底，A1）</td>
+</tr>
+</tbody>
+</table>
+<p>LOD 基于正交相机 Size 动态计算；HLOD：聚落占屏 &lt;10% 时合并为单一 mesh（≤500 面，色块表轮廓）。</p>
+<h3 id="94">9.4 参考资料</h3>
+<p>微缩模型（桌游/战棋沙盘）、手绘纹理（HoMM3 / Northgard / Trine / DOS）、自然地貌参考、中国古建筑（《营造法式》等）、参考游戏（RimWorld 俯视可读 / Anno 1800 聚落成长 / Northgard 低多边形手绘 / Minecraft 微缩沙盘感）。以 Pureref 板组织。</p>
+<h3 id="95">9.5 版本与评审状态</h3>
+<ul>
+<li><strong>版本</strong>：v1.0.2（v1.0.1 的纯补丁版）。落位于 <code>design/art/art-bible.md</code>，为概念文档 §5 视觉锚点的<strong>正式落地件</strong>；v1.0.2 统一暖金 on 暗底 Hex 口径为 <code>#1F1812</code>、对比度 7.9:1（与 asset-spec 一致），并引用架构 §12 确认 AS-2 之 URP L6 Overlay 技术路径可行。</li>
+<li><strong>取代说明</strong>：上一轮 <code>art/art-bible.md</code> v2.0.0 为误置路径（应在 <code>design/art/</code>）的"待评审"草稿，含未修正对比度缺陷与硬闪烁警告，<strong>现由本 v1.0.0 接管</strong>；旧文件建议归档或删除，避免双圣经歧义。</li>
+<li><strong>状态</strong>：已落盘，待主理人游承峰评审进入 Phase 4 预制作。</li>
+<li><strong>已落 P0 安全项</strong>：AX-1（§6.4 / §8.4）、AX-2（§6.2 / §7.1 / §3.3）、AS-2（§6.2 世界层图标双极兜底 + L6 Overlay / §7.1）。</li>
+<li><strong>已落对比度修订</strong>：F1/F2/F3/A1（§2.2 / §3.3 / §6.1）。</li>
+</ul>
+<h3 id="96-t1t4">9.6 美术风险与未决（对齐概念文档 T1/T4）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>风险</th>
+<th>优先级</th>
+<th>缓解（已落/待）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>俯视可读 vs 手绘风格</td>
+<td><strong>P0（已含色弱可辨通过标准）</strong></td>
+<td>描边+投影盘+字形+明度差（§3.3）；NPC 对地 ≥3:1</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>跨技术等级形态辨识</td>
+<td>P1</td>
+<td><strong>屋顶几何形状编码 + 剪影高度阶梯（相邻时代 ≥1.6×）+ 密度递增</strong>（AS-3 修订：原"屋顶色阶"缓解手段实测无效——赭石 <code>#8B5E3C</code> vs 石青 <code>#3A6B8C</code> 仅 1.03:1，颜色降为辅助，辨识改由几何/剪影承载）</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>四季×灾害调色组合</td>
+<td>P1</td>
+<td>参数化后处理（§5.3）非独立 LUT</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>大量 NPC 手绘 shader 性能</td>
+<td>P1</td>
+<td>DOTS/ECS + Instancing + 点 sprite</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>建筑替换视觉跳变</td>
+<td>P2</td>
+<td>分批替换 + 生长动画</td>
+</tr>
+<tr>
+<td>A6</td>
+<td>远期内容密度差异</td>
+<td>P2</td>
+<td>内容层渐进（S0→S4）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="97">9.7 评审检查清单</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B1</td>
+<td>视觉身份概述（统一微缩沙盘）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>色彩系统（含 Hex + 对比度规范 + F1/F2/F3 修订）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B3</td>
+<td>形体与比例（低多边形 + NPC 令牌可读结构）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>材质与手绘纹理规范</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B5</td>
+<td>光照与 NPR 后处理（季节/灾害调色）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B6</td>
+<td>UI/图标体系（SDF + 形状编码 + AX-1 脉冲）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B7</td>
+<td>可访问性（AX-1/AX-2 P0 + 三档映射 + CVD/减少动态/高对比）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B8</td>
+<td>技术美术对接（URP Volume + 可访问性后处理接口 + 游戏内开关）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B9</td>
+<td>资产生产管线（命名/模块/LOD/参考） + 版本评审状态</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B10</td>
+<td>元数据块齐全（项目/版本/日期/作者/阶段/输入）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B11</td>
+<td>全时代统一性（建筑/角色/UI/特效不随阶段变）</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>林绘澄注（美术总监）</strong>：本 v1.0.0 是概念文档 §5 视觉锚点的正式落地，并把上轮可访问性评估暴露的三处对比度缺陷（F1 暖金数值 / F2 青绿状态 / F3 面板侵蚀 + NPC 农田 A1）与两条 P0 安全项（AX-1 光敏、AX-2 颜色冗余）一并修进规范。核心立场不变——"读世界即玩法"，可访问性是核心循环可达性底座，不是锦上添花。两点请主理人拍板/跟进：(1) 旧 <code>art/art-bible.md</code> v2.0.0 误置路径草稿建议删除，避免与本文档歧义；(2) AX-2 的灾害前兆<strong>设计侧</strong>（预警逻辑/时长/内容）需 design-strategist 协同 S2/S6 在 Phase 4 排期，美术侧仅做视觉编码冗余，接口已预留。</p>
+</blockquote>
+</div>
+</body>
+</html>

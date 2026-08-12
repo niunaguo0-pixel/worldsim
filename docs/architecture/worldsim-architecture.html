@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldSim 技术架构文档（主架构）</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 worldsim-architecture.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#worldsim">WorldSim 技术架构文档（主架构）</a><ul>
+<li><a href="#0">0. 关键设计约束（架构必须遵守，不可违背）</a></li>
+<li><a href="#1">1. 架构总览与分层</a></li>
+<li><a href="#2">2. 系统分层与模块边界</a><ul>
+<li><a href="#21-simulation-core">2.1 模拟核心（Simulation Core，引擎无关，确定性）</a></li>
+<li><a href="#22-runtime-presentationunity-only">2.2 表现层（Runtime / Presentation，Unity-only）</a></li>
+<li><a href="#23-ui-huds8ugui">2.3 UI / HUD（S8，uGUI）</a></li>
+<li><a href="#24-s10">2.4 存档（S10）</a></li>
+<li><a href="#25-editor-only">2.5 编辑器工具（Editor-only）</a></li>
+<li><a href="#26-s6">2.6 叙事层（S6）</a></li>
+<li><a href="#27">2.7 模块边界规则</a></li>
+</ul>
+</li>
+<li><a href="#3">3. 时间—结算主循环（连续时钟 + 双频混合结算调度）</a><ul>
+<li><a href="#31-s4-21">3.1 连续时钟（S4 §2.1）</a></li>
+<li><a href="#32-s4-22-27r-n1-float">3.2 固定步长双频边界派生（S4 §2.2 / §2.7，R-N1 修订：由整数序号派生，非 float 累加器减法）</a></li>
+<li><a href="#33-pass-2-s4-22r-n1">3.3 双频 pass 按边界时间戳升序合并执行（铁律 2，修正 S4 §2.2；R-N1 边界由整数序号派生）</a></li>
+<li><a href="#34-simorchestrator-s4-43-s3-43-s2-43">3.4 月级大账流水线顺序（SimOrchestrator，对齐 S4 §4.3 + S3 §4.3 + S2 §4.3）</a></li>
+<li><a href="#35-activeentities-id">3.5 周级子结算（仅 activeEntities，稳定 ID 排序）</a></li>
+<li><a href="#36">3.6 速度档与表现插值</a></li>
+</ul>
+</li>
+<li><a href="#4-rng-r13-gate-0">4. 确定性与 RNG 管理（R13 / Gate-0）</a><ul>
+<li><a href="#41-s4-73">4.1 五条确定性铁律（落地 S4 §7.3）</a></li>
+<li><a href="#42-rng-4">4.2 RNG 分流入档（铁律 4）</a></li>
+<li><a href="#43-replay">4.3 Replay 框架（命令日志 + 月边界快照 + 指标哈希）</a></li>
+<li><a href="#44-gate-0-p0">4.4 Gate-0 落地路径（P0 首道里程碑门）</a></li>
+<li><a href="#45-adr-002-2float-fast-math-fix">4.5 浮点策略（已采纳 ADR-002 选项 2：float + 禁 fast-math + 量化写回 + Fix 兜底）</a></li>
+</ul>
+</li>
+<li><a href="#5">5. 事件总线 / 数据流</a><ul>
+<li><a href="#51-simevent-ui">5.1 SimEvent 总线（确定性产出 → 叙事/UI）</a></li>
+<li><a href="#52">5.2 接口契约（设计红线）</a></li>
+<li><a href="#53-devbias_-s3-41">5.3 devBias_* 参数清单（S3 §4.1，间接干预入口）</a></li>
+<li><a href="#54">5.4 数据流图</a></li>
+</ul>
+</li>
+<li><a href="#6-adr-004-1-lod-delta-replay">6. 世界状态序列化与分层存档（已采纳 ADR-004 选项 1：全量二进制快照 + 命令日志 + LOD 分块 + delta；呼应存读档 Replay）</a><ul>
+<li><a href="#61">6.1 分层</a></li>
+<li><a href="#62-replay-4">6.2 快照 + 命令日志（支持 Replay 路径④）</a></li>
+<li><a href="#63">6.3 格式</a></li>
+<li><a href="#64-worldtile-lod">6.4 WorldTile 网格分层序列化（LOD）</a></li>
+<li><a href="#65-region-presetsjson">6.5 对齐 region-presets.json（数据契约）</a></li>
+</ul>
+</li>
+<li><a href="#7">7. 性能策略</a><ul>
+<li><a href="#71">7.1 混合结算调度（核心杠杆）</a></li>
+<li><a href="#72-lod">7.2 LOD（两层）</a></li>
+<li><a href="#73-ecs-jobsystem-burst">7.3 ECS / JobSystem / Burst 利用与确定性并行约束</a></li>
+<li><a href="#74">7.4 人口尺度分层聚合（性能天花板的解法）</a></li>
+<li><a href="#75-playtest">7.5 预算表（目标，待 playtest 校准）</a></li>
+</ul>
+</li>
+<li><a href="#8-unity-assembly-cli-ci">8. Unity 工程结构（Assembly 划分、目录约定、CLI 构建与 CI）</a><ul>
+<li><a href="#81-assembly-asmdef">8.1 Assembly 划分（asmdef）</a></li>
+<li><a href="#82">8.2 关键目录约定</a></li>
+<li><a href="#83-cli-cli">8.3 CLI 构建管线（用户走 CLI）</a></li>
+<li><a href="#84-ci-adr-003-a-cli-github-actions-gate-0">8.4 CI 管线（已采纳 ADR-003 选项 A：本地 CLI 脚本 + GitHub Actions 自动门禁；Gate-0 确定性门禁）</a></li>
+<li><a href="#85-cli">8.5 CLI 约束</a></li>
+</ul>
+</li>
+<li><a href="#9-s1s5-region-presetsjson">9. 与 S1–S5 的接口契约（数据结构对齐 region-presets.json）</a><ul>
+<li><a href="#91-s5-region-presetsjson">9.1 S5 ↔ region-presets.json</a></li>
+<li><a href="#92-s5-s2s3s9iworldgeography">9.2 S5 → S2/S3/S9：IWorldGeography（只读）</a></li>
+<li><a href="#93-s1-s2s3iinterventiontarget">9.3 S1 ↔ S2/S3：IInterventionTarget</a></li>
+<li><a href="#94-s2">9.4 S2 生态（核心数据）</a></li>
+<li><a href="#95-s3-s3-2">9.5 S3 文明（核心数据，对齐 S3 §2）</a></li>
+<li><a href="#96-s4">9.6 S4 时间（核心数据，确定性关键）</a></li>
+<li><a href="#97">9.7 确定性契约汇总（必须入档 / 必须稳定排序）</a></li>
+</ul>
+</li>
+<li><a href="#10-t1t6-r13r14">10. 风险与架构应对（映射 T1–T6, R13/R14）</a></li>
+<li><a href="#11-phase-4">11. 附录：与 Phase 4 预制作的关系</a></li>
+<li><a href="#12-urp-as-2-overlay">12. URP 渲染顺序假设（AS-2 世界层灾害图标 Overlay）</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="worldsim">WorldSim 技术架构文档（主架构）</h1>
+<blockquote>
+<p>本文是 Phase 3 技术搭建的<strong>入口架构资产</strong>，决定后续所有实现方向，优先级 <strong>P0</strong>。
+它把 Phase 2 的 5 份系统 GDD（S1–S5）+ 概念文档收敛为一份可落地的工程蓝图：
+<strong>系统分层、时间—结算主循环、确定性（R13 / Gate-0）、事件与数据流、分层存档、性能策略、Unity 工程结构、S1–S5 接口契约</strong>。
+关联交付：<code>docs/architecture/adr/</code>（ADR-001~004）、<code>architecture-review.md</code>、<code>control-checklist.md</code>。
+<strong>不在本文范围</strong>：具体实现代码（Phase 4 预制作）、美术规格、测试用例、系统设计文档本身。</p>
+</blockquote>
+<hr />
+<h2 id="0">0. 关键设计约束（架构必须遵守，不可违背）</h2>
+<ol>
+<li><strong>连续实时时钟，无回合制</strong>：暂停 + 1×/2×/5×/20× 加速；固定步长月级结算 pass（由 S4 驱动）。底层保留月级 pass，但玩家无回合。</li>
+<li><strong>混合结算架构</strong>：全局月级大账（约 90% 算力，遍历全量聚落/文明总账）+ 事件驱动周级子结算（仅 <code>activeEntities</code> 脏集合，轻量增量，不全局重算）。双频 pass 按边界时间戳升序合并执行。</li>
+<li><strong>人口尺度层级</strong>：聚落层跑个体/代理微观模拟；国家/政体层仅聚合统计（总人口 = Σ 聚落）；聚落分档 村/镇/市/都市圈（单聚落可至千万级，不封顶 5 万）。</li>
+<li><strong>确定性 R13 = P0，Gate-0 首道里程碑门</strong>：Replay 四路对跑（同 seed + 同干预序列；1× / 20× / 变速 / 存读档；≥120 游戏月；关键指标哈希逐月比对）。五条确定性铁律：固定步长唯一时间源 / 双频 pass 按边界时间戳升序合并 / 遍历用稳定 ID 排序 / RNG 分流入档 / 禁不确定并发与浮点漂移。三级回退：降速度档 → 串行化定点化 → lockstep（均保留连续时间体感，绝不退回回合制）。</li>
+<li><strong>真实地球地理</strong>：Natural Earth GeoJSON 海岸线 + 高程 + 气候为基底，全球尺度；MVP 区域精算、其余低精度 LOD。</li>
+<li><strong>干预系统</strong>：无限次、异步延迟生效、自然后果制衡；不下场红线（玩家不操控个体，只做间接干预）。</li>
+<li><strong>模块化开关</strong>：世代传承 / 科技树 / 多聚落 / 政治结构 MVP 可关。</li>
+<li><strong>视觉</strong>：全时代统一微缩沙盘手绘风（低多边形 + 手绘纹理 + NPR），无时代风格切换。</li>
+</ol>
+<hr />
+<h2 id="1">1. 架构总览与分层</h2>
+<p>WorldSim 由 <strong>6 个逻辑层 + 1 个横切叙事层</strong> 组成。核心原则是：<strong>模拟核心（Simulation Core）引擎无关、确定性强、零 <code>UnityEngine</code> 场景依赖</strong>；Unity 只在 Runtime/Presentation/UI 层做"胶水"与"渲染"。</p>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│                          表现 / 交互层 (Unity-only)                       │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────────────┐  │
+│  │  Runtime 胶水     │  │  Presentation    │  │  UI / HUD (S8, uGUI)    │  │
+│  │ SimulationRunner │  │  Camera(S9)/NPR  │  │  面板 / 干预光标 / 编年史 │  │
+│  │ (MonoBehaviour)  │  │  TileMesh 渲染   │  │  时间轴 / 预警卡          │  │
+│  └────────┬────────┘  └────────┬────────┘  └───────────┬────────────┘  │
+│           │ 订阅 SimEvent       │ 读 WorldView 快照      │ 订阅 SimEvent       │
+├───────────┼────────────────────┼───────────────────────┼────────────────┤
+│  ┌────────▼────────────────────▼───────────────────────▼──────────┐   │
+│  │                    叙事层 (S6 涌现叙事引擎)                        │   │
+│  │   消费 SimEvent → 事件检测 / 编年史 / 关键个体追踪                  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+├──────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │         模拟核心 (Simulation Core) — 引擎无关 · 确定性 · 可重放     │  │
+│  │  WorldState(聚合根)                                              │  │
+│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────────┐   │  │
+│  │  │ S4 时间 │ │ S2 生态 │ │ S3 文明 │ │ S1 干预 │ │ S5 世界地图   │   │  │
+│  │  │ 心跳    │ │        │ │        │ │        │ │ (空间基底)     │   │  │
+│  │  └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘ └──────┬───────┘   │  │
+│  │      └──────────┴──── SimOrchestrator(月级大账 16+11 步) ─┘       │  │
+│  │  RngRegistry(分流入档) · Fixed/Quantized Math · SaveLoad 序列化    │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+├──────────────────────────────────────────────────────────────────────┤
+│  横切：S7 模块化开关框架(配置) · S10 存档(读写WorldState) · Editor工具   │
+└──────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>确定性边界（红线）</strong>：<code>WorldSim.Simulation.*</code> 全部程序集<strong>只能引用 <code>UnityEngine.Mathematics</code> 与 <code>System.*</code>，禁止引用 <code>UnityEngine.CoreModule</code>（GameObject/MonoBehaviour/Transform/Time）</strong>。任何依赖墙钟/帧率/Transform 的逻辑都不得进入模拟核心。判定"某段逻辑是否确定性安全"的唯一标准：<strong>它能否在没有任何 Unity 场景、无任何渲染的情况下被单元测试重放</strong>。</p>
+<hr />
+<h2 id="2">2. 系统分层与模块边界</h2>
+<h3 id="21-simulation-core">2.1 模拟核心（Simulation Core，引擎无关，确定性）</h3>
+<ul>
+<li><strong><code>WorldState</code> 聚合根</strong>：持有全部可序列化确定性状态（地理网格、所有聚落/政体/个体、生态种群/资源、干预 pending 队列、RNG 流、时钟与边界序号（monthIndex/weekIndex）、模块开关、编年史外壳）。是存档与 Replay 的唯一真相源。</li>
+<li><strong>S4 时间（心跳）</strong>：<code>TimeDriver</code> 维护 <code>gameClock</code> / <code>monthIndex</code> / <code>weekIndex</code> / <code>speedMultiplier</code> / <code>paused</code>（边界由整数序号派生，R-N1）；驱动双频 pass 合并调度（见 §3）。</li>
+<li><strong>S2 生态</strong>：<code>EcologySim</code> 持有 <code>WorldTile</code> 生态态、物种、资源、稳态区间；实现 <code>IInterventionTarget</code>（rainfall/temperature/birthRate…）。</li>
+<li><strong>S3 文明</strong>：<code>CivilizationSim</code> 持有 <code>Settlement</code> / <code>Polity</code> / <code>Individual</code> / 十一子系统状态；实现 <code>IInterventionTarget</code>（devBias_*…）。</li>
+<li><strong>S1 干预</strong>：<code>InterventionSystem</code> 持有 <code>pendingQueue</code> 与 <code>InterventionLog</code>（按游戏月时间戳记录已生效干预，供 Replay）；解析延迟、写 <code>pendingDelta</code> / <code>devBias_*</code>。</li>
+<li><strong>S5 世界地图</strong>：<code>WorldMapGen</code> + <code>WorldGeography</code> 实现 <code>IWorldGeography</code> 只读查询；持有 <code>WorldTile[,]</code> 网格与（地缘模式）<code>GeoPoliticalInit</code>；导入 <code>region-presets.json</code>。</li>
+<li><strong><code>SimOrchestrator</code></strong>：月级大账的确定性流水线编排器（见 §3.4），按固定顺序调用 S1→S2→S3 子 pass，并重新评估 <code>activeEntities</code>。</li>
+</ul>
+<h3 id="22-runtime-presentationunity-only">2.2 表现层（Runtime / Presentation，Unity-only）</h3>
+<ul>
+<li><code>SimulationRunner</code>（MonoBehaviour）：从 <code>UnityEngine.Update(dtReal)</code> 取真实帧时间 → 交给 <code>TimeDriver</code> → 收集本帧产生的 <code>SimEvent</code>/世界快照 → 派发到 Unity 事件总线。</li>
+<li><code>Presentation</code>：相机（S9）缩放/平移联动 LOD；NPR 微缩沙盘渲染（低多边形 + 手绘纹理 + URP）；<code>WorldView</code> 读取 <code>WorldState</code> 的<strong>表现副本</strong>（由快照插值得到）渲染实体。</li>
+<li><strong>表现插值</strong>：逻辑态只在月/周边界跳变；个体位置、资源视觉量在边界间平滑插值，制造"连续时间体感"，但插值<strong>绝不回写逻辑态</strong>。</li>
+</ul>
+<h3 id="23-ui-huds8ugui">2.3 UI / HUD（S8，uGUI）</h3>
+<ul>
+<li>订阅 <code>SimEvent</code>（预警卡、编年史条目、干预反馈）；展示生态/文明/威胁三面板；干预光标与面板（S1 §5）；时间轴（S4 ↔ S8）。</li>
+<li><strong>UI 不持有游戏状态</strong>：只读 <code>WorldView</code> 快照与事件，所有写入经 <code>InterventionSystem</code> 入口。</li>
+</ul>
+<h3 id="24-s10">2.4 存档（S10）</h3>
+<ul>
+<li>读写 <code>WorldState</code>：分层（确定性态 / 个体层 / 历史层）、增量 delta、二进制主存 + JSON 配置（见 §6）。</li>
+</ul>
+<h3 id="25-editor-only">2.5 编辑器工具（Editor-only）</h3>
+<ul>
+<li>New Game 配置装配、<code>region-presets.json</code> 导入器、CLI 构建脚本（<code>BuildScript.cs</code>）、Gate-0 确定性测试驱动（见 §8、ADR-003）。</li>
+</ul>
+<h3 id="26-s6">2.6 叙事层（S6）</h3>
+<ul>
+<li>消费确定性 <code>SimEvent</code>，做事件检测/编年史/关键个体追踪；纯只读派生，不产生逻辑副作用（保证确定性不被叙事污染）。</li>
+</ul>
+<h3 id="27">2.7 模块边界规则</h3>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>确定性边界</td>
+<td>模拟核心零 <code>UnityEngine.CoreModule</code>；所有逻辑可头less重放</td>
+</tr>
+<tr>
+<td>单向依赖</td>
+<td>Core ← {Ecology,Civilization,Intervention,Time,WorldMap} ← {Runtime,Narrative} ← {Presentation,UI,SaveLoad}；Editor/Tests 依赖全体</td>
+</tr>
+<tr>
+<td>事件只读派生</td>
+<td>S6/S8 消费 <code>SimEvent</code>，不得反向写 <code>WorldState</code></td>
+</tr>
+<tr>
+<td>干预唯一入口</td>
+<td>所有玩家写入只经 <code>InterventionSystem</code>；<code>Era/legitimacy/LawStage/GovernanceType/EthnicComposition/LawFamily/InstitutionProfile</code> 不注册为可干预参数（S3 §4.1 红线）</td>
+</tr>
+<tr>
+<td>地理只读</td>
+<td>S5 是空间基底生产者，除存档外不消费其他系统回写</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 时间—结算主循环（连续时钟 + 双频混合结算调度）</h2>
+<h3 id="31-s4-21">3.1 连续时钟（S4 §2.1）</h3>
+<p><code>gameClock</code>（游戏秒）由 <code>dtReal * speedMultiplier</code> 推进；<code>paused</code> 时冻结。季节/年份/时代由累计游戏月推算（3 月=季，12 月=年）。<strong>无玩家回合</strong>。</p>
+<h3 id="32-s4-22-27r-n1-float">3.2 固定步长双频边界派生（S4 §2.2 / §2.7，R-N1 修订：由整数序号派生，非 float 累加器减法）</h3>
+<pre><code>float gameClock;            // 连续游戏时钟（游戏秒）
+int   monthIndex;           // 已通过的月边界数（整数序号，月边界派生源）
+int   weekIndex;            // 已通过的周边界数（整数序号，周边界派生源）
+const float MONTH_SECONDS;  // 1 游戏月对应的游戏秒（基准×速度倍率）
+const float WEEK_SECONDS = MONTH_SECONDS / 4;
+StableSet activeEntities;   // 脏标记集合（按稳定 ID 有序）
+// Gate-0 防分叉（R-N1，P0）：月/周边界由 monthIndex/weekIndex 整数序号派生
+//   nextMonthBoundary = (monthIndex + 1) * MONTH_SECONDS
+//   nextWeekBoundary  = (weekIndex  + 1) * WEEK_SECONDS
+// 循环中比较 gameClock &lt; nextBoundary；禁止用 float 累加器减法
+// （monthAccumulator -= MONTH_SECONDS）逼近边界，否则长程（≥120 游戏月）
+// 1×/20× 因舍入差产生边界错位，导致 Gate-0 Replay 分叉。
+</code></pre>
+<ul>
+<li>月级大账：每累计 1 游戏月，遍历全量（人口/国土/科技/国运），~90% 算力。</li>
+<li>周级子结算：每累计 1/4 月，仅遍历 <code>activeEntities</code>（交战军队/受灾聚落/建设中的城市），轻量增量刷新，~10%（整体约纯月级 1.5–2×）。</li>
+</ul>
+<h3 id="33-pass-2-s4-22r-n1">3.3 双频 pass 按边界时间戳升序合并执行（铁律 2，修正 S4 §2.2；R-N1 边界由整数序号派生）</h3>
+<pre><code>void Update(float dtReal) {
+    if (paused) return;
+    float target = gameClock + dtReal * speedMultiplier;
+    while (true) {
+        // R-N1（Gate-0 防分叉）：边界由整数序号派生，禁止累加器减法，杜绝长程舍入漂移
+        float nextMonth = (monthIndex + 1) * MONTH_SECONDS;  // 整数月序号派生，无漂移
+        float nextWeek  = (weekIndex  + 1) * WEEK_SECONDS;   // 整数周序号派生，无漂移
+        float next = min(nextWeek, nextMonth);
+        if (next &gt; target) break;
+        gameClock = next;
+        if (next == nextWeek)  { RunWeeklySubSettlement(SortedByStableId(activeEntities)); weekIndex++; }  // 同刻 week 先
+        if (next == nextMonth) { RunMonthlySettlementPass();                                 monthIndex++; } // 同刻 month 后
+    }
+    gameClock = target;  // 剩余不足一个边界的时间仅推进表现层（插值）
+}
+</code></pre>
+<blockquote>
+<p>高速（20×）下一次 <code>Update</code> 跨多个周/月边界时，顺序由游戏时间轴唯一确定；同刻固定 week 先于 month，消除"先跑完所有周再跑月"引入的分叉。</p>
+</blockquote>
+<h3 id="34-simorchestrator-s4-43-s3-43-s2-43">3.4 月级大账流水线顺序（SimOrchestrator，对齐 S4 §4.3 + S3 §4.3 + S2 §4.3）</h3>
+<p>每个累计 1 游戏月的月级大账：
+1. <strong>S1 干预结算</strong>：读取 <code>pendingQueue</code>，延迟到期的干预生效 → 写 <code>pendingDelta</code> / <code>devBias_*</code> 到 S2/S3 注册参数；记录 <code>InterventionLog{gameMonth, action}</code>（Replay 用）。
+2. <strong>S2 生态月结（11 步）</strong>：应用 S1 参数 → 推进季节 → 植物/食草/食肉结算 → 资源再生 → 地貌演变 → 稳态区间 → 相变 → 生态指标 → 输出生态事件。
+3. <strong>S3 文明月结（16 步）</strong>：①读 S1 devBias ②读 S2 生态修正 ③个体层(needs/生死/关系/记忆) ④经济层 ⑤聚落层 ⑥科技层 ⑦社会层 ⑧宗教层 ⑨文化层 ⑩族群层 ⑪法律层 ⑫政治层(合法性/稳定度/演进) ⑬军事层(军费/战争自动结算/战损) ⑭时代层(门槛/过渡/ecoImpactCoefficient) ⑮国家层聚合(Σ聚落) ⑯输出事件。
+4. <strong>S4 计数</strong>：每 3 月切换季节；累计年/时代过渡；推进紧急干预冷却、干预效果衰减、<code>stressMonths</code> 等。
+5. <strong>重新评估 <code>activeEntities</code></strong>：月级大账末重算激活标记（交战/受灾/建设），静默实体移出脏集合。
+6. <strong>事件派发</strong>：<code>SimEvent</code> → S6（叙事）/ S8（UI）。</p>
+<blockquote>
+<p>因果依据（沿用 S3 §4.3）：法律(⑪)先于政治(⑫)（制度合法性由法制供给）；族群(⑩)在文化(⑨)后、法律(⑪)前（polarization/ethnicInequality 当月政治与军事前完成）；时代(⑭)末位（读本月全量结果）。</p>
+</blockquote>
+<h3 id="35-activeentities-id">3.5 周级子结算（仅 activeEntities，稳定 ID 排序）</h3>
+<p><code>RunWeeklySubSettlement(sortedActive)</code>：按稳定 ID 升序遍历，轻量刷新交战军队资源流/行军、受灾聚落灾害衰减、建设城市进度；<strong>不重算人口/国土/科技/国运</strong>。遍历前必须 <code>SortedByStableId</code>（铁律 3，修正 <code>HashSet</code> 迭代序不确定）。</p>
+<h3 id="36">3.6 速度档与表现插值</h3>
+<ul>
+<li>1×/2×/5×/20× 仅缩放 <code>dtGame</code>，<strong>不改变单个 pass 内容</strong>（R14 前提）。</li>
+<li>表现层在月/周边界间插值（个体位置、资源视觉量、相机），制造连续体感；插值不回写逻辑态。</li>
+</ul>
+<hr />
+<h2 id="4-rng-r13-gate-0">4. 确定性与 RNG 管理（R13 / Gate-0）</h2>
+<h3 id="41-s4-73">4.1 五条确定性铁律（落地 S4 §7.3）</h3>
+<ol>
+<li><strong>固定步长是唯一时间源</strong>：所有子系统只读 <code>gameClock</code> 与 pass 序号；禁止读 <code>Time.deltaTime</code>/墙钟/帧计数/系统时间。</li>
+<li><strong>双频 pass 按边界时间戳升序合并</strong>（§3.3）。</li>
+<li><strong>遍历顺序必须稳定</strong>：<code>activeEntities</code> 及所有聚落/政体/物种集合遍历前按稳定 ID 升序；禁止依赖字典/哈希集自然序。</li>
+<li><strong>RNG 按子系统分流且状态入档</strong>（§4.2）。</li>
+<li><strong>禁不确定并发与浮点漂移</strong>：并行归约须固定块序合并；禁用 fast-math；关键累加量定点化或量化写回（§4.5）。</li>
+</ol>
+<h3 id="42-rng-4">4.2 RNG 分流入档（铁律 4）</h3>
+<ul>
+<li>每个子系统持有由 <code>worldSeed</code> 派生的独立流：<code>streamId = Hash(worldSeed, systemTag)</code>，如 <code>ecology.region.{id}</code>、<code>civ.{polityId}.military</code>、<code>civ.{polityId}.tech</code>、<code>disaster</code>、<code>war</code>。</li>
+<li>采用确定性 PRNG（输出字宽 64-bit，如 <strong>xoshiro256</strong> 内部状态 256-bit（4×uint64）/ splitmix64），<strong>禁用 <code>System.Random</code></strong>（非跨平台确定）。</li>
+<li>所有 RNG 抽取仅在月/周 pass 内、稳定 ID 序下发生；<strong>存档序列化每条流的全部内部状态</strong>（256-bit 状态：4×uint64，s0..s3），否则读档分叉。</li>
+<li><code>RngRegistry</code> 统一持有并随 <code>WorldState</code> 序列化；表现层（视觉抖动等）使用独立非确定性流，不影响逻辑。</li>
+</ul>
+<blockquote>
+<p><strong>R-N3（P0，ADR-002 选项 2 正确实现细节）</strong>：xoshiro256<strong> 的内部状态是 </strong>4 个 uint64 = 256-bit<strong>（非 128-bit）。存档</strong>必须序列化全部 4 个 uint64（s0..s3）<strong>；若仅存 128-bit（2 个 uint64）会破坏序列，导致 </strong>Gate-0 路径④（存读档续跑）与无存档路哈希分叉**。此宽度与 ADR-002 选项 2（float + 禁 fast-math + 量化写回 + <code>Fix</code> 兜底）一致——存档"全状态"即指 256-bit 全量。</p>
+</blockquote>
+<h3 id="43-replay">4.3 Replay 框架（命令日志 + 月边界快照 + 指标哈希）</h3>
+<ul>
+<li><strong>输入</strong>：<code>worldSeed</code> + <code>moduleToggles</code> + <code>InterventionLog</code>（按<strong>游戏月时间戳</strong>记录的干预序列，非现实时间）。</li>
+<li><strong>四路对跑</strong>（Gate-0 规范）：①全程 1× ②全程 20× ③中途变速(1×→20×→1×，含多次暂停) ④中途存档→退出→读档续跑。</li>
+<li><strong>指标哈希</strong>：每月级大账结束，对关键指标（各 <code>Polity.population</code>/总产出/总军力/稳定度、各物种 <code>population</code>、资源 <code>currentAmount</code>、科技层级、<code>RngRegistry</code> 全状态）先<strong>量化到固定精度</strong>再计算稳定哈希（FNV-1a / xxHash over 确定性字节流）。</li>
+<li><strong>比对</strong>：逐月比对四路哈希序列，任一月分叉即失败，并输出首个分叉月用于定位。</li>
+</ul>
+<h3 id="44-gate-0-p0">4.4 Gate-0 落地路径（P0 首道里程碑门）</h3>
+<ul>
+<li>实现顺序：先以<strong>串行月级 pass（无 Job 并行）</strong>跑通四路 Replay，哈希逐月一致 → 通过 Gate-0 → 再逐步引入并行（回退 2 路径）。</li>
+<li><strong>三级回退</strong>（均未通过时按序降级，绝不回回合制）：
+  | 级别 | 措施 | 代价 |
+  |------|------|------|
+  | 回退 1 | 收窄速度档（去 20×，留 1/2/5），干预对齐月边界 | 失极速快进，体验损失小 |
+  | 回退 2 | pass 内全串行化（关并行归约），关键浮点量定点化 | 性能降，靠混合结算+LOD 补偿 |
+  | 回退 3 | 确定性 lockstep：表现插值，模拟严格离散步进、步间不接收输入 | 干预即时感降（落到下一月边界） |</li>
+</ul>
+<h3 id="45-adr-002-2float-fast-math-fix">4.5 浮点策略（已采纳 ADR-002 选项 2：float + 禁 fast-math + 量化写回 + <code>Fix</code> 兜底）</h3>
+<ul>
+<li><strong>MVP / Gate-0（PC x64 单平台）</strong>：受控 IEEE-754 float + <strong>禁用 fast-math</strong> + <code>UnityEngine.Mathematics</code> 确定性运算即可逐位一致（同 Unity 版本、同 Burst 设置）。已落地为 ADR-002 选项 2：<strong>非全局定点、非容差比对</strong>；跨平台 / 回退 2 由 <code>Fix</code> 兜底。</li>
+<li><strong>量化写回边界</strong>：所有进入指标哈希、所有跨月持久化的累加量，在写回前 <code>Quantize(x, decimals)</code>（等价定点截断），消除尾差累积。</li>
+<li><strong>定点兜底（<code>Fix</code> 类型，Q 格式如 32.32）</strong>：保留于 <code>WorldSim.Simulation.Core.Math</code> 供回退 2 使用；对争议累加量（人口增长率、资源再生、Logistic 种群）直接以 <code>Fix</code> 运算，彻底消除跨平台漂移。</li>
+<li><strong>跨平台（Mac/ARM）Replay</strong>：一旦需要，全局切换 <code>Fix</code>；PC 单平台 Gate-0 不必强制。</li>
+</ul>
+<hr />
+<h2 id="5">5. 事件总线 / 数据流</h2>
+<h3 id="51-simevent-ui">5.1 SimEvent 总线（确定性产出 → 叙事/UI）</h3>
+<pre><code>struct SimEvent {
+    long gameMonth;            // 游戏月时间戳（锚定因果链）
+    EventCategory category;    // Ecology / Civ / War / Disaster / Era / Chronicle
+    int sourceId;              // 来源实体稳定 ID
+    string templateId;         // 叙事模板（S6 匹配）
+    Dictionary&lt;string,float&gt; metrics;
+}
+</code></pre>
+<ul>
+<li>模拟核心在 pass 内<strong>有序</strong>产出 <code>SimEvent</code> 列表（按稳定 ID 序），挂到当月快照；Runtime 派发到 S6/S8。</li>
+<li>S6/S8 为纯消费者，副作用只进各自状态（编年史、UI），<strong>不回写 <code>WorldState</code></strong>。</li>
+</ul>
+<h3 id="52">5.2 接口契约（设计红线）</h3>
+<ul>
+<li><strong><code>IInterventionTarget</code></strong>（S1 定义，S2/S3 实现）：<code>RegisterInterventionParameter</code> / <code>ApplyIntervention(paramKey, delta, durationMonths)</code> / <code>GetParameterValue</code>。玩家写入<strong>只</strong>经此接口。</li>
+<li><strong><code>IWorldGeography</code></strong>（S5 定义，只读）：<code>GetBiome</code> / <code>GetElevation</code> / <code>GetClimate</code> / <code>HasCoast</code> / <code>GetRivers</code> / <code>GetLOD</code>。S2/S3/S9 唯一地理查询入口（R10 一致性保证）。</li>
+</ul>
+<h3 id="53-devbias_-s3-41">5.3 devBias_* 参数清单（S3 §4.1，间接干预入口）</h3>
+<p><code>devBias_agriculture/hunt/defense/trade/faith/military/ethnicity/culture</code>（聚落级，[-1,+1]，3–5 月衰减）+ <code>foodReserveCoeff</code> / <code>techUnlockBoost</code> / <code>happinessMod</code>。<strong>不可干预派生状态</strong>：<code>Era</code> / <code>legitimacy</code> / <code>LawStage</code> / <code>GovernanceType</code> / <code>EthnicComposition</code> / <code>LawFamily</code> / <code>InstitutionProfile</code>。</p>
+<h3 id="54">5.4 数据流图</h3>
+<pre><code>[玩家输入]→UI→InterventionSystem.pendingQueue
+        ↓ (延迟生效, 写 devBias_*/pendingDelta)
+WorldState ──SimOrchestrator──→ S2(生态态) → S3(文明态) → 世代/国家聚合
+        ↓                              ↑ IWorldGeography(只读)        ↑ IInterventionTarget
+   S5 WorldTile/GeoPolitical    S5 空间基底 ─────────────────────────┘
+        ↓ SimEvent(有序)
+   S6(叙事) + S8(UI)  ──(只读派生)──┐
+        ↓ WorldView 快照(插值)        ┴→ Presentation/Runtime 渲染
+</code></pre>
+<hr />
+<h2 id="6-adr-004-1-lod-delta-replay">6. 世界状态序列化与分层存档（已采纳 ADR-004 选项 1：全量二进制快照 + 命令日志 + LOD 分块 + delta；呼应存读档 Replay）</h2>
+<h3 id="61">6.1 分层</h3>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>内容</th>
+<th>频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>确定性态层</td>
+<td><code>WorldState</code> 全量（地理网格 + 聚落/政体/个体 + 生态 + RNG 流 + 时钟/monthIndex/weekIndex + 模块开关 + <code>InterventionLog</code>）</td>
+<td>月边界快照 + 读档全量</td>
+</tr>
+<tr>
+<td>个体层</td>
+<td><code>Individual</code> 关系/记忆/情感（聚落微观细节）</td>
+<td>随确定性态一并序列化（MVP 折叠为骨架）</td>
+</tr>
+<tr>
+<td>历史层</td>
+<td>编年史（S6 输出事件序列）</td>
+<td>追加写，增量</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-replay-4">6.2 快照 + 命令日志（支持 Replay 路径④）</h3>
+<ul>
+<li><strong>全量快照</strong>：月边界序列化 <code>WorldState</code> → 读档恢复<strong>逐位一致</strong>状态 → 续跑与无存档路一致（Gate-0 路径④成立）。</li>
+<li><strong>命令日志</strong>：<code>InterventionLog</code>（游戏月时间戳）随档保存；变速/暂停由时钟驱动，与日志无关。</li>
+<li>存读档 Replay 等价性证明：<code>WorldState</code> 是完整确定性状态 ⇒ 同 seed + 同 <code>InterventionLog</code> + 同 <code>moduleToggles</code> ⇒ 演化逐月一致。</li>
+</ul>
+<h3 id="63">6.3 格式</h3>
+<ul>
+<li><strong>二进制主存</strong>：确定性态用显式端序（小端）自定义 writer，避免 <code>BinaryFormatter</code>（不安全/不确定）；关键量先 <code>Quantize</code>。</li>
+<li><strong>JSON 配置</strong>：<code>WorldInitConfig</code> / <code>region-presets.json</code> / 模块开关 / 元数据（人读、调试友好）。</li>
+<li><strong>增量 delta</strong>：历史层与高频变化（生态指标）用 delta 追加，降低 IO。</li>
+</ul>
+<h3 id="64-worldtile-lod">6.4 WorldTile 网格分层序列化（LOD）</h3>
+<ul>
+<li>全球 <code>WorldTile[,]</code> 体量大；按 LOD 分块：High 区逐 tile 全量，Mid/Low 区聚合压缩；读档先载 High + 焦点 Mid，远域 Low 延迟装载（异步，不阻塞逻辑）。</li>
+</ul>
+<h3 id="65-region-presetsjson">6.5 对齐 region-presets.json（数据契约）</h3>
+<ul>
+<li><code>region-presets.json</code>（schemaVersion 1.0）是<strong>起始区域预设表</strong>（6 个真实区块：中心 lat/lon、半径°、ethnicSeed[languageFamily,name,share]、legalFamilyDefault）。</li>
+<li>映射：<code>WorldInitConfig.startRegionCenter/Radius</code> ← 预设 <code>center/radiusDeg</code>；<code>ethnicSeed</code> ← 预设 <code>ethnicSeed</code>（地缘模式，S5 空间映射为 <code>RealEthnicDistribution</code>）；<code>legalTraditionSeed</code> ← 预设 <code>legalFamilyDefault</code>（偏置，绝不指定单国家族）。</li>
+<li>该 JSON 由 Editor 工具导入，不参与逐月模拟，仅作 New Game 初始化源（见 §9.1）。</li>
+</ul>
+<hr />
+<h2 id="7">7. 性能策略</h2>
+<h3 id="71">7.1 混合结算调度（核心杠杆）</h3>
+<ul>
+<li>全局月级大账 ~90% 算力遍历全量；周级子结算 ~10% 仅脏集合。静默实体跳过周结算 → 多文明并存时算力可控（约纯月级 1.5–2×）。</li>
+</ul>
+<h3 id="72-lod">7.2 LOD（两层）</h3>
+<ul>
+<li><strong>模拟 LOD（尺度跃迁 S4 §2.4）</strong>：聚落层微观（个体/代理），国家层<strong>仅聚合统计</strong>（不逐人模拟）。这是性能天花板的关键——成本绑定<strong>聚落数</strong>而非人口数。</li>
+<li><strong>地理 LOD（S5 §2.3）</strong>：High（起始区域逐 tile）/ Mid（相机附近区域级）/ Low（其余大陆级）。全球网格下月 tick 预算受 Low 聚合粒度保护。</li>
+</ul>
+<h3 id="73-ecs-jobsystem-burst">7.3 ECS / JobSystem / Burst 利用与确定性并行约束</h3>
+<ul>
+<li><strong>MVP / Gate-0</strong>：串行月级 pass（无 Job），确定性最干净。</li>
+<li><strong>核心层扩展</strong>：真正" embarrassingly parallel "的叶子计算（同区域内逐 tile 生态更新、逐个体 needs 更新）可用 <code>IJobParallelFor</code> + Burst，但<strong>必须满足</strong>：固定块序归约 + 禁用 fast-math + 可选 <code>Fix</code>；且<strong>仅在 Gate-0 通过后</strong>启用（回退 2 路径）。</li>
+<li><strong>ECS 取舍（已采纳 ADR-001 方案 C）</strong>：不采用全量 DOTS ECS 作为 Spine——chunk 迭代序非确定、结构变更破坏重放，与 Gate-0 冲突；采用数据导向结构体 + 显式有序流水线更契合月级因果耦合。</li>
+</ul>
+<h3 id="74">7.4 人口尺度分层聚合（性能天花板的解法）</h3>
+<ul>
+<li>单聚落可千万级，但国家聚合只读 Σ 聚落 → 月度宏观 pass 成本 = O(聚落数 + 活跃生态区 + 政体数)，与"单聚落 5 万 vs 1 千万"无关。此设计使千万~十亿级国家不引发逐 NPC 性能灾难（T1/T4 响应）。</li>
+</ul>
+<h3 id="75-playtest">7.5 预算表（目标，待 playtest 校准）</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>目标</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>实时帧率</td>
+<td>60 FPS（1×/2×/5×）；≥30 FPS（20×）</td>
+<td>表现层</td>
+</tr>
+<tr>
+<td>单次月级大账</td>
+<td>&lt; 50 ms（核心层全开）</td>
+<td>超则收紧 LOD / 启用 Job(回退2)</td>
+</tr>
+<tr>
+<td>1× 月耗时</td>
+<td>2–5 秒现实（基准，可调）</td>
+<td>S4 §2.1</td>
+</tr>
+<tr>
+<td>20× 月密度</td>
+<td>≤10 游戏月/现实秒</td>
+<td>单次 pass 预算内则实时</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-unity-assembly-cli-ci">8. Unity 工程结构（Assembly 划分、目录约定、CLI 构建与 CI）</h2>
+<blockquote>
+<p>用户<strong>不操作 Unity Hub GUI</strong>，一切走 Unity CLI + unity mcp（见 <code>docs/unity-setup-complete.md</code>）。以下结构据此设计。</p>
+</blockquote>
+<h3 id="81-assembly-asmdef">8.1 Assembly 划分（asmdef）</h3>
+<table>
+<thead>
+<tr>
+<th>程序集</th>
+<th>依赖</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WorldSim.Simulation.Core</code></td>
+<td>Unity.Mathematics, System</td>
+<td>WorldState / RngRegistry / Fix / Math / SimOrchestrator / TimeDriver（<strong>零 CoreModule</strong>）</td>
+</tr>
+<tr>
+<td><code>WorldSim.Simulation.Ecology</code></td>
+<td>Core</td>
+<td>S2</td>
+</tr>
+<tr>
+<td><code>WorldSim.Simulation.Civilization</code></td>
+<td>Core, Ecology</td>
+<td>S3（含十一子系统）</td>
+</tr>
+<tr>
+<td><code>WorldSim.Simulation.Intervention</code></td>
+<td>Core</td>
+<td>S1</td>
+</tr>
+<tr>
+<td><code>WorldSim.Simulation.Time</code></td>
+<td>Core</td>
+<td>S4 时间数学/边界派生/季节/尺度跃迁</td>
+</tr>
+<tr>
+<td><code>WorldSim.Simulation.WorldMap</code></td>
+<td>Core</td>
+<td>S5 + IWorldGeography + region 导入</td>
+</tr>
+<tr>
+<td><code>WorldSim.Narrative</code></td>
+<td>Core, Sim Events</td>
+<td>S6</td>
+</tr>
+<tr>
+<td><code>WorldSim.SaveLoad</code></td>
+<td>Core</td>
+<td>S10 序列化</td>
+</tr>
+<tr>
+<td><code>WorldSim.ModularToggle</code></td>
+<td>Core</td>
+<td>S7 模块开关配置</td>
+</tr>
+<tr>
+<td><code>WorldSim.Runtime</code></td>
+<td>全部 Sim + Unity(全)</td>
+<td>SimulationRunner / 事件桥 / 场景引导</td>
+</tr>
+<tr>
+<td><code>WorldSim.Presentation</code></td>
+<td>Runtime, URP</td>
+<td>Camera(S9) / NPR / TileMesh</td>
+</tr>
+<tr>
+<td><code>WorldSim.UI</code></td>
+<td>Runtime, uGUI</td>
+<td>S8 HUD</td>
+</tr>
+<tr>
+<td><code>WorldSim.Editor</code></td>
+<td>全体 + Editor</td>
+<td>BuildScript / region 导入器 / New Game 装配（UNITY_EDITOR）</td>
+</tr>
+<tr>
+<td><code>WorldSim.Tests</code></td>
+<td>全体 Sim + TestFramework</td>
+<td>Gate-0 确定性 + 单元（EditMode）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82">8.2 关键目录约定</h3>
+<pre><code>WorldSim/
+  Assets/Scripts/
+    Simulation/{Core,Ecology,Civilization,Intervention,Time,WorldMap}
+    Narrative/  SaveLoad/  ModularToggle/
+    Runtime/  Presentation/  UI/
+    Editor/  Tests/
+  Assets/StreamingAssets/  region-presets.json  (New Game 初始化源)
+  Packages/  ProjectSettings/
+</code></pre>
+<h3 id="83-cli-cli">8.3 CLI 构建管线（用户走 CLI）</h3>
+<pre><code># 编辑器路径（unity-setup-complete.md 已确认）
+UNITY=&quot;C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Unity.exe&quot;
+PROJ=&quot;C:/Users/guowang/Desktop/11/WorldSim&quot;
+
+# 构建 Win64 Player（无 GUI、批处理）
+&quot;$UNITY&quot; -batchmode -nographics -projectPath &quot;$PROJ&quot; \
+  -executeMethod WorldSim.Editor.BuildScript.BuildWin64 \
+  -logFile build.log -quit
+
+# 运行 Gate-0 确定性测试（EditMode，headless）
+&quot;$UNITY&quot; -batchmode -nographics -projectPath &quot;$PROJ&quot; \
+  -runTests -testPlatform EditMode -testFilter Gate0Determinism \
+  -testResults gate0.xml -logFile gate0.log -quit
+</code></pre>
+<ul>
+<li><code>BuildScript.cs</code>（<code>WorldSim.Editor</code>）暴露 <code>[InitializeOnLoad]</code> 静态 <code>BuildWin64()</code>，读取 <code>ProjectSettings</code> 出包到 <code>Builds/Win64/</code>。</li>
+</ul>
+<h3 id="84-ci-adr-003-a-cli-github-actions-gate-0">8.4 CI 管线（已采纳 ADR-003 选项 A：本地 CLI 脚本 + GitHub Actions 自动门禁；Gate-0 确定性门禁）</h3>
+<ul>
+<li>本地 CLI 脚本 + GitHub Actions 工作流（headless Unity）：<code>build</code> → <code>runTests(Gate0Determinism)</code> → <strong>哈希分叉则 CI 红</strong>，阻断合入（四路 Replay 自动门禁）。</li>
+<li>Gate-0 门禁项见 <code>control-checklist.md</code>；CI 即把该清单自动化；完全 headless，符合用户"走 CLI 不碰 Hub"。</li>
+</ul>
+<h3 id="85-cli">8.5 CLI 约束</h3>
+<ul>
+<li>禁止依赖 Hub GUI 的任何交互（如 Package Manager 弹窗）；包版本锁定于 <code>Packages/manifest.json</code>（已确认：URP 17.0.4 / AI Navigation 2.0.0 / Input System 1.8.1 / Timeline 1.8.6 / uGUI 2.0.0）。</li>
+<li>所有工程操作（建场景、装配 prefab、导入 region）经 unity mcp 或 Editor 脚本完成。</li>
+</ul>
+<hr />
+<h2 id="9-s1s5-region-presetsjson">9. 与 S1–S5 的接口契约（数据结构对齐 region-presets.json）</h2>
+<h3 id="91-s5-region-presetsjson">9.1 S5 ↔ region-presets.json</h3>
+<pre><code class="language-csharp">// region-presets.json 契约（schemaVersion 1.0）
+struct RegionPreset {
+    string key; string name;
+    GeoCoord center;          // { lat, lon }
+    float radiusDeg;
+    List&lt;EthnicSeedEntry&gt; ethnicSeed;   // { languageFamily, name, share }
+    string legalFamilyDefault;          // CivilLaw/CommonLaw/SocialistLaw/CustomaryLaw
+}
+// New Game 装配：preset → WorldInitConfig
+struct WorldInitConfig {
+    Era startEra; Vector2 startRegionCenter; float startRegionRadius; string startRegionPreset;
+    int borderYear; bool useRealBorders; StartMode mode; string geoDataBuild;
+    RealEthnicDistribution? ethnicSeed;     // 地缘模式：由 preset.ethnicSeed 空间映射
+    LegalFamily? legalTraditionSeed;       // 地缘模式：由 preset.legalFamilyDefault 偏置
+    // 注意：目标模式(GoalMode) 不进 WorldInitConfig（概念 §3.4.1，S5 §2.2.1 ⑤ 归属声明）
+}
+</code></pre>
+<h3 id="92-s5-s2s3s9iworldgeography">9.2 S5 → S2/S3/S9：IWorldGeography（只读）</h3>
+<pre><code class="language-csharp">interface IWorldGeography {
+    BiomeType GetBiome(Vector2 pos); float GetElevation(Vector2 pos);
+    ClimateZone GetClimate(Vector2 pos); bool HasCoast(int settlementId);
+    List&lt;Vector2&gt; GetRivers(); LODLevel GetLOD(Vector2 pos);
+}
+struct WorldTile { int id,latIdx,lonIdx; bool isLand; BiomeType biome;
+    float elevation; ClimateZone climate; float baseTemp,baseRain; bool hasCoast; LODLevel lod; }
+struct WorldMapState { WorldInitConfig config; WorldTile[,] tiles; GeoPoliticalInit? geoPolities; }
+</code></pre>
+<h3 id="93-s1-s2s3iinterventiontarget">9.3 S1 ↔ S2/S3：IInterventionTarget</h3>
+<pre><code class="language-csharp">interface IInterventionTarget {
+    void RegisterInterventionParameter(string key, float def, float min, float max);
+    void ApplyIntervention(string key, float delta, int durationMonths); // pendingDelta 由 S4 时钟结算
+    float GetParameterValue(string key);
+}
+// S2 注册：rainfall_{regionId}/temperature_{regionId}/birthRate_{speciesId}/population_*/regenRate_*
+// S3 注册：devBias_{agriculture|hunt|defense|trade|faith|military|ethnicity|culture}_{sid}
+//        + foodReserveCoeff_*/techUnlockBoost_*/happinessMod_*
+</code></pre>
+<h3 id="94-s2">9.4 S2 生态（核心数据）</h3>
+<p><code>Species{id,name,type,biome[],population,birthRate,deathRate,carryingCapacity,climateSensitivity,HomeostasisZone,stressMonths}</code>；
+<code>FoodChainLink{predatorId,preyId,predationRate,dependencyRatio}</code>；
+<code>RenewableResource{type,currentAmount,maxAmount,regenRate,harvestRate,zone}</code>；
+<code>HomeostasisZone{stableLower,stableUpper,criticalLower,criticalUpper,equilibrium,selfRepairRate,stressDecayFactor,stressDurationLimit,transitionType}</code>；
+<code>EcologicalIndicator{type,currentValue,trend,zoneStatus,monthsInStress,warning}</code>。
+（均对齐 S2 §2）</p>
+<h3 id="95-s3-s3-2">9.5 S3 文明（核心数据，对齐 S3 §2）</h3>
+<p><code>Settlement{id,name,location,population,carryingCapacity,zones[],prosperity,settlementLevel,growthRate}</code>（分档 村/镇/市/都市圈）；
+<code>Polity{governanceType,eraContext,rulerId,stability,legitimacy,sources,scaleTier,internalTitleTier,externalTitleTier,suzerainId,vassalIds,centralization,tributeRate,loyaltyToSuzerain,dominionMode,sovereigntyDeJure,asymmetricDependency,allegiances[],internalTier,memberSettlementIds,totalPopulation,aggregateOutput,aggregateMilitaryPower,aggregateStability}</code>；
+<code>Individual{id,ageMonths,familyId,health,skill,occupation,happiness,literacy,relations[],memories[],needs}</code>；
+<code>Economy{stocks[],laborAllocation,tradeVolume,divisionLevel,exchangeMode}</code>；
+<code>TechNode{id,name,prerequisites,knowledgeCost,tier,minEra,effects[]}</code>；
+<code>CultureProfile{languageFamily,aestheticTradition,socialStructureOrientation,coreValueAxes[]}</code>；
+<code>LawCode{stage,lawFamily,norms[],enforcement,impartiality,separationOfPowers}</code>；
+<code>MilitaryState{militaryPower,militaryTechLevel,defenseLevel,hasNavy,warStatus,warWeariness,supplyMonths}</code>；
+<code>EthnicComposition{groups[],dominanceIndex,fractionalization,polarization,ethnicInequality,mixingRate}</code>。</p>
+<h3 id="96-s4">9.6 S4 时间（核心数据，确定性关键）</h3>
+<p><code>TimeDriver{gameClock, monthIndex, weekIndex, speedMultiplier, paused}</code>（monthIndex/weekIndex 为已通过月/周边界整数序号，边界派生源，随档序列化；取代易漂移的 float 累加器，R-N1）；
+<code>RngRegistry{ Dictionary&lt;string, RngState&gt; streams }</code>（每条 <code>RngState</code> = 256-bit 内部状态（4×uint64），随档序列化；R-N3）；
+<code>InterventionLog{ List&lt;InterventionRecord{gameMonth, action}&gt; }</code>。</p>
+<h3 id="97">9.7 确定性契约汇总（必须入档 / 必须稳定排序）</h3>
+<ul>
+<li><strong>必须入档</strong>：<code>WorldState</code> 全量 + <code>RngRegistry</code> 全状态（256-bit 全量，R-N3）+ <code>gameClock</code>/monthIndex/weekIndex（整数序号，R-N1）+ <code>moduleToggles</code> + <code>InterventionLog</code>。</li>
+<li><strong>必须稳定排序遍历</strong>：<code>activeEntities</code>、所有 <code>Settlement</code>/<code>Polity</code>/<code>Species</code>/<code>EthnicGroup</code> 集合（按稳定 ID 升序）。</li>
+<li><strong>禁止</strong>：读 <code>Time.deltaTime</code>/墙钟/帧计数；字典/哈希集自然迭代序；fast-math；跨 pass 的非确定性并发。</li>
+</ul>
+<hr />
+<h2 id="10-t1t6-r13r14">10. 风险与架构应对（映射 T1–T6, R13/R14）</h2>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>架构应对</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1 大量实体性能</td>
+<td>数据导向 + 尺度聚合（§7.4）+ 混合结算 + LOD；Job 仅叶子（回退2）</td>
+</tr>
+<tr>
+<td>T2 存档复杂度</td>
+<td>分层 + 增量 + 二进制量化（§6）；WorldState 聚合根单一真相源</td>
+</tr>
+<tr>
+<td>T3 AI 寻路开销</td>
+<td>聚落内局部简化寻路 + 兽群 flocking；不在模拟核心（表现层）</td>
+</tr>
+<tr>
+<td>T4 生态计算开销</td>
+<td>tick-based 月结（非每帧）+ 区域级 LOD + 活跃脏集合</td>
+</tr>
+<tr>
+<td>T5 尺度平滑切换</td>
+<td>LOD 渐进 + 国家层标注"聚合统计" + 相机联动（§7.2）</td>
+</tr>
+<tr>
+<td>T6 叙事存储检索</td>
+<td>S6 消费 SimEvent，月结后扫描，事件检测模式（§5.1）</td>
+</tr>
+<tr>
+<td>R13 确定性</td>
+<td>§4 全文 + Gate-0（P0 首门）</td>
+</tr>
+<tr>
+<td>R14 加速涌现突变</td>
+<td>加速不改模拟粒度；预警以游戏月计；UI 高速强化（S4 §6.1）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11-phase-4">11. 附录：与 Phase 4 预制作的关系</h2>
+<p>本文定义"做什么/怎么分层/确定性怎么保"。Phase 4 预制作（实际写代码）的入口条件见 <code>control-checklist.md</code>：<code>ADR-001~004</code> 已于 2026-08-12 经用户拍板接受（仿真范式=C / 确定性数学=2 / CLI·CI=A / 序列化=1），B1 已解决，B2–B4 / B8 列为 Phase 4 预制作入口条件须排期；Gate-0 串行路径仍须 Phase 4 跑通。本文不预写任何实现文件。</p>
+<h2 id="12-urp-as-2-overlay">12. URP 渲染顺序假设（AS-2 世界层灾害图标 Overlay）</h2>
+<ul>
+<li><strong>来源</strong>：美术圣经 v1.0.1 §7.1 / AS-2（P0 安全强制项）。art-director 假设：世界层（L6 Overlay）灾害/危机图标"暖白底板 <code>#F5F0E8</code> + 深褐描边 <code>#3A2A1A</code>"渲染于<strong>后处理之后</strong>，不被季节/灾害调色（URP Volume 的 Color Adjustments / Color Filter LUT）侵蚀，从而在任何大地色底上保持 ≥3:1 图形对比（WCAG 1.4.11）。</li>
+<li><strong>技术判定：已确认技术可行（成熟 URP 方案）</strong>。在 URP（项目固定版本 17.0.4，见 §8.5 / 美术圣经 §8.2）下，使指定几何在<strong>后处理之后</strong>绘制的成熟机制为：</li>
+<li>使用 URP <strong>Renderer Feature：<code>Render Objects</code></strong>，将其 <strong>Event</strong> 设为 <strong><code>AfterRenderingPostProcessing</code></strong>（该 <code>RenderPassEvent</code> 在 URP 后处理栈执行完毕、最终输出前触发）。</li>
+<li>通过 <strong>Filters → Layer Mask / Rendering Layer Mask</strong> 将该 Feature 限定到<strong>专用 Sorting Layer / Rendering Layer</strong>（与默认世界层、UI 层隔离），仅重绘灾害图标几何。</li>
+<li>图标几何须作为<strong>世界空间实体</strong>（Sprite/Quad，挂在专用 Rendering Layer）而非默认的 Screen Space - Overlay uGUI——后者由 Canvas 单独合成、不走 Render Objects 重绘路径；要让"世界层图标随地图位置锚定且仍躲过后处理"，必须走专用 Rendering Layer + <code>Render Objects(AfterRenderingPostProcessing)</code> 路径。</li>
+<li><strong>不侵蚀的保证</strong>：该路径下图标在色彩分级 / 灾害偏色 Volume <strong>之后</strong>绘制，季节与灾害调色对其无效，双极兜底对比由实色底板+描边锁定；与美术圣经 §5.3"后处理只调世界渲染层、UI 对比由实色卡保障"及 §8.4 可访问性覆盖层"优先级高于季节/灾害调色"同源一致。</li>
+<li><strong>设计假设 / 待验证项（Sprint 01）</strong>：</li>
+<li>图标系统最终落在"uGUI 世界空间 Canvas"还是"Sprite/Quad + 专用 Rendering Layer"——前者默认在透明 pass 受后处理影响，须显式改为专用 Rendering Layer 才能被 <code>Render Objects(AfterRenderingPostProcessing)</code> 命中。此集成选择须在 <strong>Sprint 01（建议挂到灾害/危机图标表现 Story，V0-? 待 Sprint 01 计划落点）</strong> 经原型验证：在季节 + 灾害调色 Volume 激活下截图比对，确认图标对比不受侵蚀、且世界锚定稳定。</li>
+<li>该验证属表现层（Phase 4）实现动作，本文仅作技术确认，不预写代码。</li>
+<li><strong>关联</strong>：美术圣经 v1.0.1（AS-2 / §5.3 / §8.4）、control-checklist.md（AS-2 为 P0 安全项）、asset-spec.md v1.0.1（<code>UI_ICO_</code> 资产前缀）。</li>
+</ul>
+</div>
+</body>
+</html>

@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldSim 可访问性分级评估</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 accessibility-grade.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#worldsim">WorldSim 可访问性分级评估</a><ul>
+<li><a href="#0">0. 评估范围与三档定义</a></li>
+<li><a href="#1">1. 上帝视角俯瞰模拟的可访问性特异性</a></li>
+<li><a href="#2">2. 与美术圣经视觉规范的关联 + 对比度核算（含修订结果）</a></li>
+<li><a href="#3">3. 逐项三档对照评估</a><ul>
+<li><a href="#31-color-weak-friendly">3.1 色弱友好（Color-Weak Friendly）</a></li>
+<li><a href="#32-text-scaling">3.2 字体缩放（Text Scaling）</a></li>
+<li><a href="#33-ui-ui-contrast-under-npr">3.3 UI 对比度（UI Contrast under NPR）</a></li>
+<li><a href="#34-input-remapping">3.4 操作重映射（Input Remapping）</a></li>
+<li><a href="#35-subtitles-persistent-readability">3.5 字幕 / 文本可读（Subtitles &amp; Persistent Readability）</a></li>
+<li><a href="#36-reduced-motion-visual-stability">3.6 动态视觉稳定（Reduced Motion / Visual Stability）</a></li>
+<li><a href="#37-colorblind-cvd-mode">3.7 色盲模式（Colorblind / CVD Mode）</a></li>
+<li><a href="#38-high-contrast-theme">3.8 高对比主题（High-Contrast Theme）</a></li>
+<li><a href="#39-reduce-blur-vfx">3.9 减少动态模糊 / 特效（Reduce Blur &amp; VFX）</a></li>
+<li><a href="#310-audio-cue-substitution">3.10 音频提示替补（Audio Cue Substitution）</a></li>
+</ul>
+</li>
+<li><a href="#4">4. 特性矩阵（特性 × 三档 × 计划落地档位）</a></li>
+<li><a href="#5-v110">5. 与美术圣经未落地项的关联提示（v1.1.0 已闭环）</a></li>
+<li><a href="#6-v110">6. 风险与升级建议（v1.1.0 状态更新）</a></li>
+<li><a href="#7">7. 建议落地策略（回传主理人要点）</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="worldsim">WorldSim 可访问性分级评估</h1>
+<blockquote>
+<p><strong>对齐声明</strong>：美术圣经已正式落盘（<code>design/art/art-bible.md</code> v1.0.0），本评估与之完全一致并引用其视觉规范（配色 §2.2/§2.3、UI §6、可访问性 §7、技术美术 §8.4、风险 A1）。评估紧扣"上帝视角俯瞰模拟"的真实交互特性，不做泛泛的通用无障碍清单。本版（v1.1.0）不再基于假想圣经——上轮 F1/F2/F3/A1 缺陷均已在 art-bible v1.0.0 中修订落地。</p>
+</blockquote>
+<hr />
+<h2 id="0">0. 评估范围与三档定义</h2>
+<p><strong>"可访问性"作为 Phase 3 技术资产的正式质量维度</strong>：本作是中文上帝视角文明世界模拟，玩家以间接干预（光标 + 面板）调度世界，大量信息依赖地图标记、事件通知、编年史呈现。可读、可辨、可控，本身就是核心玩法——因此可访问性不是"锦上添花"，而是核心循环可达性的底座。</p>
+<p><strong>三档定义（本评估内部口径，供 Phase 3 资产排期参考）</strong></p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>含义</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic（基础档）</strong></td>
+<td>每个可发布构建都必须具备的底线，多为低成本/架构预埋项</td>
+<td>MVP 入场券</td>
+</tr>
+<tr>
+<td><strong>Standard（标准档）</strong></td>
+<td>一款严肃 PC 模拟应有的可访问性质量</td>
+<td>核心层目标线</td>
+</tr>
+<tr>
+<td><strong>Comprehensive（完备档）</strong></td>
+<td>示范性、可细粒度定制的无障碍体验</td>
+<td>延展/远景层</td>
+</tr>
+</tbody>
+</table>
+<p><strong>与项目既有范围分层对齐</strong>：MVP / 核心层 / 延展层 / 远景层（见 <code>systems-index.md</code> §5 与概念文档 §4.4）。本评估第 4 节"特性矩阵"对每个特性标注计划落地档位。</p>
+<hr />
+<h2 id="1">1. 上帝视角俯瞰模拟的可访问性特异性</h2>
+<p>本作与动作/射击类游戏的可访问性诉求不同，关键特异性如下，后续分项评估均以此为锚：</p>
+<ol>
+<li><strong>玩家是"观察者/调度者"，不是"操作者"</strong>：无单位操控、无及时反应要求（无 QTE/无闪避）。这带来一个强项——<strong>全键盘可玩性极高</strong>，可访问性上限本应高于动作游戏。</li>
+<li><strong>信息密度高、以视觉编码为主</strong>：地形、聚落、资源、灾害、物种状态、NPC 职业全部仰赖俯视画面 + 叠加标记（美术圣经 L0–L6 七层）传达。色弱玩家一旦丢失某个颜色通道，可能直接丢失"灾害前兆"这一安全阀信息。</li>
+<li><strong>连续时间 + 多档加速（1×/2×/5×/20×）</strong>：高速下大量动效（NPC 移动、天气粒子、干预涟漪、季节 lerp、灾害特效、LOD 跳变）并发，存在视觉抖动/闪烁/晕动风险。</li>
+<li><strong>文本是第二信息通道</strong>：事件通知（右侧滑入卡）、编年史（全屏可读视图）承载叙事与状态。文本若瞬时消失或不可缩放，等于关闭了一条信息通路。</li>
+<li><strong>统一 NPR 手绘风 + 大地色系</strong>：温润低饱和的手绘质感天然压低对比度，叠加面板半透明——可读性已由美术圣经 §6.1（文本落 100% 不透明暖白内容卡）主动保障。</li>
+</ol>
+<hr />
+<h2 id="2">2. 与美术圣经视觉规范的关联 + 对比度核算（含修订结果）</h2>
+<p>美术圣经 §2.2/§2.3 给出的 Hex 已可直接核算 WCAG 对比度（sRGB 相对亮度法，AA 普通文本 4.5:1、大图形 3:1、AAA 7:1）。<strong>上轮实测暴露的对比度缺陷（F1/F2/F3/A1）已在 art-bible v1.0.0 修订落地</strong>，本表标注"修订后"列：</p>
+<table>
+<thead>
+<tr>
+<th>文本/图形</th>
+<th>前景</th>
+<th>背景</th>
+<th>修订前对比度</th>
+<th>修订前判定</th>
+<th><strong>art-bible v1.0.0 修订方案</strong></th>
+<th><strong>修订后对比度</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>面板文字/图标轮廓</td>
+<td>深褐 <code>#3A2A1A</code></td>
+<td>暖白 <code>#F5F0E8</code></td>
+<td>12.1:1</td>
+<td>✅ AAA</td>
+<td>维持（不变）</td>
+<td><strong>12.1:1 ✅ AAA</strong></td>
+</tr>
+<tr>
+<td><strong>关键数值（暖金标注）F1</strong></td>
+<td>暖金 <code>#D4A84B</code> 文本</td>
+<td>暖白 <code>#F5F0E8</code></td>
+<td><strong>1.95:1</strong></td>
+<td>❌ 严重失败</td>
+<td><strong>深褐文本 + 暖金边框/下划线；暖金文本限深色主题（§2.2/§6.1）</strong></td>
+<td><strong>文本 12.1:1 ✅ AAA（已落圣经）</strong></td>
+</tr>
+<tr>
+<td><strong>正向状态（青绿）F2</strong></td>
+<td>青绿 <code>#5B8C5A</code> 文本</td>
+<td>暖白 <code>#F5F0E8</code></td>
+<td><strong>3.5:1</strong></td>
+<td>❌ 普通文本 FAIL</td>
+<td><strong>深褐文本 + 青绿状态点/图标；绿调文本用暗绿 <code>#2F5330</code>（§2.2/§6.2）</strong></td>
+<td><strong>文本 12.1:1；暗绿 7.7:1 ✅ AAA（已落圣经）</strong></td>
+</tr>
+<tr>
+<td>警示/关键标记</td>
+<td>朱砂 <code>#C0392B</code></td>
+<td>暖白 <code>#F5F0E8</code></td>
+<td>4.8:1</td>
+<td>⚠ AA 通过</td>
+<td>维持（文本 AA 可用），强制叠加图标+文字（AX-2）</td>
+<td>4.8:1 ✅ AA（语义由冗余保障）</td>
+</tr>
+<tr>
+<td>禁用态文字</td>
+<td>淡灰 <code>#8C8C8C</code></td>
+<td>暖白 <code>#F5F0E8</code></td>
+<td>≈3.0:1</td>
+<td>⚠ 禁用态可接受</td>
+<td>维持，保 ≥3:1</td>
+<td>≈3:1（保留）</td>
+</tr>
+<tr>
+<td>暖金高亮（深色主题）</td>
+<td>暖金 <code>#D4A84B</code></td>
+<td>深褐黑 <code>#1F1812</code></td>
+<td>6.2:1</td>
+<td>✅</td>
+<td>维持（高对比/深色主题）</td>
+<td>≥6:1 ✅</td>
+</tr>
+<tr>
+<td>地图标记轮廓</td>
+<td>深褐 <code>#3A2A1A</code></td>
+<td>土黄 <code>#C4A35A</code></td>
+<td>5.7:1</td>
+<td>✅</td>
+<td>维持</td>
+<td>5.7:1 ✅</td>
+</tr>
+<tr>
+<td><strong>农职业 NPC（青绿）A1/F3</strong></td>
+<td>青绿 <code>#5B8C5A</code></td>
+<td>青绿农田/草地</td>
+<td><strong>≈1:1</strong></td>
+<td>❌ 几乎不可辨</td>
+<td><strong>NPC 令牌强制深褐描边+地面投影盘+职业字形；农用亮叶绿 <code>#7CB342</code>（§3.3）</strong></td>
+<td><strong>描边对地 ≥3.5:1（≥3:1 图形 ✅），不靠颜色辨职业（已落圣经）</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>F3（半透明面板侵蚀）修订</strong>：美术圣经 §6.1 规定面板文本承载层为 <strong>暖白 <code>#F5F0E8</code> 100% 不透明内容卡</strong>，不受世界底色/灾害压暗/雪原侵蚀——正文恒 ≥12:1。已落圣经。</p>
+</blockquote>
+<p><strong>结论性发现（已闭环）</strong>：
+- <strong>F1</strong>：暖金作为面板"关键数值"文本色已在 art-bible v1.0.0 改为"深褐文本 + 暖金边框/下划线"，暖金文本仅限深色主题（≥6:1）。✅ 已落圣经。
+- <strong>F2</strong>：青绿作为状态文本色改为"深褐文本 + 青绿状态点/图标"，绿调文本用暗绿 <code>#2F5330</code>（7.7:1）。✅ 已落圣经。
+- <strong>F3 / A1</strong>：面板侵蚀由实色内容卡解决；NPC 农田不可辨由描边+投影盘+字形解决（≥3:1 图形对比）。✅ 已落圣经。
+- 音频冗余（AX-2 第三通道）仍由 audio-director（阮和鸣）后续补，美术侧图标+文字冗余已具备（占位完成）。</p>
+<hr />
+<h2 id="3">3. 逐项三档对照评估</h2>
+<h3 id="31-color-weak-friendly">3.1 色弱友好（Color-Weak Friendly）</h3>
+<p><strong>项目特性下的风险</strong>：调色板为大地色系（土黄/赭石/青绿/岩石灰，皆为中等明度）+ 朱砂/暖金点缀。两处高风险：
+- <strong>红弱（protanopia）/ 全色弱玩家丢失朱砂红 = 丢失灾害警告与关键事件</strong>（美术圣经 §6.2 唯一用朱砂表达"警告/紧急"，但已叠加图标+文字）。灾害前兆是 R3 安全阀——色弱玩家不能因丢失红色通道而失去安全阀。
+- <strong>绿弱（deuteranopia）玩家</strong>难分青绿（植被/农田/农职业）与土黄/赭石，密集地图上标记易糊成一片。</p>
+<p><strong>已有缓解（美术圣经已做对的事）</strong>：地图标记用<strong>形状编码</strong>为主、颜色为辅（屋形/足印/圆点/惊叹符，§6.2）；NPC 令牌强制深褐描边+投影盘+职业字形（§3.3，满足 A1 明度差与 WCAG 1.4.11）；风险 A1 已含"色弱可辨"通过标准。这已符合"不单靠颜色传达意义"的 WCAG 1.4.1 原则（AX-2 已采纳 P0）。</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>交付内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic（MVP）</strong></td>
+<td>严格遵守"信息不单靠颜色"：所有意义通道（灾害/资源/状态）同时有形状/图标/文字冗余；朱砂警告叠加图标 + 平滑脉冲（非硬闪，AX-1）+ （音频，待 audio-director）三冗余；禁用"仅颜色区分"的临时状态</td>
+</tr>
+<tr>
+<td><strong>Standard（核心层）</strong></td>
+<td>在 Basic 基础上提供<strong>色觉缺陷（CVD）模式</strong>：① 永久强制"图标 + 文字标签"叠加；② 对易混色对（青绿↔土黄、朱砂↔赭石）做安全化重映射或加图案（pattern）；③ 危险信息增配非红色编码（如三角警示符 + 边框）</td>
+</tr>
+<tr>
+<td><strong>Comprehensive（延展/远景）</strong></td>
+<td>细分三型模拟预览（protan/deutan/tritan）供开发者自检；CVD 模式可叠加"色相旋转 + 图案密度"双保险；地形材质引入可辨纹理（非仅靠色块）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计划落地档位</strong>：Basic → MVP；Standard（CVD 模式）→ <strong>核心层</strong>。</p>
+<h3 id="32-text-scaling">3.2 字体缩放（Text Scaling）</h3>
+<p><strong>项目特性下的考量</strong>：编年史（美术圣经 §6.3）已设计为"可搜索/筛选/缩放"的全屏视图，是良好起点。其余 UI 文本必须可缩放而不破版。关键生产约束：<strong>绝不使用位图字体</strong>，必须用 <strong>SDF / TextMeshPro 矢量字体</strong>（美术圣经 §6.1 已显式规定）。</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>交付内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic（MVP）</strong></td>
+<td>全部 UI 文本走 TMP/SDF 矢量字体，基准 100%；编年史内置缩放（已有）；CJK 小字号保笔画完整（避免手绘装饰体作正文）</td>
+</tr>
+<tr>
+<td><strong>Standard（核心层）</strong></td>
+<td>全局 UI 文本缩放滑块（75%–150%，按相对单位布局，不破版）；编年史缩放与全局联动；设最小字号下限（如 ≥12px@1080p）</td>
+</tr>
+<tr>
+<td><strong>Comprehensive（延展）</strong></td>
+<td>分面板独立缩放 + 易读字体选项（在思源黑体基础上提供更高认读性 CJK 字体）+ 行距/字距可调</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计划落地档位</strong>：Basic → MVP；Standard（全局缩放滑块）→ <strong>核心层</strong>。</p>
+<h3 id="33-ui-ui-contrast-under-npr">3.3 UI 对比度（UI Contrast under NPR）</h3>
+<p><strong>项目特性下的风险</strong>：NPR 手绘风天然低对比 + 面板半透明，叠加 §2 核算的暖金/青绿文本失败（F1/F2，已修订）。面板文字主体（深褐 on 暖白 12.1:1）达标，点缀色文本已由 art-bible v1.0.0 改为非文本通道或深色主题。</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>交付内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic（MVP）</strong></td>
+<td>正文一律深褐 on 暖白（≥12:1）；暖金/青绿仅作填充/边框/大图形/图标，不作文本；面板 100% 不透明内容卡（已落 F3）；<strong>F1/F2/A1 已修订</strong></td>
+</tr>
+<tr>
+<td><strong>Standard（核心层）</strong></td>
+<td>提供<strong>高对比主题</strong>（见 3.8）；所有状态文本在两种主题下均 ≥4.5:1；动态场景下（灾害压暗/暗角/雪原）保证文本可读（实色卡兜底）</td>
+</tr>
+<tr>
+<td><strong>Comprehensive（远景）</strong></td>
+<td>对比度随环境自适应（如暗场景下自动提亮面板底）；可逐元素微调对比</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计划落地档位</strong>：Basic → MVP；Standard → <strong>核心层</strong>。</p>
+<h3 id="34-input-remapping">3.4 操作重映射（Input Remapping）</h3>
+<p><strong>项目特性下的优势</strong>：间接干预 = 光标 + 面板点击，无操作时序压力。这意味着<strong>全键盘可玩性极高</strong>——本作本就应是"可纯键盘通关"的强项。输入面：鼠标移动（世界光标）、左键（选/放）、右键（取消）、面板键位、空格（暂停）、1/2/5/20（变速）、拖拽/点击时间轴。</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>交付内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic（MVP）</strong></td>
+<td>热键可重映射（至少变速键、暂停、干预类型切换）；鼠标 + 键盘双通道均可完成核心循环</td>
+</tr>
+<tr>
+<td><strong>Standard（核心层）</strong></td>
+<td>完整键盘导航（Tab/方向键遍历所有面板与控件）+ 可视化重绑定 UI + 时间轴支持"点击设值"替代拖拽；提供预设方案（如左手/右手布局）</td>
+</tr>
+<tr>
+<td><strong>Comprehensive（延展）</strong></td>
+<td>多套键位配置档（profile）导入导出；单手/仅鼠标/仅键盘三模式官方支持；与辅助外设（开关控制）兼容的慢速扫描模式</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计划落地档位</strong>：Basic → MVP；Standard（键盘导航 + 重绑定 UI）→ <strong>核心层</strong>。</p>
+<h3 id="35-subtitles-persistent-readability">3.5 字幕 / 文本可读（Subtitles &amp; Persistent Readability）</h3>
+<p><strong>项目特性下的考量</strong>：本作无角色对白，故无传统"字幕"，但<strong>事件通知与编年史条目就是文本信息通道</strong>，必须"持续可读、非瞬时消失"。美术圣经 §6.3 事件卡为右侧滑入（约 0.3s）——已规定<strong>不瞬时消失</strong>，进入可滚动、可回看的通知日志。</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>交付内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic（MVP）</strong></td>
+<td>事件通知<strong>不瞬时消失</strong>：进入可滚动、可回看的通知日志（与干预系统 §5.1「干预历史记录面板」、S6 编年史同源）；关键/紧急事件持续至玩家确认</td>
+</tr>
+<tr>
+<td><strong>Standard（核心层）</strong></td>
+<td>日志可搜索/筛选/按严重度排序（呼应 R5 认知过载治理）；事件提供<strong>闭式字幕式呈现</strong>（标题 + 简明正文 + 时间戳）；可设自动消失时长或永久驻留</td>
+</tr>
+<tr>
+<td><strong>Comprehensive（远景）</strong></td>
+<td>编年史/事件<strong>音频旁述</strong>（audio description，待 audio-director 协同）；可按系统/聚落过滤订阅</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计划落地档位</strong>：Basic（持久日志）→ MVP；Standard（可检索日志 + 闭式呈现）→ <strong>核心层</strong>。</p>
+<h3 id="36-reduced-motion-visual-stability">3.6 动态视觉稳定（Reduced Motion / Visual Stability）</h3>
+<p><strong>项目特性下的风险</strong>：连续时间 + 20× 加速下，NPC 移动、天气粒子、干预涟漪、季节 lerp、灾害特效、LOD 跳变并发；美术圣经原 §6.4 规定紧急/危机事件用<strong>朱砂红闪烁</strong>——硬闪烁涉<strong>光敏性/癫痫安全</strong>风险（见 §6 <strong>AX-1 已采纳 P0</strong>）。好消息：美术圣经 §8.1 已选 FXAA/SMAA 而非 TAA，"微缩尺度下 TAA 可能导致抖动"——抖动意识已在技术美术层面就位。</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>交付内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic（MVP）</strong></td>
+<td>默认不用硬闪烁表达警告（改用平滑脉冲/呼吸，仍可感知，<strong>已落 AX-1</strong>）；抗锯齿维持 FXAA/SMAA 而非 TAA；高速下不新增屏幕整体抖动</td>
+</tr>
+<tr>
+<td><strong>Standard（核心层）</strong></td>
+<td><strong>"减少动态"总开关</strong>（已落 art-bible §8.4）：关闭硬闪烁、平滑季节 lerp、衰减 Bloom、削弱/关闭非必要天气粒子、平滑相机与 LOD 跳变过渡；该开关经 TA 接 URP Volume 实现</td>
+</tr>
+<tr>
+<td><strong>Comprehensive（延展）</strong></td>
+<td>粒度化控制：天气粒子强度、季节过渡速度、干预涟漪幅度、相机移动缓动各自可调；提供"极简视觉"档（只留信息必要动效）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计划落地档位</strong>：Basic → MVP；Standard（减少动态总开关）→ <strong>核心层</strong>。</p>
+<h3 id="37-colorblind-cvd-mode">3.7 色盲模式（Colorblind / CVD Mode）</h3>
+<p>见 3.1 Standard 档。独立列出以对齐任务要求：本模式是色弱友好的 Standard 级交付，核心是"形状/图案/文字三重冗余 + 易混色对安全化重映射"，而非简单滤镜。</p>
+<p><strong>计划落地档位</strong>：<strong>核心层</strong>（Standard）。</p>
+<h3 id="38-high-contrast-theme">3.8 高对比主题（High-Contrast Theme）</h3>
+<p><strong>项目特性下的价值</strong>：NPR 软质感压低对比，高对比主题可"绕过"手绘软度，用实色高对比面板保障可读性；同时<strong>天然修复 F1</strong>——暖金在深色底上 ≥6:1 可用（见 §2）。主题切换由 TA 经 URP Volume + UI 样式表实现（art-bible §8.4），不影响世界渲染。</p>
+<p><strong>计划落地档位</strong>：<strong>核心层</strong>（Standard）。</p>
+<h3 id="39-reduce-blur-vfx">3.9 减少动态模糊 / 特效（Reduce Blur &amp; VFX）</h3>
+<p>本作 NPR 无运动模糊、无 TAA（§8.1），动态模糊风险低。主要归口到 3.6 的"减少动态"开关（粒子/Bloom/过渡）。另：提供<strong>粒子数量上限可调</strong>（美术圣经 §8.3 同屏粒子预算 ≤5000，允许按设备/偏好下调，已落 §8.4），既是性能档也是晕动缓解档。</p>
+<p><strong>计划落地档位</strong>：Basic（无 TAA/无运动模糊，已满足）→ MVP；Standard（粒子上限可调）→ <strong>核心层</strong>（并入 3.6 减少动态）。</p>
+<h3 id="310-audio-cue-substitution">3.10 音频提示替补（Audio Cue Substitution）</h3>
+<p>视觉提示（灾害、状态变化）应有冗余音频线索，以助色弱/低视力玩家。本项目音频由 <strong>audio-director（阮和鸣）</strong> 负责，本评估<strong>仅标注接口需求、不展开音频设计</strong>：</p>
+<ul>
+<li>需要：灾害前兆、紧急事件、关键状态变化（饥荒/疫病/NPC 死亡）的冗余音频提示（<strong>AX-2 第三冗余通道，美术侧图标+文字已占位，音频待补</strong>）；</li>
+<li>需要：独立音量通道（环境/事件/UI），以及（若未来有旁述）字幕/字幕音量通道；</li>
+<li>待 audio-director 在 <code>design/accessibility-requirements.md</code> 或音频 GDD 中补全。</li>
+</ul>
+<p><strong>计划落地档位</strong>：MVP 起由 audio-director 协同交付基础事件音；完整冗余音频 → 核心层。</p>
+<hr />
+<h2 id="4">4. 特性矩阵（特性 × 三档 × 计划落地档位）</h2>
+<blockquote>
+<p>图例：● = 该档位交付；○ = 不在此档位交付；<strong>计划落地档位</strong> = 推荐该特性达到的目标档位与范围分层。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>可访问性特性</th>
+<th style="text-align: center;">Basic</th>
+<th style="text-align: center;">Standard</th>
+<th style="text-align: center;">Comprehensive</th>
+<th>计划落地档位</th>
+<th>关联美术圣经 / 风险</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>色弱友好（不单靠颜色）</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>MVP→核心层</strong></td>
+<td>§6.2 形状编码；A1；R3 安全阀（AX-2 已采纳 P0）</td>
+</tr>
+<tr>
+<td>色盲模式（CVD 重映射+图案）</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>核心层</strong></td>
+<td>3.1/3.7；F2（已修订）</td>
+</tr>
+<tr>
+<td>字体缩放（SDF + 全局滑块）</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>MVP→核心层</strong></td>
+<td>§6.1 字体（SDF 已显式）；需全局滑块</td>
+</tr>
+<tr>
+<td>UI 对比度（含修正 F1/F2/F3/A1）</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>MVP→核心层</strong></td>
+<td>§2.2/§3.3/§6.1；<strong>F1/F2/F3/A1 已落圣经</strong></td>
+</tr>
+<tr>
+<td>高对比主题</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>核心层</strong></td>
+<td>§8.4 URP Volume；修复 F1</td>
+</tr>
+<tr>
+<td>操作重映射（热键+键盘导航）</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>MVP→核心层</strong></td>
+<td>§6 UI；间接干预特性</td>
+</tr>
+<tr>
+<td>字幕/持久可读（通知日志）</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>MVP→核心层</strong></td>
+<td>§6.3 事件卡；R5；S1 历史面板</td>
+</tr>
+<tr>
+<td>动态视觉稳定（减动态开关）</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>MVP→核心层</strong></td>
+<td>§8.1 抗锯齿；§6.4/§8.4 闪烁（<strong>AX-1 已采纳 P0</strong>）</td>
+</tr>
+<tr>
+<td>减少动态模糊/粒子可调</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>MVP→核心层</strong></td>
+<td>§8.3/§8.4 粒子预算</td>
+</tr>
+<tr>
+<td>音频提示替补</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">●</td>
+<td style="text-align: center;">●</td>
+<td><strong>核心层</strong>（audio-director 协同）</td>
+<td>待音频负责人补（AX-2 音频占位）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>总体策略</strong>：<strong>MVP 以 Basic 全线兜底 → 核心层将绝大多数特性推至 Standard → Comprehensive 留作延展/远景</strong>。理由：本作"读世界即玩法"，可读性/可辨性/可控性缺失会直接砍掉核心循环可达性，故不应止步于"能跑"，核心层即应达 Standard。</p>
+<p><strong>三档映射确认（不变）</strong>：MVP=Basic、核心层=Standard、延展/远景=Comprehensive，与本评估 v1.0.0 口径一致，本次 v1.1.0 更新<strong>不改变</strong>该映射。</p>
+<hr />
+<h2 id="5-v110">5. 与美术圣经未落地项的关联提示（v1.1.0 已闭环）</h2>
+<p>美术圣经 v1.0.0 已正式落盘，上轮 §5 所列"待评审"项均已在圣经中落地，本评估结论不再有悬空依赖：</p>
+<table>
+<thead>
+<tr>
+<th>关联项（上轮）</th>
+<th>上轮状态</th>
+<th><strong>v1.0.0 落地情况</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A1 俯视可读性 vs 手绘风格（P0）</strong></td>
+<td>⏳ 待评审</td>
+<td>✅ 已落 §3.3（描边+投影盘+字形+明度差，含"色弱可辨"通过标准）</td>
+</tr>
+<tr>
+<td>§6.1 字体规格（SDF）</td>
+<td>草稿</td>
+<td>✅ 已落 §6.1（显式 TMP/SDF，禁用位图）</td>
+</tr>
+<tr>
+<td>§8.4 后处理 Volume（可访问性驱动）</td>
+<td>草稿</td>
+<td>✅ 已落 §8.4（高对比主题/减少动态/粒子上限/游戏内开关）</td>
+</tr>
+<tr>
+<td>§2.2/§6 暖金标注数值（F1）</td>
+<td>草稿</td>
+<td>✅ 已落 §2.2/§6.1（深褐文本+暖金边框，暖金文本限深色主题）</td>
+</tr>
+<tr>
+<td>§2.2/§6.2 青绿状态文本（F2）</td>
+<td>草稿</td>
+<td>✅ 已落 §2.2/§6.2（深褐文本+青绿点/图标，暗绿变体）</td>
+</tr>
+<tr>
+<td>§6.1 面板半透明侵蚀（F3）</td>
+<td>草稿</td>
+<td>✅ 已落 §6.1（文本落 100% 不透明暖白内容卡）</td>
+</tr>
+<tr>
+<td>§3.3 NPC 农田（A1 实测 ≈1:1）</td>
+<td>草稿</td>
+<td>✅ 已落 §3.3（描边+投影盘+字形，描边对地 ≥3.5:1）</td>
+</tr>
+<tr>
+<td>§6.4/§8.4 朱砂硬闪烁警告（AX-1）</td>
+<td>草稿</td>
+<td>✅ 已落 §6.4/§8.4（平滑脉冲+减少动态开关，硬闪默认关）</td>
+</tr>
+<tr>
+<td>§6.2 警告仅依赖颜色（AX-2）</td>
+<td>草稿</td>
+<td>✅ 已落 §6.2/§7.1（图标+文字冗余，与 R3 同 P0）</td>
+</tr>
+<tr>
+<td><code>com.unity.modules.accessibility</code> 1.0.0</td>
+<td>已引用</td>
+<td>✅ 仅作 OS 默认值源，游戏内开关自实现（§8.4）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-v110">6. 风险与升级建议（v1.1.0 状态更新）</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>风险</th>
+<th>上轮评级</th>
+<th><strong>v1.1.0 状态</strong></th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AX-1</strong></td>
+<td>灾害/危机警告用<strong>朱砂红硬闪烁</strong></td>
+<td>建议按 P0 安全项</td>
+<td><strong>✅ 已采纳 P0 安全项（已落 art-bible §6.4/§8.4）</strong></td>
+<td>默认平滑脉冲 + 全局"减少动态/无闪烁"开关；硬闪烁仅作可关闭选项、默认关闭。光敏/癫痫安全已兜底</td>
+</tr>
+<tr>
+<td><strong>AX-2</strong></td>
+<td>警告信息<strong>仅依赖颜色</strong>（朱砂 = 灾害/紧急）</td>
+<td>建议与 R3(P0) 同优先级</td>
+<td><strong>✅ 已采纳 P0 安全项（与 R3 同级，已落 art-bible §6.2/§7.1/§3.3）</strong></td>
+<td>图标 + 文字冗余已落视觉编码；音频冗余由 audio-director 后续补（§3.10 占位）。色弱玩家不丢失 R3 安全阀</td>
+</tr>
+<tr>
+<td><strong>AX-3</strong></td>
+<td>暖金/青绿文本对比失败（F1/F2）</td>
+<td>P1</td>
+<td><strong>✅ 已修订（已落 art-bible §2.2/§6.1/§6.2）</strong></td>
+<td>暖金数值→深褐文本+暖金边框；青绿状态→深褐文本+青绿点；均超 AAA</td>
+</tr>
+<tr>
+<td><strong>AX-4</strong></td>
+<td>半透明面板在极端世界底色下对比侵蚀（F3）</td>
+<td>P1</td>
+<td><strong>✅ 已修订（已落 art-bible §6.1）</strong></td>
+<td>文本落 100% 不透明暖白内容卡，恒 ≥12:1</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>遗留协同项（非美术阻断）</strong>：AX-2 的"灾害前兆安全阀<strong>设计侧</strong>"（预警逻辑/时长/内容）由 design-strategist 协同 S2 生态模拟 / S6 涌现叙事负责（R3 设计侧），待 Phase 4 排期；美术侧仅做视觉编码冗余，接口已预留（§6.2/§6.3 形状+文字编码可承载任意灾害类型）。</p>
+</blockquote>
+<hr />
+<h2 id="7">7. 建议落地策略（回传主理人要点）</h2>
+<ol>
+<li><strong>三档起步策略（不变）</strong>：MVP 以 <strong>Basic</strong> 全线兜底（架构预埋：SDF 字体、形状编码标记、持久通知日志、无 TAA、热键可重映射、无硬闪烁）；<strong>核心层目标定为 Standard</strong>（CVD 模式、高对比主题、减少动态总开关、全局字体缩放、完整键盘导航、可检索日志）；Comprehensive 留延展/远景。</li>
+<li><strong>对比度缺陷已全部闭环</strong>：F1/F2/F3/A1 在 art-bible v1.0.0 修订落地，无需在美术侧追加动作；UX 规格（<code>design/ux/ux-spec.md</code>，已于 Phase 4 产出并落位该路径）须引用本圣经与本评估（路径引用已在 Phase 4 重跑时由 <code>design/accessibility-requirements.md</code> 统一为 <code>design/ux/ux-spec.md</code>，见 §0 关联待办）。</li>
+<li><strong>P0 安全项已采纳并落地</strong>：<strong>AX-1（硬闪烁→平滑脉冲+减少动态开关）</strong>、<strong>AX-2（意义不单靠颜色，图标+文字，与 R3 同 P0）</strong> 已在 art-bible v1.0.0 §6/§7/§8 写明为强制约束，不可默认关闭、不可协商。</li>
+<li><strong>技术资产事实</strong>：<code>com.unity.modules.accessibility</code> 1.0.0 可作 OS 默认值源，但桌面 PC 桥接部分须游戏内自实现；高对比/减少动态/粒子上限由 TA 经 URP Volume 落地（art-bible §8.4 已定接口）。</li>
+</ol>
+<blockquote>
+<p><strong>林绘澄注</strong>：本作作为"读世界即玩法"的俯瞰模拟，可访问性不是成本而是核心可达性。v1.1.0 已将上轮所有悬空项（A1/SDF/Volume/F1-F3/硬闪/颜色冗余）全部闭环于 art-bible v1.0.0，AX-1/AX-2 升为已采纳 P0。建议主理人在 Phase 4 预制作门确认：(1) 旧 <code>art/art-bible.md</code> v2.0.0 误置路径草稿归档/删除；(2) AX-2 设计侧协同（design-strategist × S2/S6）排入 Phase 4；(3) audio-director 在 <code>design/accessibility-requirements.md</code> 补 AX-2 音频冗余通道。</p>
+</blockquote>
+</div>
+</body>
+</html>

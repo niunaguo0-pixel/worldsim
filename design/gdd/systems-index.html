@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldSim 系统索引</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 systems-index.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#worldsim">WorldSim 系统索引</a><ul>
+<li><a href="#1">1. 系统总览</a><ul>
+<li><a href="#11-core-loop-layer">1.1 核心循环层（Core Loop Layer）</a></li>
+<li><a href="#12-simulation-support-layer">1.2 模拟支撑层（Simulation Support Layer）</a></li>
+<li><a href="#13-presentation-interaction-layer">1.3 表现与交互层（Presentation &amp; Interaction Layer）</a></li>
+</ul>
+</li>
+<li><a href="#2">2. 系统依赖关系</a></li>
+<li><a href="#3-gdd">3. GDD 产出顺序与攻关计划</a><ul>
+<li><a href="#31">3.1 产出顺序</a></li>
+<li><a href="#32-p0">3.2 P0 风险攻关映射</a></li>
+<li><a href="#33-p1">3.3 P1 风险攻关映射</a></li>
+</ul>
+</li>
+<li><a href="#4-gdd">4. GDD 文档模板</a></li>
+<li><a href="#5-phase-2">5. Phase 2 工作流</a></li>
+<li><a href="#_1">附录：概念文档风险追踪表</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="worldsim">WorldSim 系统索引</h1>
+<blockquote>
+<p><strong>文档说明</strong>：本文档是 Phase 2 系统设计的入口文件，列出 WorldSim 的全部系统、依赖关系、GDD 产出优先级，并标注每个系统需要攻关的设计风险。后续逐系统 GDD 按本文档排列的顺序产出。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 系统总览</h2>
+<p>WorldSim 的系统分为三层：<strong>核心循环层</strong>（三支柱 + 时间）、<strong>模拟支撑层</strong>（世界生成 + 叙事 + 模块框架）、<strong>表现与交互层</strong>（UI + 相机 + 存档）。</p>
+<h3 id="11-core-loop-layer">1.1 核心循环层（Core Loop Layer）</h3>
+<p>玩家每月都会触达的系统——三支柱在此层咬合。</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>系统名</th>
+<th>英文标识</th>
+<th>职责一句话</th>
+<th>P0 风险关联</th>
+<th>GDD 优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>干预系统</td>
+<td>InterventionSystem</td>
+<td>玩家唯一行动接口——通过间接调节世界参数影响三支柱（干预无限次，自然后果制衡）；干预结算时机对齐 S4 连续时间（异步延迟生效，去除玩家回合边界）</td>
+<td>R1（agency 感）/ R2（干预与涌现性矛盾）</td>
+<td>★★★ 第 1</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>生态模拟引擎</td>
+<td>EcologySimEngine</td>
+<td>种群动态、食物链、资源再生、地貌演变、四季循环；时间模型对齐 S4 连续时间（固定步长月级结算）</td>
+<td>R3（涌现不可控性）</td>
+<td>★★★ 第 2</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>文明发展系统</td>
+<td>CivilizationSystem</td>
+<td>聚落成长、经济流转、科技积累、政治演变、个体生命周期、军事/战争子系统（核心层可用：多聚落模块 ON 时文明间即可开战）；含人口尺度层级（聚落分档 村/镇/市/都市圈 + 国家=多聚落聚合千万~十亿级）、族群子系统（§2.11）、跨国文化家族（§2.8）、经济/社会制度谱（§2.4.4）、法律体系家族（§2.9.1）、治理层级三轴：法理等级 × 体量规模 × 关系形态（§2.4.5 / §2.4.5.1）；<strong>时代门槛禁绝对人口门闩</strong>（§2.0.2 v1.4.4：TechTier + 盈余 + pop/CC 利用率）（核心层，默认 ON；MVP 族群折叠裁决：单一主导族群、结构保留不退化、不保留潜在分化入口）</td>
+<td>—</td>
+<td>★★ 第 3</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>时间推进系统</td>
+<td>TimeProgressionSystem</td>
+<td>连续时间推进（实时时钟+加速 1×/2×/5×/20× + 固定步长月结 + 异步干预 + 尺度跃迁 + 世代传承），替代月历回合制；v1.0.1 增<strong>混合结算架构</strong>（全局月级大账 + 事件驱动周级子结算，算力约纯月级 1.5–2×）；v1.0.2 增 §7.3「R13 确定性 P0 前提裁决（Gate-0）」（Replay 四路对跑 + 五条确定性铁律 + 三级回退）</td>
+<td>R3（涌现不可控，连续时间下更需注意）/ R13 / R14</td>
+<td>★★ 第 4</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-simulation-support-layer">1.2 模拟支撑层（Simulation Support Layer）</h3>
+<p>为核心循环提供世界基底与叙事输出的系统。</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>系统名</th>
+<th>英文标识</th>
+<th>职责一句话</th>
+<th>P0 风险关联</th>
+<th>GDD 优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S5</td>
+<td>世界地图生成</td>
+<td>WorldMapGenerator</td>
+<td>真实地球地理数据生成（双开局模式：远古沙盒/当今地缘政治；New Game 参数化：起始时代/起始区域/国界年份自选），全球尺度+MVP区域精算；含真实民族/语系分布种子（ethnicSeed，地缘模式按起始区域映射，含起始区域预设表 §2.2.2）；v1.0.6 补面板第 ⑤ 项目标模式（GoalMode）归属声明（不进 WorldInitConfig，由 S3/概念承载）</td>
+<td>—</td>
+<td>★★ 第 5</td>
+</tr>
+<tr>
+<td>S6</td>
+<td>涌现叙事引擎</td>
+<td>EmergentNarrativeEngine</td>
+<td>事件检测、编年史生成、关键个体追踪</td>
+<td>R4（叙事可读性）/ R5（认知过载）</td>
+<td>★ 第 6</td>
+</tr>
+<tr>
+<td>S7</td>
+<td>模块化开关框架</td>
+<td>ModularToggleFramework</td>
+<td>世代传承/科技树/多聚落/政治结构的可开关模块管理</td>
+<td>—</td>
+<td>★ 第 7</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-presentation-interaction-layer">1.3 表现与交互层（Presentation &amp; Interaction Layer）</h3>
+<p>玩家感知世界与施加操作的界面层。</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>系统名</th>
+<th>英文标识</th>
+<th>职责一句话</th>
+<th>P0 风险关联</th>
+<th>GDD 优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S8</td>
+<td>UI/HUD 系统</td>
+<td>UISystem</td>
+<td>信息面板、地图标记、事件通知、编年史阅览、干预光标</td>
+<td>R5（认知过载）</td>
+<td>★ 第 8</td>
+</tr>
+<tr>
+<td>S9</td>
+<td>相机系统</td>
+<td>CameraSystem</td>
+<td>正交俯视相机、缩放/平移、时间尺度联动 LOD</td>
+<td>—</td>
+<td>★ 第 9</td>
+</tr>
+<tr>
+<td>S10</td>
+<td>存档系统</td>
+<td>SaveLoadSystem</td>
+<td>世界状态序列化/反序列化、分层存档、增量存储</td>
+<td>—</td>
+<td>★ 第 10</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2">2. 系统依赖关系</h2>
+<pre><code>                    ┌──────────────────────────────────────┐
+                    │           S5 世界地图生成              │
+                    │  （真实地球地理 → 所有系统的空间基底）  │
+                    └──────────────────┬───────────────────┘
+                                       │ 生成
+                    ┌──────────────────▼───────────────────┐
+                    │           S2 生态模拟引擎              │
+                    │  （种群/食物链/资源/地貌/四季 ← 地形）  │
+                    └──────┬──────────────────┬────────────┘
+                           │ 驱动             │ 提供基底
+                    ┌──────▼──────┐    ┌──────▼──────────────┐
+                    │ S3 文明发展  │    │   S4 时间推进系统     │
+                    │  系统        │◄──►│  （连续时间/尺度/世代）   │
+                    │ （聚落/经济  │    │                      │
+                    │  /科技/政治） │    └──────────┬───────────┘
+                    └──────┬──────┘               │ 驱动
+                           │                      │
+                    ┌──────▼──────────────────────▼───────┐
+                    │           S1 干预系统                 │
+                    │  （玩家唯一接口 → 调节以上所有系统）    │
+                    └──────┬──────────────────────────────┘
+                           │ 触发事件
+                    ┌──────▼──────────────────────┐
+                    │     S6 涌现叙事引擎           │
+                    │  （从系统状态提取叙事事件）    │
+                    └──────┬──────────────────────┘
+                           │ 输出事件
+                    ┌──────▼──────────────────────┐
+                    │       S8 UI/HUD 系统         │
+                    │  （向玩家呈现信息与事件）      │
+                    └─────────────────────────────┘
+
+    S7 模块化开关框架 —— 横切 S3/S4（控制哪些模块启用）
+    S9 相机系统     —— 独立，与 S4 时间尺度联动 LOD
+    S10 存档系统    —— 横切所有模拟系统（序列化世界状态）
+</code></pre>
+<p><strong>依赖规则</strong>：
+- 箭头方向 = 依赖方向（A → B 表示 A 依赖 B 的输出）
+- S5 是所有系统的空间基底，必须最先产出（但 GDD 可以后写，因为概念文档已定义其范围）
+- S1（干预系统）依赖 S2/S3/S4 的参数接口——GDD 先写 S1 定义接口契约，再由 S2/S3/S4 实现
+- S6/S8 依赖所有模拟系统的状态输出——最后设计
+- S7/S9/S10 是横切系统，可并行设计</p>
+<hr />
+<h2 id="3-gdd">3. GDD 产出顺序与攻关计划</h2>
+<h3 id="31">3.1 产出顺序</h3>
+<table>
+<thead>
+<tr>
+<th>批次</th>
+<th>GDD</th>
+<th>系统编号</th>
+<th>攻关风险</th>
+<th>预估篇幅</th>
+<th>依赖</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第 1 批</td>
+<td>干预系统 GDD</td>
+<td>S1</td>
+<td>R1 + R2</td>
+<td>8 节</td>
+<td>概念文档第 3 章 MDA</td>
+</tr>
+<tr>
+<td>第 2 批</td>
+<td>生态模拟引擎 GDD</td>
+<td>S2</td>
+<td>R3</td>
+<td>8 节</td>
+<td>S1 接口契约</td>
+</tr>
+<tr>
+<td>第 3 批</td>
+<td>文明发展系统 GDD</td>
+<td>S3</td>
+<td>—</td>
+<td>8 节</td>
+<td>S1 + S2</td>
+</tr>
+<tr>
+<td>第 4 批</td>
+<td>时间推进系统 GDD</td>
+<td>S4</td>
+<td>R3（涌现不可控，连续时间下更需注意）/ R13 / R14</td>
+<td>8 节</td>
+<td>S3（世代传承依赖文明系统）</td>
+</tr>
+<tr>
+<td>第 5 批</td>
+<td>世界地图生成 GDD</td>
+<td>S5</td>
+<td>R10（双模式参数化一致性）</td>
+<td>8 节</td>
+<td>概念文档 v1.3.1 真实地球地理 + 双开局模式参数化</td>
+</tr>
+<tr>
+<td>第 6 批</td>
+<td>涌现叙事引擎 GDD</td>
+<td>S6</td>
+<td>R4 + R5</td>
+<td>8 节</td>
+<td>S1-S4 状态输出接口</td>
+</tr>
+<tr>
+<td>第 7 批</td>
+<td>模块化开关框架 GDD</td>
+<td>S7</td>
+<td>—</td>
+<td>4 节</td>
+<td>S3/S4 模块清单</td>
+</tr>
+<tr>
+<td>第 8 批</td>
+<td>UI/HUD 系统 GDD</td>
+<td>S8</td>
+<td>R5</td>
+<td>8 节</td>
+<td>S6 事件输出 + S1 干预光标</td>
+</tr>
+<tr>
+<td>第 9 批</td>
+<td>相机系统 GDD</td>
+<td>S9</td>
+<td>—</td>
+<td>4 节</td>
+<td>S4 时间尺度</td>
+</tr>
+<tr>
+<td>第 10 批</td>
+<td>存档系统 GDD</td>
+<td>S10</td>
+<td>—</td>
+<td>6 节</td>
+<td>S1-S5 状态数据模型</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-p0">3.2 P0 风险攻关映射</h3>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>关联系统</th>
+<th>攻关 GDD</th>
+<th>攻关方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R1</strong> 间接控制 agency 感</td>
+<td>S1 干预系统</td>
+<td>第 1 批</td>
+<td>即时视觉反馈（金色光环+涟漪）+ 远期后果可追踪性 + 因果链追溯 + 反噬机制——agency 感来自可见的因果影响力而非资源稀缺</td>
+</tr>
+<tr>
+<td><strong>R2</strong> 干预与涌现性矛盾</td>
+<td>S1 干预系统</td>
+<td>第 1 批</td>
+<td>自然后果制衡（干预无限制，但过度干预触发生态反噬）+ 延迟后果 + 反噬预警；需大量 playtest 调参反噬阈值</td>
+</tr>
+<tr>
+<td><strong>R3</strong> 涌现不可控性与世界崩坏</td>
+<td>S2 生态模拟引擎</td>
+<td>第 2 批</td>
+<td>生态稳态区间机制（正常区间自修复，过临界点才相变）+ 灾害前兆预警 + 紧急干预手段</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-p1">3.3 P1 风险攻关映射</h3>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>关联系统</th>
+<th>攻关 GDD</th>
+<th>攻关方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R4</strong> 叙事涌现可读性</td>
+<td>S6 叙事引擎 / S8 UI</td>
+<td>第 6/8 批</td>
+<td>事件检测器 + 叙事呈现层——卷轴式通知 + 编年史 + 关键个体高亮</td>
+</tr>
+<tr>
+<td><strong>R5</strong> 认知过载风险</td>
+<td>S8 UI/HUD</td>
+<td>第 8 批</td>
+<td>信息分层呈现（总览→详情→逐项）+ 智能事件筛选 + 可自定义关注焦点</td>
+</tr>
+<tr>
+<td><strong>R6</strong> 时代演进内容断裂感</td>
+<td>S3 文明系统 / S5 地图</td>
+<td>第 3/5 批</td>
+<td>渐进式时代演进（技术累积驱动）+ 统一画风下建筑形态变化</td>
+</tr>
+<tr>
+<td><strong>R10</strong> 双模式参数化一致性</td>
+<td>S5 地图 / S3 文明</td>
+<td>第 5 批</td>
+<td>锁定 <code>IWorldGeography</code> 单一地理查询入口，两模式仅差异在 <code>WorldInitConfig</code>，地理机制完全一致</td>
+</tr>
+<tr>
+<td><strong>R11</strong> 军事平衡</td>
+<td>S3 军事/战争子系统</td>
+<td>第 3 批</td>
+<td>军费/战损/战争疲劳三重成本（经济+生态+政治）+ 战略层仅偏移权重不指挥，避免「军事主导策略」</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-gdd">4. GDD 文档模板</h2>
+<p>每个系统 GDD 遵循以下八节结构（短系统可合并为 4-6 节）：</p>
+<pre><code>---
+项目名: WorldSim
+文档名: [系统名] GDD（Game Design Document）
+版本: v1.0.0
+日期: [日期]
+作者: [作者]
+阶段: Phase 2 — 系统设计
+输入文档: systems-index.md + game-concept.md
+状态: 草稿（待评审）
+---
+
+# [系统名] GDD
+
+## 1. 系统概述（System Overview）
+- 一句话定义
+- 设计目标（本系统解决什么问题）
+- 与概念文档的对齐（引用 MDA/范围分层中的相关条目）
+
+## 2. 机制设计（Mechanics）
+- 核心机制列表（每个机制含：名称、描述、参数、作用域）
+- 数据模型（关键数据结构、状态机、参数表）
+- 算法/公式（如涉及模拟计算）
+
+## 3. 动态行为（Dynamics）
+- 涌现行为预测（机制交互产生的预期/非预期行为）
+- 边界情况与极端状态
+
+## 4. 系统交互（System Interactions）
+- 与其他系统的接口（输入/输出/事件）
+- 依赖关系图（本系统在依赖链中的位置）
+
+## 5. 范围分层（Scope Layering）
+- MVP 范围（最小实现）
+- 核心层范围（完整实现）
+- 延展层范围（扩展方向）
+
+## 6. 风险与未决问题
+- 本系统特有的设计风险
+- 需 playtest 验证的假设
+- 与 P0/P1 风险的关联
+
+## 7. 验证标准（Validation Criteria）
+- MVP 验证假设列表
+- 通过/不通过的判定标准
+- 验证方法（原型/playtest/数据观察）
+
+## 8. 评审检查清单
+- 逐条检查项 + 通过标准 + 状态
+</code></pre>
+<hr />
+<h2 id="5-phase-2">5. Phase 2 工作流</h2>
+<pre><code>[系统索引 v1.1] ──→ [S1 干预系统 GDD] ──→ [S2 生态模拟 GDD]
+                                              │
+                                    ┌─────────┘
+                                    ▼
+                         [S3 文明发展 GDD] ──→ [S4 时间推进 GDD]
+                                                    │
+                                    ┌───────────────┘
+                                    ▼
+                         [S5 世界地图 GDD] ──→ [S6 叙事引擎 GDD]
+                                                    │
+                                    ┌───────────────┘
+                                    ▼
+                         [S7 模块开关 GDD] ──→ [S8 UI/HUD GDD]
+                                                    │
+                                    ┌───────────────┘
+                                    ▼
+                         [S9 相机 GDD] ──→ [S10 存档 GDD]
+                                                    │
+                                                    ▼
+                                    Phase 2 评审门 → Phase 3 技术搭建
+</code></pre>
+<p><strong>里程碑</strong>：
+- <strong>M1</strong>：S1 + S2 GDD 完成 → P0 风险有方向性答案 → 可启动 MVP 原型技术验证
+- <strong>M2</strong>：S3 + S4 GDD 完成 → 核心循环全系统设计完成
+- <strong>M3</strong>：S5-S10 GDD 完成 → Phase 2 全部产出 → 评审门</p>
+<hr />
+<h2 id="_1">附录：概念文档风险追踪表</h2>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>级别</th>
+<th>状态</th>
+<th>攻关 GDD</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R1 间接控制 agency 感</td>
+<td>P0</td>
+<td>⏳ 待攻关</td>
+<td>S1 干预系统</td>
+<td>MVP 必须验证</td>
+</tr>
+<tr>
+<td>R2 干预与涌现性矛盾</td>
+<td>P0</td>
+<td>⏳ 待攻关</td>
+<td>S1 干预系统</td>
+<td>MVP → 核心层持续迭代</td>
+</tr>
+<tr>
+<td>R3 涌现不可控性与世界崩坏</td>
+<td>P0</td>
+<td>⏳ 待攻关</td>
+<td>S2 生态模拟引擎</td>
+<td>MVP 验证稳态机制</td>
+</tr>
+<tr>
+<td>R4 叙事涌现可读性</td>
+<td>P1</td>
+<td>⏳ 待攻关</td>
+<td>S6 叙事引擎 / S8 UI</td>
+<td>核心层阶段</td>
+</tr>
+<tr>
+<td>R5 认知过载风险</td>
+<td>P1</td>
+<td>⏳ 待攻关</td>
+<td>S8 UI/HUD</td>
+<td>核心层阶段</td>
+</tr>
+<tr>
+<td>R6 时代演进内容断裂感</td>
+<td>P1</td>
+<td>⏳ 待攻关</td>
+<td>S3 文明系统 / S5 地图</td>
+<td>延展层 → 远景层</td>
+</tr>
+<tr>
+<td>R7 中文文化内核融入深度</td>
+<td>P2</td>
+<td>⏳ 待攻关</td>
+<td>叙事 GDD 阶段</td>
+<td>叙事 GDD 阶段</td>
+</tr>
+<tr>
+<td>R8 难度曲线与失败体验</td>
+<td>P2</td>
+<td>⏳ 待攻关</td>
+<td>S1/S2/S6</td>
+<td>核心层阶段</td>
+</tr>
+<tr>
+<td>R9 无对手文明长期动机</td>
+<td>P2</td>
+<td>⏳ 待攻关</td>
+<td>S3 文明系统</td>
+<td>核心层 playtest</td>
+</tr>
+<tr>
+<td>R10 双模式参数化一致性</td>
+<td>P1</td>
+<td>⏳ 待攻关</td>
+<td>S5 世界地图 / S3 文明</td>
+<td>MVP 原型（双模式均可初始化且 S3 一致演进）</td>
+</tr>
+<tr>
+<td>R11 军事平衡</td>
+<td>P2</td>
+<td>⏳ 待攻关</td>
+<td>S3 军事/战争子系统</td>
+<td>核心层 playtest（V9 验证非玩家直接操控）</td>
+</tr>
+<tr>
+<td>R12 族群分化与同化平衡</td>
+<td>P2</td>
+<td>⏳ 待攻关</td>
+<td>S3 族群/种族子系统（§2.11）</td>
+<td>核心层 playtest（mixingRate/分化速率调优；两模式行为一致）</td>
+</tr>
+<tr>
+<td>R13 连续时间确定性/可重放</td>
+<td>P0</td>
+<td>⏳ 待攻关</td>
+<td>S4 时间推进系统</td>
+<td>MVP 原型（固定步长月级结算 + 速度倍率不改模拟粒度；同种子同干预 1× 与 20× 演化一致；存档含时钟+累加器可重放）</td>
+</tr>
+<tr>
+<td>R14 加速下涌现突变</td>
+<td>P1</td>
+<td>⏳ 待攻关</td>
+<td>S4 时间推进系统</td>
+<td>核心层 playtest（预警以游戏月为单位、高速下强化提示；玩家借助暂停/减速仍可响应应力窗口）</td>
+</tr>
+</tbody>
+</table>
+</div>
+</body>
+</html>

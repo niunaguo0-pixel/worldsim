@@ -1,0 +1,135 @@
+# Gate-0 确定性 CI 门禁 (ADR-003 选项 A) — P0 修复版
+#
+# V0-8 / B2 / B8: pin-versions（任意 OS）
+#   - version-pins.json ↔ workflow env
+#   - assert-burst-pinned.ps1
+#   - check-sim-asmdef.ps1（G0-1）
+#
+# V0-9 / B3: gate0（需本机/自托管 Windows + Unity 6000.0.81f1）
+#   - resolve-unity.ps1：Hub 路径 + HKLM Installer 注册表双重确认
+#   - 跑 WorldSim.Tests 全部 EditMode（含 Gate0Determinism / Fallback / RegionPreset）
+#   - 分叉即红；上传 gate0.xml / gate0.log
+#
+# Runner: 默认 self-hosted Windows（预装 Unity）。GitHub hosted 无编辑器，勿用 windows-latest。
+
+name: Gate-0 Determinism Gate
+
+on:
+  push:
+    branches: [ main, phase4, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  UNITY_VERSION: "6000.0.81f1"
+  BURST_VERSION_PIN: "1.8.30"
+  PROJECT_PATH: "WorldSim"
+  # 至少应覆盖 Gate0Determinism 四路 + 单元确定性套件（本地基线约 34–42）
+  GATE0_MIN_TESTS: "30"
+
+jobs:
+  pin-versions:
+    name: V0-8 — Pins + G0-1 asmdef
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assert version-pins.json matches workflow env
+        shell: bash
+        run: |
+          set -euo pipefail
+          UNITY_PIN=$(python3 -c "import json; print(json.load(open('tests/ci/version-pins.json'))['unityEditor'])")
+          BURST_PIN=$(python3 -c "import json; print(json.load(open('tests/ci/version-pins.json'))['burst'])")
+          echo "pins.json unity=$UNITY_PIN burst=$BURST_PIN"
+          echo "workflow  unity=$UNITY_VERSION burst=$BURST_VERSION_PIN"
+          test "$UNITY_PIN" = "$UNITY_VERSION"
+          test "$BURST_PIN" = "$BURST_VERSION_PIN"
+
+      - name: B2/B8 — assert-burst-pinned.ps1
+        shell: pwsh
+        run: ./tests/ci/assert-burst-pinned.ps1 -RepoRoot "${{ github.workspace }}"
+
+      - name: G0-1 — check-sim-asmdef.ps1
+        shell: pwsh
+        run: ./tests/ci/check-sim-asmdef.ps1
+
+  gate0:
+    name: V0-9 — EditMode Gate-0 suite
+    needs: pin-versions
+    # 自托管 Windows runner（已安装 Unity 6000.0.81f1；Hub + 注册表双重确认）
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Unity (Hub + registry dual confirm)
+        id: unity
+        shell: pwsh
+        run: |
+          ./tests/ci/resolve-unity.ps1 -UnityVersion $env:UNITY_VERSION -GitHubOutput
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: B3 — Run WorldSim.Tests EditMode (full assembly)
+        shell: pwsh
+        run: |
+          $unity = "${{ steps.unity.outputs.path }}"
+          $proj = Join-Path $env:GITHUB_WORKSPACE $env:PROJECT_PATH
+          $out = Join-Path $env:GITHUB_WORKSPACE "gate0.xml"
+          $log = Join-Path $env:GITHUB_WORKSPACE "gate0.log"
+          if (Test-Path $out) { Remove-Item $out -Force }
+          if (Test-Path $log) { Remove-Item $log -Force }
+          # 不使用过窄的 -testFilter Gate0Determinism（会漏掉 Fallback/Quantize 等）
+          $args = @(
+            "-batchmode","-nographics",
+            "-projectPath", $proj,
+            "-runTests","-testPlatform","EditMode",
+            "-assemblyNames","WorldSim.Tests",
+            "-testResults", $out,
+            "-logFile", $log
+          )
+          Write-Host "Launch: $unity $($args -join ' ')"
+          $p = Start-Process -FilePath $unity -ArgumentList $args -PassThru -Wait
+          Write-Host "Unity exit=$($p.ExitCode)"
+          if (-not (Test-Path $out)) {
+            Write-Host "::error::gate0.xml missing; see gate0.log"
+            if (Test-Path $log) { Get-Content $log -Tail 100 }
+            exit 1
+          }
+
+      - name: B3 — Parse results (fail on diverge / too few tests)
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:GITHUB_WORKSPACE "gate0.xml"
+          $min = [int]$env:GATE0_MIN_TESTS
+          [xml]$r = Get-Content $out
+          $tr = $r."test-run"
+          $total = [int]$tr.total
+          $failed = [int]$tr.failed + [int]$tr.errors
+          $passed = [int]$tr.passed
+          Write-Host "Gate-0: total=$total passed=$passed failed=$failed result=$($tr.result) minRequired=$min"
+          if ($failed -gt 0) {
+            Select-Xml -Path $out -XPath "//test-case[@result='Failed']" | ForEach-Object {
+              Write-Host "FAIL: $($_.Node.fullname)"
+              $msg = $_.Node.failure.message.InnerText
+              if ($msg) { Write-Host $msg }
+            }
+            Write-Host "::error::Gate-0 failed — Replay diverge or determinism violation (B3)."
+            exit 1
+          }
+          if ($total -lt $min) {
+            Write-Host "::error::Gate-0 ran only $total tests (< $min). Coverage too narrow; expected full WorldSim.Tests EditMode."
+            exit 1
+          }
+          Write-Host "Gate-0 passed."
+
+      - name: Upload Gate-0 report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate0-report
+          path: |
+            gate0.xml
+            gate0.log
+          if-no-files-found: warn

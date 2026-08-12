@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>干预系统 GDD</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 intervention-system.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#gdd">干预系统 GDD</a><ul>
+<li><a href="#1">1. 系统概述</a></li>
+<li><a href="#2-mechanics">2. 机制设计（Mechanics）</a><ul>
+<li><a href="#21-unlimited-intervention-natural-consequence-balancing">2.1 干预无限制与自然后果制衡（Unlimited Intervention &amp; Natural Consequence Balancing）</a></li>
+<li><a href="#22-intervention-types">2.2 干预类型（Intervention Types）</a><ul>
+<li><a href="#221-climate-adjustment">2.2.1 气候调节（Climate Adjustment）</a></li>
+<li><a href="#222-resource-placement">2.2.2 资源投放（Resource Placement）</a></li>
+<li><a href="#223-species-migration">2.2.3 物种迁移（Species Migration）</a></li>
+<li><a href="#224-disasterblessing">2.2.4 灾厄/恩赐（Disaster/Blessing）</a></li>
+<li><a href="#225-civilization-guidance">2.2.5 文明引导（Civilization Guidance）</a></li>
+</ul>
+</li>
+<li><a href="#23-emergency-intervention">2.3 紧急干预（Emergency Intervention）</a></li>
+<li><a href="#24">2.4 数据模型</a></li>
+</ul>
+</li>
+<li><a href="#3-dynamics">3. 动态行为（Dynamics）</a><ul>
+<li><a href="#31">3.1 预期涌现行为</a></li>
+<li><a href="#32">3.2 边界情况</a></li>
+</ul>
+</li>
+<li><a href="#4-system-interactions">4. 系统交互（System Interactions）</a><ul>
+<li><a href="#41">4.1 接口契约</a></li>
+<li><a href="#42">4.2 交互关系</a></li>
+</ul>
+</li>
+<li><a href="#5-scope-layering">5. 范围分层（Scope Layering）</a><ul>
+<li><a href="#51-mvp">5.1 MVP 范围</a></li>
+<li><a href="#52">5.2 核心层范围</a></li>
+<li><a href="#53">5.3 延展层方向</a></li>
+</ul>
+</li>
+<li><a href="#6">6. 风险与未决问题</a><ul>
+<li><a href="#61">6.1 本系统特有风险</a></li>
+<li><a href="#62-p0p1">6.2 与 P0/P1 风险的关联</a></li>
+</ul>
+</li>
+<li><a href="#7-validation-criteria">7. 验证标准（Validation Criteria）</a><ul>
+<li><a href="#71-mvp">7.1 MVP 验证假设</a></li>
+<li><a href="#72">7.2 验证时机</a></li>
+</ul>
+</li>
+<li><a href="#8">8. 评审检查清单</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="gdd">干预系统 GDD</h1>
+<h2 id="1">1. 系统概述</h2>
+<p><strong>一句话定义</strong>：干预系统是玩家与世界交互的唯一接口——玩家不操控任何个体或单位，而是以"神谕/天命"的形式间接调节世界参数，影响生态、文明与生存三个维度。干预次数不限，平衡来自干预的自然生态后果而非人为配额。</p>
+<p><strong>设计目标</strong>：
+- 让玩家感到"是我在影响世界"而非"在看自动模拟器"（R1）
+- 在"干预太强→变成建造游戏"与"干预太弱→变成观看模拟"之间找到平衡点（R2）
+- 为三支柱提供咬合的焊接点——每次干预同时触及三根支柱</p>
+<p><strong>与概念文档的对齐</strong>：
+- 概念文档 3.1.1 定义了 5 种干预类型与"干预无限制"机制（v1.2.0 移除了干预力点数）
+- 概念文档 3.4 核心循环中，"③ 施加干预"是三支柱咬合的焊接点
+- 概念文档 R1/R2 是本系统首攻的两个 P0 级风险
+- 概念文档 3.1.4 时间系统为月历制（1 月 = 1 回合，12 月 = 1 年，3 月 = 1 季）</p>
+<hr />
+<h2 id="2-mechanics">2. 机制设计（Mechanics）</h2>
+<h3 id="21-unlimited-intervention-natural-consequence-balancing">2.1 干预无限制与自然后果制衡（Unlimited Intervention &amp; Natural Consequence Balancing）</h3>
+<p>干预系统的核心设计变更（v1.1.0）：<strong>玩家可随时、任意次地施加干预，没有点数、配额或次数限制。</strong> 平衡不来自人为的资源稀缺，而来自干预在生态系统中引发的自然连锁反应。</p>
+<p><strong>设计原则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无限干预</td>
+<td>玩家每月可施加任意次数的干预，无点数消耗、无配额上限</td>
+</tr>
+<tr>
+<td>自然后果</td>
+<td>每次干预都在生态系统中引发连锁反应——频繁降雨导致洪涝，过度投放资源导致生态失衡，过度引导文明导致生态退化</td>
+</tr>
+<tr>
+<td>延迟显现</td>
+<td>干预的末端后果可能跨越 3-12 个月才显现，玩家无法即时掌控全部 outcomes</td>
+</tr>
+<tr>
+<td>反噬机制</td>
+<td>过度干预（同区域同类型干预叠加超阈值）触发反噬——系统以更剧烈的负面连锁反应"推回"玩家</td>
+</tr>
+<tr>
+<td>经验学习</td>
+<td>玩家通过试错学会"有所为有所不为"——不是系统告诉你"不能做"，而是世界告诉你"做多了会出事"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>反噬阈值示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>干预类型</th>
+<th>安全区间</th>
+<th>反噬触发</th>
+<th>反噬表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>气候调节（降雨）</td>
+<td>同区域 3 个月内 ≤ 2 次</td>
+<td>3 个月内 ≥ 3 次</td>
+<td>洪涝 → 水土流失 → 疫病概率上升</td>
+</tr>
+<tr>
+<td>资源投放</td>
+<td>同区域 6 个月内 ≤ 3 次</td>
+<td>6 个月内 ≥ 4 次</td>
+<td>资源过剩 → 种群爆发 → 食物链失衡</td>
+</tr>
+<tr>
+<td>文明引导</td>
+<td>同聚落 6 个月内 ≤ 2 种倾向</td>
+<td>6 个月内 ≥ 3 种倾向</td>
+<td>文明决策混乱 → 内部冲突 → 稳定度下降</td>
+</tr>
+<tr>
+<td>灾厄施加</td>
+<td>同区域 12 个月内 ≤ 1 次</td>
+<td>12 个月内 ≥ 2 次</td>
+<td>生态不可逆损伤 → 世界健康度下降</td>
+</tr>
+</tbody>
+</table>
+<p><strong>设计意图</strong>：
+- <strong>无限权力 + 复杂后果</strong>：玩家拥有无限的干预权力，但面对的是一个比玩家更复杂的系统。权力不受限，但后果不可完全预测——这是"敬畏式权力感"的机制基础。
+- <strong>试错式学习</strong>：玩家不会被系统告知"你不能做这个"，而是通过世界的反馈学到"做这个会有后果"。这比硬性配额更有沉浸感。
+- ** emergent 平衡**：平衡点不是设计师设定的数值，而是从生态模拟的复杂性中涌现的——不同世界状态下的反噬阈值不同，玩家需要持续适应。</p>
+<h3 id="22-intervention-types">2.2 干预类型（Intervention Types）</h3>
+<h4 id="221-climate-adjustment">2.2.1 气候调节（Climate Adjustment）</h4>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作用域</td>
+<td>地理区域级（一个气候格子，约 1/8 地图）</td>
+</tr>
+<tr>
+<td>效果</td>
+<td>修改区域降雨量 ±30%、温度偏移 ±5°C，持续 2-3 个月</td>
+</tr>
+<tr>
+<td>三支柱触及</td>
+<td>生态：改变水文/植被 → 建设：影响农业产出 → 生存：缓解/加剧灾害</td>
+</tr>
+</tbody>
+</table>
+<p><strong>机制细节</strong>：
+- 玩家选择一个区域 + 调节方向（增雨/减雨/升温/降温）
+- 效果不是瞬间的——降雨量在 1 个月内渐变到位，持续 2-3 个月后自然回落
+- 副作用：上游增雨 → 下游水量增加 → 可能引发洪涝（远期后果）
+- 反噬：同区域 3 个月内累计 ≥ 3 次降雨调节 → 触发洪涝反噬
+- MVP 简化：仅增雨/减雨两种，作用域固定为 1 个区域</p>
+<h4 id="222-resource-placement">2.2.2 资源投放（Resource Placement）</h4>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作用域</td>
+<td>局部点级（地图上一个格子）</td>
+</tr>
+<tr>
+<td>效果</td>
+<td>在指定位置生成资源节点（水源/矿脉/可种植土地/鱼群）</td>
+</tr>
+<tr>
+<td>三支柱触及</td>
+<td>建设：提供建材/食物 → 生态：改变开采压力 → 生存：缓解资源短缺</td>
+</tr>
+</tbody>
+</table>
+<p><strong>机制细节</strong>：
+- 玩家选择一个空地格子 + 资源类型
+- 资源节点有初始储量，被文明采集后递减，可再生资源可缓慢恢复
+- 副作用：投放水源可能改变局部生态（湿地扩张），投放矿脉可能引发过度开采
+- 反噬：同区域 6 个月内累计 ≥ 4 次资源投放 → 触发生态失衡反噬（种群爆发/资源浪费）
+- MVP 简化：仅水源和可种植土地两种</p>
+<h4 id="223-species-migration">2.2.3 物种迁移（Species Migration）</h4>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作用域</td>
+<td>区域间级（从 A 区域引导至 B 区域）</td>
+</tr>
+<tr>
+<td>效果</td>
+<td>引导一个物种群从 A 区域迁移至 B 区域</td>
+</tr>
+<tr>
+<td>三支柱触及</td>
+<td>生态：改变两地种群分布 → 建设：可能带来新资源或新威胁 → 生存：可能引入兽患或提供猎物</td>
+</tr>
+</tbody>
+</table>
+<p><strong>机制细节</strong>：
+- 玩家选择一个物种群 + 目标区域
+- 迁移不是瞬间的——物种群在 1-2 个月内逐步移动到目标区域
+- 副作用：引入的物种可能成为入侵物种，破坏目标区域生态平衡
+- 反噬：同区域 6 个月内引入 ≥ 3 个不同物种群 → 触发入侵物种反噬
+- MVP 简化：MVP 不包含此干预（核心层引入）</p>
+<h4 id="224-disasterblessing">2.2.4 灾厄/恩赐（Disaster/Blessing）</h4>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作用域</td>
+<td>区域/文明级</td>
+</tr>
+<tr>
+<td>效果</td>
+<td>施加灾害（旱灾/兽患/疫病）或恩赐（丰收/发现/灵感）</td>
+</tr>
+<tr>
+<td>三支柱触及</td>
+<td>生存：直接施加/缓解威胁 → 生态：触发种群波动 → 建设：迫使文明适应或崩溃</td>
+</tr>
+</tbody>
+</table>
+<p><strong>机制细节</strong>：
+- 灾厄可用于"修剪"过度膨胀的文明或生态（如对过度砍伐的聚落降旱灾）
+- 恩赐种类：丰收（农作物产量 ×1.5 持续 1 季）、发现（随机解锁一项科技）、灵感（聚落幸福度提升）
+- 反噬：同区域 12 个月内施加 ≥ 2 次灾厄 → 触发生态不可逆损伤反噬
+- MVP 简化：仅旱灾和丰收两种</p>
+<h4 id="225-civilization-guidance">2.2.5 文明引导（Civilization Guidance）</h4>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作用域</td>
+<td>聚落级</td>
+</tr>
+<tr>
+<td>效果</td>
+<td>向聚落注入发展倾向（农业/狩猎/防御/商业/信仰/军事/族群/文化），写入 S3 的 <code>devBias_*</code> 权重，影响其 AI 决策</td>
+</tr>
+<tr>
+<td>三支柱触及</td>
+<td>建设：注入发展方向 → 生态：改变土地利用方式 → 生存：改变抗灾策略</td>
+</tr>
+</tbody>
+</table>
+<p><strong>机制细节</strong>：
+- 玩家选择一个聚落 + 发展倾向
+- 倾向不是命令——聚落 AI 的决策权重被调整（如"农业倾向"使 AI 在选择行动时优先开垦农田），但 AI 仍会根据环境自主决策
+- 倾向持续 3-5 个月后衰减（不是永久效果）
+- 副作用：强引导农业可能导致过度开垦→森林砍伐→生态退化
+- 反噬：同聚落 6 个月内注入 ≥ 3 种不同倾向 → 触发文明决策混乱反噬
+- 军事/战争方针（核心层开放）：写入 <code>devBias_military</code>，偏移文明军备方向（尚武/扩张 vs 守势/城防），详见 S3 §2.10.4；玩家绝不指挥具体部队
+- 族群方针（核心层开放，v1.1.3 新增）：写入 <code>devBias_ethnicity</code>，偏移文明的迁移开放度/同化倾向（间接影响 <code>mixingRate</code> 与边界开放度），详见 S3 §2.11；玩家<strong>绝不</strong>指定某国民族构成或某族群属性
+- 文化方针（核心层开放，v1.1.3 新增）：写入 <code>devBias_culture</code>，偏移文明的文化开放/守传统倾向（间接影响文化特质生成方向、CultureProfile 演化），详见 S3 §2.8；玩家<strong>绝不</strong>指定具体文化内容
+- MVP 简化：仅农业倾向和狩猎倾向两种；商业/信仰/防御/军事/族群/文化在核心层开放；"扩张"由多聚落模块承载，非基础 <code>devBias</code></p>
+<h3 id="23-emergency-intervention">2.3 紧急干预（Emergency Intervention）</h3>
+<blockquote>
+<p>当文明面临不可逆崩溃时（R3 关联），玩家可使用紧急干预力挽狂澜。紧急干预无点数消耗，但有冷却时间（以月计），防止滥用。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>紧急干预</th>
+<th>效果</th>
+<th>冷却</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>天降甘霖</td>
+<td>立即终止一场旱灾，恢复区域降雨至正常水平</td>
+<td>24 个月（2 年）</td>
+</tr>
+<tr>
+<td>神佑护盾</td>
+<td>保护一个聚落免受下一次灾害影响</td>
+<td>24 个月（2 年）</td>
+</tr>
+<tr>
+<td>生命之泉</td>
+<td>立即恢复一个聚落 50% 粮储</td>
+<td>24 个月（2 年）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>设计意图</strong>：紧急干预是 R3 的"安全阀"——当世界走向不可逆崩溃时，给玩家最后一次机会。冷却时间（2 年 = 24 个月）确保它不会被滥用——在冷却期间，玩家必须依靠常规干预和策略来维持文明。冷却不是点数限制，而是"神力需要恢复"的叙事化时间约束。</p>
+<h3 id="24">2.4 数据模型</h3>
+<pre><code>// 干预行动
+struct InterventionAction {
+    InterventionType type;    // 干预类型（枚举）
+    Vector2 targetLocation;   // 目标位置（世界坐标）
+    float radius;             // 作用半径
+    Dictionary parameters;    // 干预参数（如降雨量偏移、资源类型等）
+    int delayMonths;          // 效果延迟月数（0=即时）
+    int durationMonths;       // 效果持续月数
+    int monthExecuted;        // 执行时的月数（世界时间戳）
+}
+
+// 干预效果实例（运行时追踪）
+struct InterventionEffect {
+    int actionId;             // 关联的干预行动ID
+    InterventionType type;    // 干预类型
+    Vector2 epicenter;        // 效果中心
+    float currentIntensity;   // 当前强度（随时间衰减）
+    int remainingMonths;      // 剩余持续月数
+    List&lt;AffectedEntity&gt; affectedEntities; // 受影响的实体列表
+}
+
+// 反噬追踪器（用于检测过度干预）
+struct BacklashTracker {
+    InterventionType type;           // 干预类型
+    Vector2 regionCenter;            // 区域中心
+    List&lt;int&gt; recentInterventionIds; // 近期同区域同类型干预记录
+    int windowMonths;                // 检测窗口（月数）
+    int threshold;                   // 反噬触发阈值
+    bool backlashTriggered;          // 是否已触发反噬
+}
+
+// 因果链节点（用于追踪远期后果）
+struct CausalChainNode {
+    int interventionId;       // 干预行动ID
+    int monthExecuted;        // 执行月数（世界时间戳）
+    List&lt;WorldEvent&gt; triggeredEvents; // 触发的世界事件
+    List&lt;CausalChainNode&gt; downstreamNodes; // 下游因果节点
+}
+
+// 紧急干预冷却状态
+struct EmergencyCooldown {
+    EmergencyType type;       // 紧急干预类型
+    int remainingCooldownMonths; // 剩余冷却月数
+    bool isAvailable;         // 是否可用
+}
+</code></pre>
+<hr />
+<h2 id="3-dynamics">3. 动态行为（Dynamics）</h2>
+<h3 id="31">3.1 预期涌现行为</h3>
+<p><strong>D1 — 干预涟漪（Intervention Ripple）</strong></p>
+<blockquote>
+<p>玩家向上游降雨 → 下游水量增加 → 鱼群繁殖 → 渔获上升 → 聚落食物盈余 → 人口增长 → 伐木扩建 → 森林缩减 → 水土流失 → 河流含沙量上升 → 下游渔场退化。一条干预的因果链可能跨越 3-12 个月才显现末端后果。</p>
+</blockquote>
+<p><strong>GDD 设计对策</strong>：因果链追踪系统（见 2.4 数据模型）记录每次干预的下游影响链。当末端后果显现时，UI 以"追溯"形式提示玩家"此事件与 N 个月前的某次干预有关"——这是 R1（agency 感）的关键设计。</p>
+<p><strong>D2 — 自然后果博弈（Natural Consequence Budgeting）</strong></p>
+<blockquote>
+<p>玩家可以无限干预，但每次干预都在累积生态压力。玩家需要在"立即解决问题"与"避免触发反噬"之间权衡——"这个月已经降雨两次了，再降一次可能引发洪涝，但旱灾还在加剧……"。</p>
+</blockquote>
+<p><strong>GDD 设计对策</strong>：这是 R2 的核心体验——平衡不来自资源稀缺，而来自后果预判。反噬追踪器（见 2.4）在玩家接近反噬阈值时以 UI 预警提示（"该区域近期降雨频繁，继续增雨可能引发洪涝"），让玩家做知情决策而非盲试。关键平衡点在于：反噬阈值不能太低（否则玩家感到被限制），也不能太高（否则干预无后果）。</p>
+<p><strong>D3 — 过度干预反噬（Over-Intervention Backlash）</strong></p>
+<blockquote>
+<p>玩家频繁降雨 → 区域长期过湿 → 植被疯长 → 食草动物爆发 → 食肉动物跟随爆发 → 种群失衡 → 疫病概率上升。看似"好意"的干预可能引发连锁反噬。</p>
+</blockquote>
+<p><strong>GDD 设计对策</strong>：干预不是"无脑施放就有好结果"——每次干预都有潜在的副作用链。反噬机制确保"无限干预"不等于"无限控制"——你可以做任何事，但世界会推回来。这服务于 R2（干预与涌现性的矛盾）。</p>
+<p><strong>D4 — 策略多样性涌现（Strategy Diversity Emergence）</strong></p>
+<blockquote>
+<p>因为干预无次数限制，不同玩家会发展出截然不同的干预风格——有的玩家是"微调型"（每月少量精准干预，避免反噬），有的玩家是"大手笔型"（攒一波大规模干预然后承受反噬后果），有的玩家是"观察型"（极少干预，让世界自运转）。没有"正确"的干预频率。</p>
+</blockquote>
+<p><strong>GDD 设计对策</strong>：这是移除点数限制后的意外收益——点数系统会强制所有玩家进入相同的"稀缺博弈"模式，而无限干预 + 自然后果允许玩家自定义自己的干预节奏。需在 playtest 中验证不同风格是否都能产生有意义的体验。</p>
+<h3 id="32">3.2 边界情况</h3>
+<table>
+<thead>
+<tr>
+<th>边界情况</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>同一区域叠加多次同类干预</td>
+<td>效果叠加但有衰减系数（第二次 70%，第三次 50%），达到反噬阈值后触发反噬</td>
+</tr>
+<tr>
+<td>干预目标区域不存在（如对干涸河床降雨）</td>
+<td>允许执行，效果为"预置水源"——下次有水时生效</td>
+</tr>
+<tr>
+<td>紧急干预冷却中再次尝试</td>
+<td>UI 灰化，显示剩余冷却月数</td>
+</tr>
+<tr>
+<td>玩家长时间不干预（只观察）</td>
+<td>允许——世界自运转，但可能因无人干预而走向崩溃（R3）</td>
+</tr>
+<tr>
+<td>玩家在同一月内对同一目标施加大量同类干预</td>
+<td>允许执行，但反噬检测器立即预警并可能当月触发反噬</td>
+</tr>
+<tr>
+<td>反噬触发后玩家继续同类干预</td>
+<td>反噬效果加剧，可能导致生态不可逆相变（D3 机制）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-system-interactions">4. 系统交互（System Interactions）</h2>
+<h3 id="41">4.1 接口契约</h3>
+<p>干预系统向其他系统提供统一的干预接口，其他系统通过注册"可被干预的参数"来响应：</p>
+<pre><code>// 干预系统向其他系统暴露的接口
+interface IInterventionTarget {
+    // 注册可被干预的参数
+    void RegisterInterventionParameter(string paramKey, float defaultValue, float min, float max);
+
+    // 干预系统调用：修改参数
+    void ApplyIntervention(string paramKey, float deltaValue, int durationMonths);
+
+    // 干预系统调用：查询当前状态（用于 UI 显示）
+    float GetParameterValue(string paramKey);
+}
+
+// 各系统实现此接口：
+// S2 生态模拟引擎：注册降雨量、温度、物种出生率等参数
+// S3 文明发展系统：注册发展倾向权重、粮储系数、科技解锁等参数
+// S4 时间推进系统：注册时间流速参数（可选，远景层）
+</code></pre>
+<h3 id="42">4.2 交互关系</h3>
+<table>
+<thead>
+<tr>
+<th>交互系统</th>
+<th>方向</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S2 生态模拟引擎</td>
+<td>S1 → S2</td>
+<td>气候调节修改降雨/温度参数；物种迁移修改种群位置；灾厄/恩赐影响种群动态；反噬效果通过 S2 的生态连锁实现</td>
+</tr>
+<tr>
+<td>S3 文明发展系统</td>
+<td>S1 → S3</td>
+<td>资源投放在聚落附近生成资源节点；文明引导修改 AI 决策权重；恩赐提升粮储/科技</td>
+</tr>
+<tr>
+<td>S4 时间推进系统</td>
+<td>S4 → S1</td>
+<td>每月开始时推进干预效果持续时间；月终结算时推进反噬检测器窗口；推进紧急干预冷却</td>
+</tr>
+<tr>
+<td>S6 涌现叙事引擎</td>
+<td>S1 → S6</td>
+<td>干预行动作为事件源传入叙事引擎；因果链节点作为叙事素材；反噬事件作为重大叙事节点</td>
+</tr>
+<tr>
+<td>S8 UI/HUD 系统</td>
+<td>S1 ↔ S8</td>
+<td>UI 显示干预光标、反噬预警、紧急干预冷却状态；玩家通过 UI 选择干预类型和目标</td>
+</tr>
+<tr>
+<td>S9 相机系统</td>
+<td>S1 → S9</td>
+<td>干预光标位置影响相机聚焦（可选）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-scope-layering">5. 范围分层（Scope Layering）</h2>
+<h3 id="51-mvp">5.1 MVP 范围</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>MVP 实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>干预类型</td>
+<td>3 种：气候调节（增雨/减雨）、资源投放（水源/可种植土地）、文明引导（农业/狩猎倾向）</td>
+</tr>
+<tr>
+<td>干预限制</td>
+<td>无限制——无次数、无点数、无配额</td>
+</tr>
+<tr>
+<td>反噬机制</td>
+<td>基础版：仅气候调节有反噬（3 次降雨 → 洪涝），其他类型反噬在核心层实现</td>
+</tr>
+<tr>
+<td>紧急干预</td>
+<td>1 种：天降甘霖（终止旱灾，24 个月冷却）</td>
+</tr>
+<tr>
+<td>视觉反馈</td>
+<td>金色光环 + 涟漪扩散（即时）；目标区域参数变化（1 个月内渐变）</td>
+</tr>
+<tr>
+<td>因果链追踪</td>
+<td>基础版：记录干预→直接后果（1 层），不追踪远期链</td>
+</tr>
+<tr>
+<td>UI</td>
+<td>干预类型选择面板、干预光标、反噬预警提示（接近阈值时）、紧急干预冷却显示</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52">5.2 核心层范围</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心层实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>干预类型</td>
+<td>5 种全部：气候调节、资源投放、物种迁移、灾厄/恩赐、文明引导</td>
+</tr>
+<tr>
+<td>干预限制</td>
+<td>无限制——反噬机制完整覆盖所有干预类型</td>
+</tr>
+<tr>
+<td>反噬机制</td>
+<td>完整版：所有干预类型均有反噬阈值与反噬效果；反噬强度随叠加次数递增</td>
+</tr>
+<tr>
+<td>紧急干预</td>
+<td>3 种全部：天降甘霖、神佑护盾、生命之泉（各有 24 个月冷却）</td>
+</tr>
+<tr>
+<td>视觉反馈</td>
+<td>完整金色光环 + 涟漪 + 残留微光 + 因果追溯提示 + 反噬预警视觉</td>
+</tr>
+<tr>
+<td>因果链追踪</td>
+<td>完整版：多级因果链追踪，远期后果显现时提示玩家"追溯"</td>
+</tr>
+<tr>
+<td>UI</td>
+<td>干预预览（显示预计效果范围与反噬风险）、干预历史记录、反噬状态仪表</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53">5.3 延展层方向</h3>
+<ul>
+<li>群体性干预（一次干预影响多个区域）</li>
+<li>条件触发干预（设置自动触发条件，如"粮储低于 20% 时自动投放食物"）</li>
+<li>干预组合效果（特定干预组合产生特殊效果）</li>
+<li>反噬的正面化（某些"反噬"在特定条件下可能产生正面效果——如洪涝后土壤更肥沃）</li>
+</ul>
+<hr />
+<h2 id="6">6. 风险与未决问题</h2>
+<h3 id="61">6.1 本系统特有风险</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>风险</th>
+<th>级别</th>
+<th>说明</th>
+<th>待解方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IV1</td>
+<td>反噬阈值平衡</td>
+<td>P0</td>
+<td>反噬阈值太高 → 干预无后果，变成建造游戏；太低 → 玩家感到被隐形限制。3 次/3 月的起点是否合适？</td>
+<td>MVP 原型阶段以气候调节反噬（3 次/3 月 → 洪涝）为起点，通过 playtest 观察玩家是否感到"干预有后果但不 frustrating"，迭代调整阈值与窗口。</td>
+</tr>
+<tr>
+<td>IV2</td>
+<td>因果链可追踪性</td>
+<td>P0</td>
+<td>远期后果（3-12 个月后才显现）玩家能否将其归因到自己之前的干预？如果玩家无法建立因果认知，agency 感就断了。</td>
+<td>1) 因果追溯提示（远期后果显现时 UI 提示"此事件与 N 个月前的干预有关"）；2) 干预历史记录面板（玩家可翻阅自己的干预记录）；3) 效果可视化（干预落点保留淡金色微光持续 1 个月，作为"印记"）。MVP 验证基础版（1 层因果），核心层验证完整版（多级因果链）。</td>
+</tr>
+<tr>
+<td>IV3</td>
+<td>文明引导的间接感</td>
+<td>P1</td>
+<td>"发展倾向"调整 AI 权重——玩家能否感知到"是我引导的"而非"它自己发展的"？</td>
+<td>1) 引导生效时聚落头顶显示引导图标（持续 3-5 个月）；2) 引导导致的决策变化以事件通知形式提示（"聚落 X 在你的引导下开始发展农业"）；3) 引导效果可见且可量化（农田面积增长速度提升）。</td>
+</tr>
+<tr>
+<td>IV4</td>
+<td>干预副作用的可接受性</td>
+<td>P1</td>
+<td>玩家做了"好意"干预却引发反噬（如降雨导致洪涝），玩家可能感到不公平——"我只是在帮忙，为什么惩罚我？"</td>
+<td>1) 反噬不是立即惩罚——有 2-3 个月的预警窗口（如"河流水位持续上升"）；2) 反噬的严重度与干预过度程度成正比——适度降雨无反噬，过度降雨才触发；3) UI 在干预预览时提示潜在风险（"该区域近期已多次降雨，继续增雨可能引发洪涝"）。</td>
+</tr>
+<tr>
+<td>IV5</td>
+<td>无限干预的认知负荷</td>
+<td>P1</td>
+<td>移除点数限制后，玩家可能陷入"什么都想干预"的焦虑——没有系统告诉你"够了"，玩家需要自己判断何时停手。</td>
+<td>1) 反噬预警 UI 作为"软性引导"——不强制限制，但提示玩家"这里可能做过头了"；2) 事件通知的智能筛选——只推送重要事件，不让玩家感到需要干预所有事；3) playtest 观察玩家是否自然发展出"干预节奏感"。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-p0p1">6.2 与 P0/P1 风险的关联</h3>
+<table>
+<thead>
+<tr>
+<th>概念文档风险</th>
+<th>本 GDD 的攻关措施</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R1</strong> 间接控制 agency 感</td>
+<td>即时视觉反馈（金色光环+涟漪）→ 干预有回应感；因果链追踪 → 远期后果可归因；干预历史记录 → 玩家有"行动档案"；反噬机制 → 干预有可见的世界影响——agency 感来自可见的因果影响力而非资源稀缺</td>
+</tr>
+<tr>
+<td><strong>R2</strong> 干预与涌现性矛盾</td>
+<td>自然后果制衡确保干预不能完全控制世界——每次干预都有潜在副作用；反噬机制确保过度干预有代价；延迟后果确保干预效果不即时可控；紧急干预有冷却限制</td>
+</tr>
+<tr>
+<td><strong>R3</strong> 涌现不可控性</td>
+<td>紧急干预作为安全阀（24 个月冷却，无点数消耗）；灾害预警窗口给玩家反应时间；反噬预警给玩家"收手"信号</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-validation-criteria">7. 验证标准（Validation Criteria）</h2>
+<h3 id="71-mvp">7.1 MVP 验证假设</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>假设</th>
+<th>验证方法</th>
+<th>通过标准</th>
+<th>不通过时的调整方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>间接控制能让玩家感到 agency</td>
+<td>Playtest 观察：玩家是否在干预后密切关注世界变化？是否主动追踪后果？</td>
+<td>≥ 70% 的 playtest 玩家在干预后主动观察目标区域 ≥ 2 个月</td>
+<td>增强即时视觉反馈强度；增加因果追溯提示频率</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>自然后果制衡让玩家感到"干预有后果但不 frustrating"</td>
+<td>Playtest 观察：玩家是否注意到反噬预警？是否在反噬触发前主动调整干预策略？是否感到反噬公平？</td>
+<td>≥ 60% 的玩家在反噬预警后主动调整策略；≤ 20% 的玩家对反噬感到"不公平"</td>
+<td>调整反噬阈值（提高 → 更宽容 / 降低 → 更严格）；增强预警窗口；降低反噬初期严重度</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>远期后果（3-6 个月后显现）能被玩家归因</td>
+<td>Playtest 提问：当远期后果显现时，玩家能否意识到"这与我之前的干预有关"？</td>
+<td>≥ 50% 的远期后果被玩家正确归因</td>
+<td>缩短因果链长度（2 个月而非 3-6）；增强因果追溯提示</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>紧急干预（天降甘霖）能挽救濒危文明</td>
+<td>Playtest 观察：当文明面临旱灾崩溃时，紧急干预是否有效扭转局面？</td>
+<td>紧急干预使用后 ≥ 80% 的情况下文明存活</td>
+<td>调整紧急干预效果强度或冷却时间</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>无限干预不导致玩家焦虑或无所适从</td>
+<td>Playtest 观察：玩家是否陷入"什么都想干预"的焦虑？是否能自然发展出干预节奏感？</td>
+<td>≥ 60% 的玩家在 30 分钟后发展出稳定的干预节奏（不是每分钟都在干预，也不是完全不干预）</td>
+<td>增强反噬预警的引导性；优化事件筛选减少信息过载</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72">7.2 验证时机</h3>
+<ul>
+<li>V1-V5 均在 <strong>MVP 原型阶段</strong> 验证（3-4 周内）</li>
+<li>如果 V1 不通过 → 回到本 GDD 强化视觉反馈与因果追溯</li>
+<li>如果 V2 不通过 → 调整反噬阈值与预警机制</li>
+<li>如果 V3 不通过 → 强化因果链追踪系统（可能需要缩短因果链或增强 UI 提示）</li>
+<li>如果 V4 不通过 → 调整紧急干预参数</li>
+<li>如果 V5 不通过 → 优化反噬预警的"软引导"效果，或考虑增加轻度干预频率建议</li>
+</ul>
+<hr />
+<h2 id="8">8. 评审检查清单</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IV-C1</td>
+<td>系统概述</td>
+<td>一句话定义 + 设计目标 + 概念文档对齐</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C2</td>
+<td>干预类型完整性</td>
+<td>5 种干预类型各有：作用域/效果/三支柱触及/机制细节/反噬机制/MVP 简化</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C3</td>
+<td>干预无限制机制</td>
+<td>无限干预原则 + 自然后果制衡 + 反噬阈值表 + 设计意图说明</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C4</td>
+<td>数据模型</td>
+<td>干预行动/效果实例/反噬追踪器/因果链节点/紧急干预冷却的数据结构定义</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C5</td>
+<td>涌现行为预测</td>
+<td>≥ 4 个预期涌现行为 + 边界情况处理</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C6</td>
+<td>系统交互</td>
+<td>接口契约（IInterventionTarget）+ 与 6 个关联系统的交互关系</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C7</td>
+<td>范围分层</td>
+<td>MVP/核心层/延展层各有明确范围边界</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C8</td>
+<td>P0 风险攻关</td>
+<td>R1（agency 感）+ R2（干预平衡）各有具体攻关措施</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C9</td>
+<td>验证标准</td>
+<td>≥ 5 个可验证假设 + 验证方法 + 通过标准 + 不通过调整方向</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C10</td>
+<td>R3 关联</td>
+<td>紧急干预机制作为 R3 安全阀</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C11</td>
+<td>军事/战争方针</td>
+<td>§2.2.5 文明引导方向枚举含「军事」，写入 S3 <code>devBias_military</code>，与 S3 v1.2.0 军事子系统对齐</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>IV-C12</td>
+<td>族群/文化方针</td>
+<td>§2.2.5 文明引导方向枚举含「族群」「文化」，写入 S3 <code>devBias_ethnicity</code>（迁移开放度/同化倾向）/<code>devBias_culture</code>（文化开放/守传统），与 S3 v1.3.0 族群子系统（§2.11）/跨国文化家族（§2.8）对齐；二者仅调间接参数，绝不下场指定民族或文化</td>
+<td>✅ v1.1.3 新增</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>文策渊注</strong>：干预系统 GDD v1.1.0 的核心变更是移除了干预力点数系统，改用"自然后果制衡"作为平衡机制。这是用户明确指令的设计方向——干预无限次，无点数相关机制。核心赌注从 V1（agency 感，原依赖稀缺性）转移到 V1+V2+V5 的组合：agency 感能否来自"可见的因果影响力"而非"资源稀缺"？自然后果制衡能否让玩家感到"干预有后果但不 frustrating"？无限干预是否会导致认知焦虑？如果 MVP playtest 中 V2 或 V5 不通过，可能需要重新引入某种轻度限制机制——但那将是 playtest 驱动的设计决策，而非预设的点数系统。建议 MVP 原型优先实现：气候调节（增雨）+ 资源投放（水源）+ 文明引导（农业倾向）+ 紧急干预（天降甘霖）+ 气候调节反噬（洪涝）——这 5 个要素覆盖了三支柱的全部触点与自然后果制衡的核心验证。</p>
+<p><strong>文策渊注（v1.1.3 新增）</strong>：本次按主理人决策 #1/#2 对齐 S3 v1.3.0——§2.2.5 文明引导方向枚举新增「族群」与「文化」两项，分别写入 S3 的 <code>devBias_ethnicity</code>（迁移开放度/同化倾向）与 <code>devBias_culture</code>（文化开放/守传统）。二者严格遵守"不下场"红线：玩家<strong>绝不</strong>指定某国民族构成或某文化内容，只经 S1 调节间接参数，族群分化/文化签名由 S3 自治涌现。MVP 简化不含此二方向（与 S3 族群/文化家族在 MVP 可简化折叠一致），核心层开放。此修订与 S3 v1.3.0 §2.11/§2.8 的 <code>devBias_*</code> 注册一一对应，未改动既有农业/狩猎/防御/商业/信仰/军事方向。</p>
+</blockquote>
+</div>
+</body>
+</html>

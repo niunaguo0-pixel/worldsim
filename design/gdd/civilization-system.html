@@ -1,0 +1,2441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文明发展系统 GDD</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 civilization-system.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#gdd">文明发展系统 GDD</a><ul>
+<li><a href="#1-system-overview">1. 系统概述（System Overview）</a></li>
+<li><a href="#2-mechanics">2. 机制设计（Mechanics）</a><ul>
+<li><a href="#20-era-progression-framework-v110">2.0 时代演进框架（Era Progression Framework）— v1.1.0 核心新增</a><ul>
+<li><a href="#201">2.0.1 五时代坐标系</a></li>
+<li><a href="#202">2.0.2 数据模型</a></li>
+</ul>
+</li>
+<li><a href="#21-settlement-growth">2.1 聚落成长（Settlement Growth）</a></li>
+<li><a href="#22-economy">2.2 经济系统（Economy）</a></li>
+<li><a href="#23-technology-tree-v110">2.3 科技树（Technology Tree）— v1.1.0 全谱扩展</a></li>
+<li><a href="#24-political-structure-v110">2.4 政治结构（Political Structure）— v1.1.0 核心重设计</a><ul>
+<li><a href="#241">2.4.1 数据模型</a></li>
+<li><a href="#242">2.4.2 合法性合成（世俗四来源 × 时代权重）</a></li>
+<li><a href="#243-212">2.4.3 治理形态演进表（人口区间为政体聚合总人口，见 §2.12）</a></li>
+<li><a href="#244-institution-spectrum-v130">2.4.4 制度广度：经济/社会制度谱（Institution Spectrum）— v1.3.0 新增</a></li>
+<li><a href="#245-v142">2.4.5 治理层级（统治者尺度）：法理等级 × 体量规模 双维度 — v1.4.2 重写</a></li>
+<li><a href="#2451-v143">2.4.5.1 各时代关系形态实例化（古代 / 中古 / 近代 / 现代）— v1.4.3 新增</a></li>
+</ul>
+</li>
+<li><a href="#25-social-structure">2.5 社会结构（Social Structure）</a></li>
+<li><a href="#26-individual-lifecycle">2.6 个体生命周期（Individual Lifecycle）</a></li>
+<li><a href="#27-religion-system-v110">2.7 宗教系统（Religion System）— v1.1.0 定位调整</a><ul>
+<li><a href="#271">2.7.1 宗教的起源与演进（独立文化线）</a></li>
+<li><a href="#272">2.7.2 宗教对文明的影响（一主渠道 + 两项耦合）</a></li>
+<li><a href="#273">2.7.3 玩家干预如何影响宗教</a></li>
+</ul>
+</li>
+<li><a href="#28-culture-system">2.8 文化系统（Culture System）</a></li>
+<li><a href="#29-law-institutions-v110">2.9 法律与制度（Law &amp; Institutions）— v1.1.0 核心重设计</a><ul>
+<li><a href="#291-legal-family">2.9.1 法律体系家族（Legal Family）</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#210-military-war-subsystem-v120-s3-s11">2.10 军事/战争子系统（Military / War Subsystem）— v1.2.0 新增（并入 S3，非独立 S11）</a><ul>
+<li><a href="#2101-militarystate">2.10.1 军事作为文明能力（MilitaryState）</a></li>
+<li><a href="#2102-23">2.10.2 科技树「军事/防御」主干线（第七主线，补全 2.3）</a></li>
+<li><a href="#2103">2.10.3 战争/冲突：作为「生存对抗」的文明间表达</a></li>
+<li><a href="#2104-s1">2.10.4 战略层：玩家经 S1 间接引导（不下场）</a></li>
+<li><a href="#2105-rts">2.10.5 战斗自动结算模型（地图演示，非 RTS）</a></li>
+</ul>
+</li>
+<li><a href="#211-ethnicity-subsystem-v130">2.11 族群/种族子系统（Ethnicity Subsystem）— v1.3.0 新增（第十一子系统）</a><ul>
+<li><a href="#2111">2.11.1 数据模型</a></li>
+<li><a href="#2112">2.11.2 两种初始化路径</a></li>
+<li><a href="#2113">2.11.3 与既有子系统耦合</a></li>
+<li><a href="#2114-pass-polarization">2.11.4 固定步长月级结算 pass 族群步骤（统计构成 / 同化通婚 / polarization 更新）</a></li>
+<li><a href="#212-polity-aggregation-v140">2.12 国家 / 政体聚合（Polity Aggregation）— v1.4.0 核心新增</a></li>
+<li><a href="#31">3.1 预期涌现行为</a></li>
+<li><a href="#32">3.2 边界情况</a></li>
+</ul>
+</li>
+<li><a href="#4-system-interactions">4. 系统交互（System Interactions）</a><ul>
+<li><a href="#41-iinterventiontarget">4.1 IInterventionTarget 接口实现</a></li>
+<li><a href="#42">4.2 交互关系</a></li>
+<li><a href="#43-pass-s4">4.3 固定步长月级结算 pass 顺序（由 S4 连续时间驱动）</a></li>
+</ul>
+</li>
+<li><a href="#5-scope-layering">5. 范围分层（Scope Layering）</a><ul>
+<li><a href="#51-mvp">5.1 MVP 范围（默认开关）</a></li>
+<li><a href="#52-v100">5.2 核心层范围（v1.0.0 游戏版本）</a></li>
+<li><a href="#53-8-v110v150">5.3 延展层方向（对齐概念文档 8 版本路线图 v1.1.0–v1.5.0）</a></li>
+<li><a href="#54-v200-v300">5.4 时代演进层（对齐概念文档 v2.0.0 / v3.0.0）</a></li>
+</ul>
+</li>
+<li><a href="#6">6. 风险与未决问题</a><ul>
+<li><a href="#61">6.1 本系统特有风险</a></li>
+<li><a href="#62-p0p1">6.2 与 P0/P1 风险的关联</a></li>
+</ul>
+</li>
+<li><a href="#7-validation-criteria">7. 验证标准（Validation Criteria）</a><ul>
+<li><a href="#71-mvp-v1v5">7.1 MVP 验证假设（V1–V5 保留并适配新时代框架）</a></li>
+<li><a href="#72-v110-r6">7.2 新增验证假设（v1.1.0，攻关 R6 与世俗化重设计）</a></li>
+<li><a href="#73">7.3 验证时机</a></li>
+</ul>
+</li>
+<li><a href="#8">8. 评审检查清单</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="gdd">文明发展系统 GDD</h1>
+<h2 id="1-system-overview">1. 系统概述（System Overview）</h2>
+<p><strong>一句话定义</strong>：文明发展系统是"经营建设"支柱的承载系统——在连续时间（由 S4 实时时钟+加速驱动）下，以固定步长月级结算 pass（每累计 1 游戏月执行一次，即原 monthly tick 内容，但与玩家回合解耦）自治地推演聚落从远古游群成长为现代都市文明的全部维度（人口/经济/科技/政治/社会/个体/宗教/文化/法律/军事（含战争）/族群（种族）），其演进受生态资源约束、被玩家干预间接引导，从不直接接受指令。</p>
+<p><strong>设计目标</strong>：
+- 让"文明凭什么活下来、还能活得更好"（概念文档 2.1 支柱一核心问题）成为一个可被系统模拟的涌现过程，而非脚本化的数值增长。
+- 以<strong>现实世界文明演进规律</strong>为基准（概念文档 R7 / 用户特别指令）：农业剩余→分工→阶层分化→城市→国家→文字/法律制度化→工业化→现代国家；不同文明路径（重农/重牧/重海/重商）产生不同的社会形态、信仰体系与技术路线。
+- <strong>贯通古代到现代的完整演进弧线（v1.1.0 核心新增）</strong>：文明不停留在古代阶段，而是随时代从原始游群演进到现代都市文明——政治、科技、法律、社会四条主线各有清晰的时代演进路径（2.0 节时代演进框架）。这是概念文档 R6（时代演进内容断裂感）的系统性解法：时代是"生长"出来的，不是"切换"出来的。
+- <strong>法律与政治的世俗化路线（v1.1.0 核心变更）</strong>：政治合法性来自绩效、共识、血统、制度四项世俗来源；法律从世俗治理需求（纠纷裁决/资源管理/安全维护/契约执行）自然涌现。宗教不授予政权合法性，也不生成法律条文。
+- 为 R9（无对手文明的长期动机）提供内生动力——文明自身的复杂化、时代跃迁、文化分化、世代记忆本身就构成长期叙事张力，无需对手文明；军事/战争子系统（§2.10）将「生存对抗」扩展到文明间尺度，为多文明局提供对抗性张力（仍不要求强制对手文明）。
+- 实现 S1 定义的 <code>IInterventionTarget</code> 接口（4.1 节），让文明引导/资源投放/灾厄恩赐落在本系统的可干预参数上。</p>
+<p><strong>与概念文档的对齐</strong>：
+- 概念文档 3.1.3 定义五大机制（聚落成长/经济/科技树/政治结构/个体生命周期）——本 GDD 扩展为<strong>十一大子系统</strong>，将宗教、文化、法律、军事（含战争）、族群（种族）纳入完整文明框架（用户指令）。
+- 概念文档 <strong>R6</strong>（时代演进断裂感）、<strong>4.4 远景层</strong>（古代→中古→近代→现代）、<strong>8 版本路线图 v2.0.0/v3.0.0</strong>——本 GDD 2.0 节的五时代框架即为这三处的设计落地。
+- 概念文档 D4 文明路径分叉、D5 世代记忆累积——本 GDD 机制化。
+- 概念文档 4.1/4.2 模块化开关——宗教、文化、法律同样纳入开关框架，但完整设计其逻辑。
+- 概念文档 3.1.4 连续时间推进（实时时钟+暂停+加速 1×/2×/5×/20×；底层固定步长月级结算；无玩家回合）——所有时间引用以"连续时间下的固定步长月级结算 pass"为单位。</p>
+<p><strong>设计红线</strong>：
+- 文明是自治 AI。玩家通过 S1 干预调节参数（发展倾向权重、粮储系数、科技解锁），但<strong>不下达命令、不直接操控个体</strong>（概念文档"不下场"原则）。
+- <strong>时代不可被直接干预</strong>。玩家无法"点一个时代"——时代推进只能通过其前置条件（科技层级/人口/分工深度/治理形态）被间接影响。这是"不下场"原则在时代轴上的延伸。</p>
+<hr />
+<h2 id="2-mechanics">2. 机制设计（Mechanics）</h2>
+<blockquote>
+<p>文明系统为<strong>自治系统</strong>：由 S4 连续时间驱动，每累计 1 游戏月执行一次固定步长月级结算 pass（原 monthly tick 内容），由 AI 决策驱动。所有子系统共享"文明状态（CivilizationState）"上下文，按结算 pass 推进。2.0 节定义贯穿全部子系统的时代演进框架，2.1–2.11 为十一大子系统（含 §2.11 族群/种族）。</p>
+</blockquote>
+<h3 id="20-era-progression-framework-v110">2.0 时代演进框架（Era Progression Framework）— v1.1.0 核心新增</h3>
+<p><strong>设计理由</strong>：概念文档的题材轴是"远古洪荒 → 现代都市"（Logline / 4.4 远景层），但 v1.0.0 的机制设计只覆盖了古代阶段。R6 指出的风险是"时代跃迁产生换了个游戏的断裂感"。本节的解法是：<strong>用一套统一的五时代坐标系贯穿全部九个子系统</strong>——每个子系统都有自己的时代演进线，各线由同一组门槛条件驱动，因此时代跃迁表现为"多条线同时缓慢生长"，而非"整体切换到新版本"。</p>
+<h4 id="201">2.0.1 五时代坐标系</h4>
+<table>
+<thead>
+<tr>
+<th>时代</th>
+<th>政治形态</th>
+<th>科技层级</th>
+<th>社会结构</th>
+<th>典型建筑</th>
+<th>生态交互强度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>远古/原始（Primordial）</strong></td>
+<td>平等游群 → 酋邦</td>
+<td>T1 石器 – T2 新石器</td>
+<td>亲属团体，无固定阶层</td>
+<td>窝棚 / 营火 / 晒架</td>
+<td>0.1–0.3（采集狩猎，几乎不改变地貌）</td>
+</tr>
+<tr>
+<td><strong>古代（Ancient）</strong></td>
+<td>城邦 / 王国</td>
+<td>T3 农业与冶金 – T4 文字与国家</td>
+<td>阶层分化，氏族与贵族</td>
+<td>夯土屋 / 粮仓 / 城墙 / 神庙</td>
+<td>0.3–0.6（开垦、伐木、灌溉，局部地貌改变）</td>
+</tr>
+<tr>
+<td><strong>中古（Medieval）</strong></td>
+<td>帝国 / 封建领邦</td>
+<td>T5 工程与学术</td>
+<td>官僚层级 + 封建等级</td>
+<td>砖石城堡 / 水车 / 学院 / 官署</td>
+<td>0.6–1.0（大规模农业与森林砍伐，水利工程）</td>
+</tr>
+<tr>
+<td><strong>近代（Early Modern）</strong></td>
+<td>民族国家</td>
+<td>T6 机械与工业萌芽（蒸汽）</td>
+<td>市民阶层兴起，职业官僚</td>
+<td>工厂 / 烟囱 / 港口 / 议事厅</td>
+<td>1.0–1.6（矿业、运河、工业排放，区域性生态改造）</td>
+</tr>
+<tr>
+<td><strong>现代（Modern）</strong></td>
+<td>现代共和 / 民主</td>
+<td>T7 电力与化工 – T8 信息</td>
+<td>都市市民社会</td>
+<td>高楼 / 路网 / 电厂 / 信息枢纽</td>
+<td>1.6–2.5（污染、物种灭绝、气候变化，全局生态压力）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>生态交互强度是一个乘数系数，直接写入 S2 的 <code>harvestRate</code> 与地貌演变速率——<strong>技术越先进，文明对生态的改造力越强</strong>（R6 时代演进的物质基础，与 2.3 科技树的 TechEffect 叠乘）。现代时代的高系数正是概念文档 4.4"现代生态问题（污染/物种灭绝/气候变化）"的机制来源。</p>
+</blockquote>
+<h4 id="202">2.0.2 数据模型</h4>
+<pre><code>enum Era { Primordial, Ancient, Medieval, EarlyModern, Modern }
+
+struct EraState {
+    Era current; float progress; int monthsInEra; bool inTransition;
+    int transitionMonthsLeft; EraGate nextGate;        // 过渡期剩余(12-24月)/门槛
+    float ecoImpactCoefficient; int regressionWatchMonths;  // 生态系数(S2)/倒退观察月数
+}
+
+struct EraGate {
+    TechTier requiredTier;                 // 主门闩：材料/农具/治理技术层级
+    int minSustainedSurplusMonths;         // 连续食物盈余月数（foodSurplus&gt;0）
+    float minCapacityUtilization;          // pop / CC(tech,land)；压满「当前科技」承载力
+    float requiredDivisionLevel;
+    GovernanceType minGovernance;          // 治理形态门槛（≠ TitleTier 头衔）
+    LawStage minLawStage;
+    bool requiresWriting;                  // 中古门槛起需文字
+}
+// 已删除：int requiredPopulation —— 绝对人口不得作为时代钥匙（v1.4.4）
+</code></pre>
+<p><strong>承载力定义（与 §2.1 对齐）</strong>：</p>
+<pre><code>polityCarryingCapacity = Σ settlement.carryingCapacity
+carryingCapacity = f(土地/气候, TechTier 农具·作物·水利, 住房·基础设施)
+capacityUtilization  = polity.population / max(1, polityCarryingCapacity)
+</code></pre>
+<p>同一绝对人口在不同 TechTier 下意义相反：石器时代大陆级 CC 仅约百万、单文明几万即近天花板；铁器农耕 CC 可达约六千万——五千人几乎无压力。故时代判定读 <strong>利用率与盈余</strong>，不读裸人头。</p>
+<p><strong>门槛参数（初值，待 playtest 调优）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>目标时代</th>
+<th>科技层级</th>
+<th>持续盈余（月）</th>
+<th>承载力利用率 <code>pop/CC</code></th>
+<th>分工深度</th>
+<th>治理形态</th>
+<th>法制阶段</th>
+<th>文字</th>
+<th>该时代真实典型体量（仅参考，非门槛）</th>
+<th>历史 CC 量级参考（随 TechTier，非门槛）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>古代</td>
+<td>T3</td>
+<td>≥ 6</td>
+<td>≥ 0.50</td>
+<td>0.35</td>
+<td>酋邦</td>
+<td>习惯法</td>
+<td>—</td>
+<td>城邦数千 ~ 早期帝国千万级</td>
+<td>铜石/早期农耕：区域十万~数百万</td>
+</tr>
+<tr>
+<td>中古</td>
+<td>T5</td>
+<td>≥ 12</td>
+<td>≥ 0.55</td>
+<td>0.55</td>
+<td>王国</td>
+<td>成文法</td>
+<td>需要</td>
+<td>领邦数万 ~ 帝国数千万</td>
+<td>铁器农耕：区域数百万~约六千万（汉唐级天花板参考）</td>
+</tr>
+<tr>
+<td>近代</td>
+<td>T6</td>
+<td>≥ 18</td>
+<td>≥ 0.60</td>
+<td>0.70</td>
+<td>帝国 / 封建领邦</td>
+<td>成文法</td>
+<td>需要</td>
+<td>数十万 ~ 上亿</td>
+<td>早期近代/新航路：区域数千万~亿级</td>
+</tr>
+<tr>
+<td>现代</td>
+<td>T7</td>
+<td>≥ 24</td>
+<td>≥ 0.65</td>
+<td>0.85</td>
+<td>民族国家</td>
+<td>现代法系</td>
+<td>需要</td>
+<td>数百万 ~ 十亿+</td>
+<td>工业/信息 + 新作物扩散：亿级~十亿+（明清三亿+参考）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>时代门槛裁决（v1.4.4 取代 v1.4.3「绝对人口准入线」）</strong>——四条铁律：
+1. <strong>禁绝对人口门闩</strong>：<code>EraGate</code> <strong>不得</strong>含 <code>requiredPopulation</code> 或任何「全时代共用/逐级抬高的裸人口阈值」。禁止「石器时代 5000 人进铁器、铁器时代同样 5000 人进王朝」类设计；也禁止用 300/5千/5万/50万 这类绝对下限伪装成「已修正」。
+2. <strong>读相对承载力</strong>：判定使用 <strong>当前 TechTier 下的</strong> <code>capacityUtilization</code> 与 <code>minSustainedSurplusMonths</code>。石器低压满 CC 的部落可晋级古代；铁器下仅数千人、利用率极低的政权<strong>不能</strong>因「凑够绝对人数」晋级。
+3. <strong>三轴正交、互不解锁</strong>：<code>Era</code> / <code>TitleTier</code> / <code>ScaleTier</code> <strong>互不推导</strong>。进时代 ≠ 升皇帝；人头多 ≠ 换时代；头衔 ≠ 人口带。<code>ScaleTier</code> 仍只服务纳贡/兵力基数（§2.4.5）。
+4. <strong>制度深度跟体量+行政走，不跟时代白送</strong>：进入中古/近代<strong>绝不</strong>自动解锁皇帝级大一统行政能力。皇帝级制度深度另需：<code>ScaleTier &gt;= Large</code>（或有效多政体封贡/<code>DominionMode</code> 结构）<strong>且</strong>行政/治理科技达标。</p>
+</blockquote>
+<p><strong>规则</strong>：
+- <strong>生长而非切换（R6 核心对策）</strong>：门槛全部满足后不立即跃迁，而是进入 12–24 月的<strong>过渡期</strong>。过渡期内 <code>progress</code> 由 0 渐进到 1，新旧并存——旧建筑不消失、旧技术仍可用、旧治理形态逐步让位。
+- <strong>多线不同步</strong>：十一大子系统各自按本线条件推进，允许错位。错位时 UI/叙事必须同时暴露 <code>Era</code>、<code>TitleTier</code>、<code>ScaleTier</code>，避免玩家误读为「时代=政体等级」。
+- <strong>时代倒退</strong>：若 <strong>科技（知识遗失）/ 分工 / 持续盈余 / 承载力利用率</strong> 跌破维持线并持续 24 月，触发时代回退。回退<strong>不</strong>由绝对人口单独触发。
+- <strong>生态耦合</strong>：<code>ecoImpactCoefficient</code> 随时代递增写入 S2。TechTier 抬升时 <code>carryingCapacity</code> 重算，利用率可能骤降——属预期行为。
+- <strong>实现分层</strong>：见 5.4 节——MVP 仅远古→古代最小集，核心层完整古代，中古/近代/现代随版本推进。</p>
+<h3 id="21-settlement-growth">2.1 聚落成长（Settlement Growth）</h3>
+<p><strong>核心逻辑</strong>：聚落是人、空间、功能的耦合体。人口受食物盈余与空间承载力驱动；功能区随人口阈值与时代解锁；空间布局受 S2 地貌（水系、坡度、资源节点）约束。</p>
+<pre><code>struct Settlement { int id; string name; Vector2 location; int population;
+    int carryingCapacity;              // 人口承载力 = f(粮储/住房/空间, TechTier 农具·作物·水利)；随科技跃迁重算（§2.0.2）
+    List&lt;FunctionZone&gt; zones; int prosperity;
+    int settlementLevel;               // 1营地 2聚落 3村镇 4城邦 5城市 6都市圈
+    float growthRate; }                // 月增长率（受食物盈余修正）
+
+enum ZoneType { Residential, Production, Storage, Defense, Civic,         // 全时代
+    Religious, Cultural,                 // 古代起
+    Industrial, Infrastructure }         // 近代起（工业区高生态压力/路网电力）
+struct FunctionZone { ZoneType type; int level; Era unlockedEra;
+    float areaCost; float outputMultiplier; float ecoLoad; }  // 生态负荷写入 S2
+</code></pre>
+<p><strong>聚落分档（Settlement Tiers）— v1.4.0 核心新增</strong>：</p>
+<p>聚落按人口规模分为四档，<code>settlementLevel</code>（1 营地 / 2 聚落 / 3 村镇 / 4 城邦 / 5 城市 / 6 都市圈）与之对应。注意：<strong>单聚落不再封顶 5 万</strong>——5 万只是「市（City）」档的中段，都市圈（Metropolis）可达千万级；而「国家」是聚合 ≥1 个聚落的政治体（见 §2.12），单聚落 5 万只是其下辖的一个市，远非国家的全部人口。</p>
+<table>
+<thead>
+<tr>
+<th>分档</th>
+<th>人口区间</th>
+<th>对应 settlementLevel</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>村 Village</td>
+<td>~50 – 2,000</td>
+<td>1 营地 / 2 聚落 / 3 村镇</td>
+<td>采集狩猎→定居农庄，可见个体</td>
+</tr>
+<tr>
+<td>镇 Town</td>
+<td>~2,000 – 20,000</td>
+<td>4 城邦</td>
+<td>城防/文字萌芽，市镇自治</td>
+</tr>
+<tr>
+<td>市 City</td>
+<td>~20,000 – 1,000,000</td>
+<td>5 城市</td>
+<td>工业/基础设施解锁，真实城市规模</td>
+</tr>
+<tr>
+<td>都市圈 Metropolis</td>
+<td>~1,000,000 – 10,000,000+</td>
+<td>6 都市圈</td>
+<td>千万级都会；可继续增长至亿级，无硬性封顶</td>
+</tr>
+</tbody>
+</table>
+<p><strong>成长规则</strong>：
+- 月级结算 pass：若 <code>foodSurplus &gt; 0</code> 且 <code>population &lt; carryingCapacity</code>，<code>population += population * growthRate</code>（基础 0.02/月，盈余越高越快）。
+- 承载力 = <code>min(住房容量, 粮储可持续供养人口, 空间上限)</code>；超承载力→饥饿 debuff→死亡率上升（D2 生存压力螺旋）。近代起 <code>Infrastructure</code> 区大幅提升空间上限（现实世界城市化的机制表达）。
+- 阈值解锁（人口 × 时代双门槛，聚落可增长至都市圈不再封顶 5 万）：
+  - ≥ 50 解锁 Production/Storage；
+  - ≥ 200 解锁 Defense/Civic；
+  - ≥ 500 且古代 解锁 Religious/Cultural；
+  - ≥ 1,500 → 升为城邦（Town 档 / level 4）；
+  - 中古 ≥ 8,000 → 升为城市（City 档 / level 5）；
+  - 近代 → 解锁 Industrial/Infrastructure；
+  - ≥ 1,000,000（现代）→ 升为都市圈（Metropolis 档 / level 6）；可继续增长至 10,000,000+，不设硬性上限。
+  - 注：5 万（50,000）位于「市（City）」档中段，既非封顶也非"国家"——国家由多聚落聚合而成（§2.12）。
+- 选址约束（S2 耦合）：聚落必须邻近 <code>water</code> 资源节点；坡度 &gt; 阈值不可建 Production 区；近代起 Industrial 区优先邻近矿脉/水运节点。
+- 视觉演进（对齐概念 5.3）：建筑形态随时代变化（茅棚→木构→砖石→工业→高楼），但美术风格全时代统一——时代感来自内容而非画风。</p>
+<h3 id="22-economy">2.2 经济系统（Economy）</h3>
+<p><strong>核心逻辑</strong>：资源在"生产→消耗→储备→贸易→分工"闭环中流转。盈余（surplus）是文明复杂化的燃料——它使部分人口脱离生存劳动，成为工匠、学者、管理者（对应现实文明"农业剩余→分工→阶层"规律）。</p>
+<pre><code>enum ResourceType { Food, Material, Luxury, Knowledge, Energy }  // Energy 近代起解锁
+struct ResourceStock { ResourceType type; float amount; float monthlyProduction;
+    float monthlyConsumption; float reserve; }       // 战略储备（灾年动用）
+struct Economy {
+    Dictionary&lt;ResourceType, ResourceStock&gt; stocks;
+    Dictionary&lt;Occupation, float&gt; laborAllocation;  // 分工：各职业人口占比
+    float tradeVolume; float divisionLevel;          // 月贸易量 / 分工深度(0-1)
+    ExchangeMode exchangeMode; }                    // 交换形态（随时代演进）
+enum ExchangeMode { Reciprocity, Tribute, Market, Monetary, Industrial, ServiceInfo }
+</code></pre>
+<p><strong>时代演进线</strong>：互惠共享（远古）→ 贡赋再分配（古代早期）→ 市场与货币（古代末–中古）→ 商业资本（近代）→ 工业生产（近代末）→ 服务/信息经济（现代）。每次形态跃迁提升 <code>tradeVolume</code> 上限与 <code>divisionLevel</code> 天花板。</p>
+<p><strong>规则</strong>：
+- 生产消耗 S2 资源：<code>monthlyProduction[Material]</code> 驱动 S2 的 <code>harvestRate[Forest]</code>；<code>monthlyProduction[Food]</code> 受 S2 土壤肥力系数修正（开垦→肥力↓，见 S2 2.4）。全部采集率再乘以 <code>EraState.ecoImpactCoefficient</code>。
+- 消耗：每人口每月基础 <code>Food</code> 消耗；<code>Material</code> 用于建筑与工具；近代起 <code>Energy</code> 用于工业区与基础设施，<code>Energy</code> 生产同时产生污染负荷（S2 应力源）。
+- 储备：粮储 <code>reserve</code> 低于 20% 触发饥荒预警；紧急干预"生命之泉"直接 +50%（S1 2.3）。
+- 分工：当 <code>foodSurplus</code> 持续 3 月为正，<code>divisionLevel</code> 提升，逐步解锁非生存职业（工匠→书吏→学者→工程师）。分工深度是科技、法制、文化解锁的共同前置。
+- 贸易：聚落间按比较优势交换资源，提升整体繁荣度，但引入疫病传播风险（D2 关联）。成文法阶段起，契约类规范提升贸易效率（2.9 联动）。</p>
+<h3 id="23-technology-tree-v110">2.3 科技树（Technology Tree）— v1.1.0 全谱扩展</h3>
+<p><strong>核心逻辑</strong>：知识由盈余人口（书吏/学者/工程师职业）按月累积；知识点解锁技术节点；技术<strong>改变文明与生态的交互方式</strong>——这是 S2 耦合的关键杠杆，也是时代推进的首要门槛。</p>
+<pre><code>enum TechTier { T1_Stone=1, T2_Neolithic, T3_Agrarian, T4_Literate,
+    T5_Engineering, T6_Mechanical, T7_Electric, T8_Information }
+    // T1石器(取火/采集) T2新石器(陶器/驯化) T3农业冶金(灌溉/冶铁)
+    // T4文字国家(度量/历法) T5工程学术(水利/学院) T6机械工业(蒸汽)
+    // T7电力化工(发电/化肥) T8信息(计算/通信/环境治理)
+
+struct TechNode { int id; string name; List&lt;int&gt; prerequisites; int knowledgeCost;
+    TechTier tier; Era minEra; List&lt;TechEffect&gt; effects; }
+struct TechEffect { EcoInteractionMod modType; float delta; }
+    // 例：灌溉→soilFertilityDrain×0.5；高炉→materialOutput×2.0；化肥→foodOutput×1.8↓waterQuality；环境治理→pollutionLoad×0.4
+</code></pre>
+<p><strong>七条主干线（跨时代累积，非分段替换；v1.2.0 新增「军事/防御」第七线）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>主干线</th>
+<th>T1–T2 远古</th>
+<th>T3–T4 古代</th>
+<th>T5 中古</th>
+<th>T6 近代</th>
+<th>T7–T8 现代</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>材料</td>
+<td>打制/磨制石器、陶器</td>
+<td>冶铜 → 冶铁</td>
+<td>精铁、砖石营造</td>
+<td>高炉钢铁</td>
+<td>合金 / 合成材料</td>
+</tr>
+<tr>
+<td>食物</td>
+<td>采集狩猎</td>
+<td>驯化 → 耕作 → 灌溉</td>
+<td>轮作、畜力犁</td>
+<td>农机雏形</td>
+<td>化肥 / 机械化农业</td>
+</tr>
+<tr>
+<td>水利</td>
+<td>取水</td>
+<td>沟渠 → 堤坝</td>
+<td>运河、水车</td>
+<td>水力机械</td>
+<td>水电 / 水处理</td>
+</tr>
+<tr>
+<td>知识</td>
+<td>口述传统</td>
+<td>文字 → 度量 → 历法</td>
+<td>学院、典籍</td>
+<td>印刷、实验方法</td>
+<td>通信 / 计算</td>
+</tr>
+<tr>
+<td>动力</td>
+<td>人力</td>
+<td>畜力</td>
+<td>水力 / 风力</td>
+<td>蒸汽</td>
+<td>电力 / 内燃 / 自动化</td>
+</tr>
+<tr>
+<td>治理技术</td>
+<td>—</td>
+<td>城防、仓储管理</td>
+<td>官僚文书、税制</td>
+<td>统计、常备行政</td>
+<td>信息治理 / 公共卫生</td>
+</tr>
+<tr>
+<td>军事/防御</td>
+<td>木石兵器、陷阱</td>
+<td>铜兵、城墙、城防</td>
+<td>工程筑城、攻城器械</td>
+<td>火药、火器</td>
+<td>蒸汽铁甲、机枪 / 信息战、导弹</td>
+</tr>
+</tbody>
+</table>
+<p><strong>规则</strong>：
+- 知识累积：<code>monthlyKnowledge += divisionLevel * scholarCount * 0.1</code>（月）。
+- 解锁：<code>knowledgeAccumulated &gt;= knowledgeCost</code> 且前置满足且 <code>EraState.current &gt;= node.minEra</code> → 自动解锁（AI 决策，玩家不直接点）。
+- 生态交互变更写入 S2：<code>最终 harvestRate = 基础值 × TechEffect 修正 × EraState.ecoImpactCoefficient</code>。<strong>技术越先进，改造力越强</strong>（R6 时代演进基础）。
+- <strong>现代技术的双向性（v1.1.0 新增）</strong>：T7/T8 既加剧生态压力（化肥→水质下降、发电→污染负荷），也提供治理手段（环境治理、可再生能源）。这使现代阶段的核心张力从"如何发展"转为"如何在已改造的世界里自我修正"——为远景层提供新的策略层次，同时是概念文档 4.4"现代生态问题"的落点。
+- 文明路径分化（D4）：农业倾向优先解锁灌溉线，狩猎倾向优先解锁驯化线，航海倾向优先解锁渔业/造船线，商业倾向优先解锁度量/契约线——同初始条件走出不同技术树（用户指令"不同技术路线"）。路径差异在时代跃迁时被放大：重海路径进入近代时倾向港口工业，重农路径倾向机械化农业。
+- 跨时代错配保护：S1 恩赐"发现"若随机命中远超当前时代的技术，该技术进入"休眠已知"状态——已记录但因缺乏前置产业与分工而无法生效，直至时代门槛达成（避免"石器时代造蒸汽机"的荒谬感）。</p>
+<h3 id="24-political-structure-v110">2.4 政治结构（Political Structure）— v1.1.0 核心重设计</h3>
+<p><strong>核心逻辑</strong>：治理形态随聚落规模、时代与制度积累演进；合法性由<strong>四项世俗来源</strong>合成。</p>
+<blockquote>
+<p><strong>v1.1.0 变更说明</strong>：移除 v1.0.0 的"神权背书 → 政治合法性"耦合（原 <code>legitimacy = religiousEndorsement × 0.5 + 绩效 × 0.5</code>）。合法性公式中<strong>不含任何宗教项</strong>。宗教仅通过"文化价值观影响民众满意度"这一通用文化渠道间接参与，与艺术、节庆同级，<strong>无专属授权通道</strong>（2.7 节）。</p>
+</blockquote>
+<h4 id="241">2.4.1 数据模型</h4>
+<pre><code>enum GovernanceType { EgalitarianBand, Chiefdom, ElderCouncil, CityState,
+    Kingdom, Empire, FeudalRealm, NationState, ModernRepublic }
+    // 平等游群/酋邦/长老会/城邦/王国/帝国/封建领邦/民族国家/现代共和
+
+struct LegitimacySource {              // 四项世俗合法性来源
+    float performance;   // 绩效：粮储/胜战/重建成效
+    float consensus;     // 共识：长老会/民选授权
+    float lineage;       // 血统：世袭被认可度
+    float institution;   // 制度：成文法/宪政约束
+}
+struct Polity {
+    GovernanceType type; Era eraContext; int rulerId;       // 统治者个体ID(2.6)
+    float governanceEfficiency;        // 治理效率(0-1)：决策速度×调配力
+    float stability;                   // 稳定度(0-100)：崩溃阈值&lt;20
+    float legitimacy;                  // 合法性(0-1)=四来源按时代权重合成
+    LegitimacySource sources; List&lt;int&gt; councilMemberIds;
+    float bureaucracyDepth;            // 官僚深度（中古起≥1）
+    float franchiseBreadth; }         // 参政广度(0-1，近代起)
+    // 封贡层级字段见 §2.4.5：suzerainId / vassalIds / centralization / tributeRate / loyaltyToSuzerain
+</code></pre>
+<h4 id="242">2.4.2 合法性合成（世俗四来源 × 时代权重）</h4>
+<p><code>legitimacy = performance × w_p + consensus × w_c + lineage × w_l + institution × w_i</code></p>
+<table>
+<thead>
+<tr>
+<th>时代</th>
+<th>绩效 w_p</th>
+<th>共识 w_c</th>
+<th>血统 w_l</th>
+<th>制度 w_i</th>
+<th>设计意图</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>远古</td>
+<td>0.60</td>
+<td>0.40</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>首领凭本事和众人认可，饥荒即失位</td>
+</tr>
+<tr>
+<td>古代</td>
+<td>0.40</td>
+<td>0.20</td>
+<td>0.40</td>
+<td>0.00</td>
+<td>世袭开始成为正当性，但绩效仍是硬约束</td>
+</tr>
+<tr>
+<td>中古</td>
+<td>0.30</td>
+<td>0.10</td>
+<td>0.40</td>
+<td>0.20</td>
+<td>血统鼎盛期，成文法开始提供制度支撑</td>
+</tr>
+<tr>
+<td>近代</td>
+<td>0.30</td>
+<td>0.20</td>
+<td>0.20</td>
+<td>0.30</td>
+<td>制度上升、血统衰落，参政广度开始有分量</td>
+</tr>
+<tr>
+<td>现代</td>
+<td>0.30</td>
+<td>0.35</td>
+<td>0.00</td>
+<td>0.35</td>
+<td>合法性重心迁移到共识与制度，血统归零</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>世俗化演进的机制表达</strong>：合法性重心随时代从"个人"（首领魅力/血统）迁移到"制度"（法典/程序/授权）。这个权重迁移本身就是政治现代化的定量刻画，也是 2.9 法律系统影响政治的主要通道——制度合法性只能由 <code>LawCode.stage</code> 与 <code>impartiality</code> 供给。</p>
+</blockquote>
+<p><strong>民族国家合法性变体（v1.3.0 新增）</strong>：当 <code>Polity.type ∈ {NationState, ModernRepublic}</code> 且 <code>EthnicComposition.dominanceIndex ≥ 0.6</code>（见 §2.11）时，可激活 <code>ethnicNationalism</code> 变体——在既有四项世俗来源合成之外，<strong>并存</strong>叠加一项民族认同加权 <code>legitimacy += nationalism × w_n</code>（w_n = 0.10（暂行，待 playtest 调优；若过高导致民族主义过度主导合法性，下调至 0.05–0.08））。该变体<strong>不替代</strong>任何一项既有来源，仅为近代民族国家的合法性补充维度；多族群且 <code>polarization</code> 高的文明若强行宣称单一民族认同，反而因排斥少数族群推低 <code>consensus</code> 与 <code>stability</code>。宗教不进入此变体（延续 §2.7.2 无神法解耦）。</p>
+<h4 id="243-212">2.4.3 治理形态演进表（人口区间为政体聚合总人口，见 §2.12）</h4>
+<blockquote>
+<p>v1.4.0 重写：下表「人口区间」为<strong>政体聚合总人口</strong>（= 下辖所有聚落人口之和，而非单聚落）。游群/酋邦可为单聚落，王国/帝国/民族国家/现代共和均为多聚落聚合，真实量级从小国数百万到大国十亿级（如中华级 ~1.4B）。单聚落 5 万只是其下辖的一个市，远非国家全量。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>治理形态</th>
+<th>时代</th>
+<th>聚合人口区间</th>
+<th>触发条件</th>
+<th>治理效率</th>
+<th>分叉说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平等游群</td>
+<td>远古</td>
+<td>数十~数百</td>
+<td>初始状态（单聚落/游群）</td>
+<td>0.30</td>
+<td>决策快但调配力极弱</td>
+</tr>
+<tr>
+<td>酋邦</td>
+<td>远古末–古代初</td>
+<td>数百~数千</td>
+<td>出现稳定盈余 + 个别家族声望突出</td>
+<td>0.45</td>
+<td>若 consensus &gt; lineage → 分叉为<strong>长老会</strong>（共识型）</td>
+</tr>
+<tr>
+<td>长老会</td>
+<td>古代</td>
+<td>数百~数万</td>
+<td>共识型分支：多氏族协商传统</td>
+<td>0.50</td>
+<td>决策慢但稳定度高；后续易演为议事城邦</td>
+</tr>
+<tr>
+<td>城邦</td>
+<td>古代</td>
+<td>数千~数万</td>
+<td>定居 + 城防 + 文字萌芽（单聚落达镇/市档）</td>
+<td>0.60</td>
+<td>共识型→议事城邦；血统型→王室城邦</td>
+</tr>
+<tr>
+<td>王国</td>
+<td>古代末</td>
+<td>数万~数十万</td>
+<td>聚合聚落 ≥ 2 + 世袭继承确立</td>
+<td>0.65</td>
+<td>—</td>
+</tr>
+<tr>
+<td>帝国</td>
+<td>中古</td>
+<td>数十万~数千万</td>
+<td>聚合聚落 ≥ 3 + 官僚深度 ≥ 2 + 成文法</td>
+<td>0.75</td>
+<td>决策慢但调配力最强</td>
+</tr>
+<tr>
+<td>封建领邦</td>
+<td>中古</td>
+<td>数十万~数千万</td>
+<td>聚合聚落 ≥ 3 + 中央调配力不足（官僚深度 &lt; 2）时分权</td>
+<td>0.55</td>
+<td>帝国的替代分支；地方自治高、中央弱</td>
+</tr>
+<tr>
+<td>民族国家</td>
+<td>近代</td>
+<td>数百万~数亿</td>
+<td>制度合法性 ≥ 0.4 + 常备官僚 + 统一法典</td>
+<td>0.80</td>
+<td>—</td>
+</tr>
+<tr>
+<td>现代共和</td>
+<td>现代</td>
+<td>数千万~十亿+</td>
+<td>参政广度 ≥ 0.5 + 现代法系 + 权力分立</td>
+<td>0.85</td>
+<td>参政广度 &lt; 0.5 → 分叉为<strong>威权现代国家</strong>（效率 0.80，共识项低）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>规则</strong>：
+- <strong>多因驱动</strong>：形态演进不再仅由人口决定，而由 (人口, 时代, 分工深度, 官僚深度, 法制阶段, 参政广度) 共同判定——避免"人口一到就自动升级"的机械感。
+- 稳定度在每结算 pass 结算：受 <code>foodSurplus</code>、<code>legitimacy</code>、外患（兽患/邻聚落）、<strong>阶层不平等</strong>（2.5 的 <code>inequality</code>，v1.1.0 新增项）修正；<code>stability &lt; 20</code> 触发动荡事件。
+- 治理效率的权衡：层级越复杂，调配力越强但决策越慢（<code>decisionLatencyMonths</code> 随 <code>bureaucracyDepth</code> 增加）——模拟现实"复杂治理的权衡"。
+- <strong>政权更替按时代呈现不同形式</strong>（合法性 &lt; 0.3 且稳定度 &lt; 40 触发）：</p>
+<table>
+<thead>
+<tr>
+<th>时代</th>
+<th>更替形式</th>
+<th>叙事表现（输出 S6）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>远古</td>
+<td>首领被弃</td>
+<td>"族人不再听从他的号令"</td>
+</tr>
+<tr>
+<td>古代</td>
+<td>王朝更替 / 城邦政变</td>
+<td>"旧王室的粮仓空了，新的家族取而代之"</td>
+</tr>
+<tr>
+<td>中古</td>
+<td>贵族叛乱 / 篡位</td>
+<td>"边地领主拒绝上缴赋税"</td>
+</tr>
+<tr>
+<td>近代</td>
+<td>革命</td>
+<td>"市民占据了议事厅"</td>
+</tr>
+<tr>
+<td>现代</td>
+<td>选举更迭 / 宪政危机</td>
+<td>"执政者在制度框架内交出权力"</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>参政广度演进：近代起 <code>franchiseBreadth</code> 由市民阶层规模（2.5）与法制阶段（2.9）驱动上升；广度停滞而人口继续膨胀 → 共识项下降 → 合法性危机（现代分支的主要张力源）。</li>
+</ul>
+<h4 id="244-institution-spectrum-v130">2.4.4 制度广度：经济/社会制度谱（Institution Spectrum）— v1.3.0 新增</h4>
+<p><strong>设计理由</strong>：决策 #3 将「制度广度」定义为<strong>政治 + 法律 + 经济</strong>。在九政治形态（§2.4.1）与按国别发展的 <code>LawStage</code>（§2.9）之外，新增<strong>经济/社会制度谱</strong>作为各国差异化维度——同一政治形态（如王国）下，劳动制、经济形态、行政传统可以完全不同，制造"不同国家有不同制度"的差异化体验。三者与政治形态、时代门槛耦合，并影响经济产出、稳定度、战争动员。</p>
+<p><strong>三类制度谱（国别维度）</strong>：</p>
+<pre><code>enum LaborSystem { Slave, Serf, Free }             // 奴隶 / 农奴 / 自由民
+enum EconomySystem { Planned, Market, Mixed, Tributary }  // 计划 / 市场 / 混合 / 朝贡
+enum AdministrationSystem { Bureaucratic, Hereditary, TheocraticAdvisory }
+    // 官僚制 / 世袭制 / 咨询制（theocratic-advisory 仅指行政咨询传统，不涉合法性授权，与&quot;无神法&quot;一致）
+
+struct InstitutionProfile {            // 文明级制度签名
+    LaborSystem labor;
+    EconomySystem economy;
+    AdministrationSystem administration;
+    float stateControl;                // 国家控制度 (0-1)：计划/官僚↑，市场/世袭↓
+}
+</code></pre>
+<p><strong>时代耦合（初值，待 playtest 调优）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>制度谱</th>
+<th>出现门槛</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LaborSystem.Slave</code> / <code>Serf</code></td>
+<td>T3+（古代起）</td>
+<td>农业剩余支撑依附劳动；<code>Free</code> 随近代市民阶层上升而主导</td>
+</tr>
+<tr>
+<td><code>EconomySystem.Market</code></td>
+<td>T4+（文字与国家）</td>
+<td>市场/货币交换需成文法契约保障；<code>Planned</code> 需 T5+ 官僚深度；<code>Tributary</code> 多见于帝国朝贡网络</td>
+</tr>
+<tr>
+<td><code>AdministrationSystem.Bureaucratic</code></td>
+<td>T5+（中古）</td>
+<td>官僚制需文字 + 常备行政；<code>Hereditary</code> 古代即存；<code>TheocraticAdvisory</code> 仅作咨询传统，无授权</td>
+</tr>
+</tbody>
+</table>
+<p><strong>效果耦合</strong>：
+- <strong>经济产出</strong>：<code>EconomySystem.Market</code>/<code>Mixed</code> 提升 <code>tradeVolume</code> 上限与 <code>divisionLevel</code> 天花板；<code>Planned</code> 调配力强但创新慢；<code>Tributary</code> 边缘区产出受中心抽取。
+- <strong>稳定度</strong>：<code>LaborSystem.Slave</code>/<code>Serf</code> 在 <code>mobilityRate</code> 低时推高 <code>inequality</code>（2.5）→ 稳定度压力；<code>AdministrationSystem.Bureaucratic</code> 提升治理效率与法制定型速度。
+- <strong>战争动员</strong>：<code>Planned</code>/<code>Serf</code> 动员力强（国家可直接征调）；<code>Market</code>/<code>Free</code> 动员慢但可持续性好。
+- <strong>不下场红线</strong>：三项均为文明自治涌现的派生状态，玩家不可直接指定——仅可经 <code>devBias_*</code>（如重商倾向偏移 <code>EconomySystem</code> 朝向 <code>Market</code>）间接影响，详见 §4.1；绝不出现“玩家选奴隶制”这类指令。</p>
+<blockquote>
+<p><strong>经济制度谱不设专属 devBias（主理人决策，v1.3.2）</strong>：<code>LaborSystem</code> / <code>EconomySystem</code> / <code>AdministrationSystem</code> <strong>不设专属 <code>devBias</code></strong>——由既有 <code>devBias_trade</code>（商业/市场倾向，偏移 <code>EconomySystem</code> 朝向 <code>Market</code>/<code>Mixed</code>）、<code>devBias_agriculture</code>（农奴/劳动制倾向，偏移 <code>LaborSystem</code> 朝向 <code>Serf</code>/<code>Slave</code>）、<code>devBias_military</code>（军事/行政倾向，偏移 <code>AdministrationSystem</code> 朝向 <code>Hereditary</code>/官僚制）间接驱动，符合「不下场最小干预」原则。玩家仍绝不指定具体制度——§4.1 的 <code>devBias_*</code> 列表维持 agriculture/hunt/defense/trade/faith/military/ethnicity/culture 共 8 项，<strong>不新增 economy 项</strong>。</p>
+</blockquote>
+<h4 id="245-v142">2.4.5 治理层级（统治者尺度）：法理等级 × 体量规模 双维度 — v1.4.2 重写</h4>
+<p><strong>重写纲领（采纳评审意见）</strong>：v1.4.1 将"头衔等级"与"人口规模"绑死，产生大量反例（小朝廷皇帝、郡县制大一统无多王国、法老/可汗非"皇帝"词但属全域最高、国王人口卡死、领主/部族人口重叠、共和城邦缺失）。本版改为<strong>两个正交独立维度，互不推导</strong>：</p>
+<ul>
+<li><strong>维度 A · 法理等级（TitleTier）</strong>——按头衔 / 礼制 / 权力来源划分，<strong>完全不看人口</strong>；</li>
+<li><strong>维度 B · 体量规模（ScaleTier）</strong>——按<strong>政权辖内人口</strong>划分，<strong>完全不看头衔</strong>。</li>
+<li>任一统治者 = <code>(法理等级, 体量规模)</code> 的任意组合；同一法理等级可跨任意体量，同一体量可对应任意法理等级。</li>
+</ul>
+<blockquote>
+<p><strong>与 §2.4.3 的关系不变</strong>：§2.4.3 是「单个政体自身怎么长」（横向、时代演进）；本节是「多个政体如何上下叠成封贡网络」（纵向）。二者正交。本版双维度模型<strong>全时代通用</strong>（古代郡县/封建、中古附庸、近代宗主国/保护国、现代霸权/势力范围均适用），不再限定古代。</p>
+</blockquote>
+<p><strong>维度 A · 法理等级（按头衔等级，不绑定人口）</strong></p>
+<table>
+<thead>
+<tr>
+<th>法理等级</th>
+<th>核心判定</th>
+<th>典型头衔（含非"皇帝"词但同级者）</th>
+<th>权力来源</th>
+<th>历史实例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>皇帝级</strong>（全域最高法理）</td>
+<td>宣称全域/跨文明最高共主，礼制上不承认更高世俗权威</td>
+<td>皇帝、<strong>大可汗</strong>、<strong>万王之王(沙罕沙)</strong>、<strong>法老</strong>、<strong>哈里发</strong>、苏丹(部分)</td>
+<td>天命/神授/征服法统，或跨文明共主</td>
+<td>秦/汉/隋唐/明清皇帝；蒙古大可汗；波斯阿契美尼德沙罕沙；埃及法老；阿拉伯哈里发</td>
+</tr>
+<tr>
+<td><strong>国王级</strong>（单一王国/诸侯）</td>
+<td>统治单一王国或受封诸侯，礼制上可臣服于更高权威（亦可独立）</td>
+<td>国王、藩王、<strong>可汗(较小)</strong>、诸侯王</td>
+<td>世袭 + 宗主册封（藩属）或独立世袭</td>
+<td>法兰西/英格兰国王；战国七雄；波斯独立王国；朝鲜/越南（对外藩王）</td>
+</tr>
+<tr>
+<td><strong>领主级</strong>（内部分封官员）</td>
+<td>帝国/王国<strong>内部</strong>受封，法理上服从上级君主，仅掌封地</td>
+<td>公爵、伯爵、领主、藩镇节度使</td>
+<td>上级君主封授（封建义务）</td>
+<td>神圣罗马萨克森公爵；唐藩镇；欧洲封建领主</td>
+</tr>
+<tr>
+<td><strong>部族首领级</strong>（自治基层）</td>
+<td>独立自治的游群/酋邦/游牧小部族首领，<strong>无上级君主</strong></td>
+<td>酋长、<strong>小汗</strong>、部落头人</td>
+<td>共识/绩效/血统（非封授）</td>
+<td>草原小汗；太平洋岛酋邦；非洲部落首领</td>
+</tr>
+<tr>
+<td><strong>共和·城邦级</strong>（非君主法理）</td>
+<td>无君主头衔，集体/公民法统为最高权威</td>
+<td>执政官、公民大会、元老院、市长</td>
+<td>选举/抽签/公民权</td>
+<td>古罗马共和；雅典城邦；中世纪自由市；近代共和</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>双维度解耦的反例对照（证明头衔≠人口）</strong>：
+- 皇帝级可极小：东罗马后期、后唐、五代小朝廷、南朝陈（人口仅数百万，法理仍为皇帝）；神圣罗马皇帝（直辖领地人口远不足千万，仍持皇帝头衔）。
+- 皇帝级可极大：明清/莫卧儿（人口上亿）。
+- 非"皇帝"词但属皇帝级法理：蒙古大可汗、波斯沙罕沙、埃及法老、阿拉伯哈里发——其全域最高权威与皇帝同级，仅头衔词不同。
+- 国王级可破千万：法兰西/英格兰（巅峰千万级）、波斯独立王国（破千万）——旧"数百万上限"错误。
+- 共和·城邦级覆盖古罗马共和、雅典城邦等无君主体系（旧版完全缺失）。
+- 游牧大可汗：法理恒为皇帝级，人口因战乱在几十万~数千万间剧烈波动——正因维度解耦才不矛盾。</p>
+<p><strong>双法理兼容规则（藩属特例）</strong>：一个政权可同时持「对内核皇帝法理 + 对外藩属法理」。例：越南后黎朝<strong>对内称帝、对明清称藩王</strong>；朝鲜王朝<strong>对明称藩、国内行完整行政</strong>。故记录 <code>internalTitleTier</code>（内核法理）与 <code>externalTitleTier</code>（对外法理）两个字段，二者可不同；独立政权两字段相等。</p>
+</blockquote>
+<p><strong>维度 B · 体量规模（按政权辖内人口，不看头衔）</strong></p>
+<p>定义：体量规模仅由<strong>政权实际辖内人口</strong>决定，与头衔无关。采用 §2.1/§2.12 的「聚落 → 政体聚合」两尺度，并划为<strong>连续、非重叠</strong>的人口带（5万、100万等仅作参考点，不再作硬分界，杜绝重叠）。</p>
+<table>
+<thead>
+<tr>
+<th>体量等级</th>
+<th>政权辖内人口区间</th>
+<th>对应聚落/聚合尺度（§2.1/§2.12）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>微型 Micro</td>
+<td>&lt; 2万</td>
+<td>单聚落（村/镇）或游群</td>
+</tr>
+<tr>
+<td>小型 Small</td>
+<td>2万 ~ 20万</td>
+<td>镇~小市 / 数聚落聚合</td>
+</tr>
+<tr>
+<td>中型 Medium</td>
+<td>20万 ~ 200万</td>
+<td>市 / 小国</td>
+</tr>
+<tr>
+<td>大型 Large</td>
+<td>200万 ~ 2000万</td>
+<td>大市/都市圈 / 王国</td>
+</tr>
+<tr>
+<td>巨型 Giant</td>
+<td>2000万 ~ 2亿</td>
+<td>帝国核心 / 大国</td>
+</tr>
+<tr>
+<td>超巨型 Mega</td>
+<td>&gt; 2亿</td>
+<td>大陆级大一统 / 近代民族国家（中华级 ~1.4亿，印度级 ~10亿+）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注：<code>辖内人口</code>指该统治者<strong>实际有效管辖</strong>的人口。对宗主而言，其"名义 realm 人口"（全帝国之和）常远大于"直辖人口"；体量规模按<strong>实际辖内</strong>归类，二者之差（体量缺口）即封贡体系的稳定风险来源（见机制 4）。</p>
+</blockquote>
+<p><strong>二维交叉示例（证明不绑定）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>政权</th>
+<th>法理等级</th>
+<th>体量规模</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>明清(盛世)</td>
+<td>皇帝级</td>
+<td>超巨型</td>
+<td>大一统 + 上亿人口</td>
+</tr>
+<tr>
+<td>南明小朝廷</td>
+<td>皇帝级</td>
+<td>小型~中型</td>
+<td>同法理、不同体量（战乱暴跌）</td>
+</tr>
+<tr>
+<td>神圣罗马皇帝(直辖)</td>
+<td>皇帝级</td>
+<td>中型(直辖)/巨型(全帝国名义)</td>
+<td>直辖小、帝国大；缺口=分裂风险</td>
+</tr>
+<tr>
+<td>法兰西国王(巅峰)</td>
+<td>国王级</td>
+<td>大型(千万级)</td>
+<td>国王头衔、人口远超旧"王国上限"</td>
+</tr>
+<tr>
+<td>越南(后黎)</td>
+<td>皇帝级(内)/国王级(外)</td>
+<td>中型</td>
+<td>双法理兼容</td>
+</tr>
+<tr>
+<td>雅典城邦</td>
+<td>共和·城邦级</td>
+<td>微型~小型</td>
+<td>无君主体系</td>
+</tr>
+<tr>
+<td>草原大可汗</td>
+<td>皇帝级</td>
+<td>中型~巨型(波动)</td>
+<td>法理恒定、人口剧变</td>
+</tr>
+<tr>
+<td>萨克森公爵</td>
+<td>领主级</td>
+<td>小型~中型</td>
+<td>内部分封、服从皇帝</td>
+</tr>
+<tr>
+<td>非洲部落首领</td>
+<td>部族首领级</td>
+<td>微型~小型</td>
+<td>自治、无上级</td>
+</tr>
+</tbody>
+</table>
+<p><strong>数据模型（补全 §2.4.1 第 232 行引用，v1.4.2 重写为双维度）</strong>：</p>
+<pre><code>enum TitleTier { Emperor, King, Lord, TribalChief, Republic }  // 法理等级（不看人口）
+enum ScaleTier { Micro, Small, Medium, Large, Giant, Mega }    // 体量规模（不看头衔）
+struct Polity {
+    ... // §2.4.1 既有字段
+    // —— 治理层级（封贡）字段，v1.4.2 双维度重写 ——
+    TitleTier internalTitleTier;  // 对内核法理等级
+    TitleTier externalTitleTier;  // 对外法理等级（藩属时低于内核；独立=内核）；独立政权两字段相等
+    int? suzerainId;              // 宗主政体 ID；null = 无上级（独立 / 最高）
+    List&lt;int&gt; vassalIds;          // 直属附庸政体 ID 列表
+    float centralization;         // 中央集权度 (0-1)：高=直辖强、附庸弱；低=分权/封建
+    float tributeRate;            // 纳贡率 (0-1)：附庸向宗主上缴比例
+    float loyaltyToSuzerain;      // 对宗主忠诚 (0-1)：低→叛乱/独立风险
+    ScaleTier scaleTier;          // 体量规模（每结算 pass 由辖内人口自动归类）
+}
+</code></pre>
+<p><strong>机制</strong>：</p>
+<ol>
+<li><strong>纳贡流（Tribute Flow）</strong>：每结算 pass，藩属（即 <code>suzerainId != null</code> 或 <code>externalTitleTier &lt; internalTitleTier</code>）按 <code>tributeRate</code> 向宗主转移资源（Material/Food/Luxury，见 §2.4.4 经济制度谱）。<strong>转移量 = 藩属 <code>scaleTier</code> 对应的产出基数 × <code>tributeRate</code></strong>——体量越大，纳贡绝对值越高（解耦后体量维度独立承担"量级"语义）。宗主获调配力加成，藩属被抽取；<code>tributeRate</code> 高 + <code>loyaltyToSuzerain</code> 低 → 推高藩属不稳定度。</li>
+<li><strong>忠诚动态（Loyalty Dynamics）</strong>：<code>loyaltyToSuzerain</code> 受宗主 <code>performance</code>/<code>legitimacy</code>（§2.4.2）、中央军力（§2.10 军事）、文化亲缘（§2.8 文化/§2.11 族群）修正；宗主衰败或过度征敛 → loyalty 下降 → 低于阈值触发<strong>藩属自立/叛乱</strong>（叙事"边地拒绝上缴赋税"/"藩属自立"）。</li>
+<li><strong>继承与分裂（Inheritance &amp; Fragmentation）</strong>：皇帝/国王死亡（§2.6 世代传承）→ 继承判定；继承危机叠加藩属 loyalty 低 → 封贡体系解体（帝国→多王国）。即"分久必合、合久必分"。</li>
+<li><strong>体量缺口稳定风险（Scale Gap）</strong>：当宗主<strong>名义 realm 人口（全帝国之和）≫ 其直辖人口</strong>时，<code>centralization</code> 低 → 缺口=分裂风险放大（解释神圣罗马帝国的脆弱）。体量规模维度独立刻画此风险，与法理等级无关。</li>
+</ol>
+<p><strong>耦合与红线</strong>：
+- <strong>合法性（§2.4.2）</strong>：<code>TitleTier</code> 是合法性权重选择的输入（皇帝级用古代权重 w_p0.40/w_c0.20/w_l0.40；共和国用近代公民权重等）；<strong><code>ScaleTier</code> 体量规模不进合法性公式</strong>（延续无神法/纯世俗原则）。封贡附庸忠诚只影响稳定度，不进 <code>legitimacy</code>。
+- <strong>时代脱钩（§2.0.2 v1.4.4）</strong>：<code>Era</code> 跃迁<strong>不</strong>改写 <code>TitleTier</code>，也<strong>不</strong>白送皇帝级行政/封贡深度。皇帝级制度能力另需 <code>ScaleTier &gt;= Large</code>（或有效 <code>DominionMode</code> 多政体结构）+ 行政科技。
+- <strong>军事（§2.10）</strong>：宗主可征调藩属军力（朝贡/封建义务）；<strong><code>scaleTier</code> 决定可动员兵力基数</strong>。
+- <strong>族群（§2.11）</strong>：多族群帝国的边缘族群易生分离主义，与 loyalty 下降叠加放大分裂风险。
+- <strong>不下场红线（S1）</strong>：法理等级与封贡关系均为文明自治涌现的派生状态，玩家<strong>不可指定</strong>——仅可经 <code>devBias_*</code>（如 <code>devBias_military</code> 影响中央军力与封贡维系、<code>devBias_ethnicity</code> 影响族群亲缘与分离倾向）间接影响，绝不下场分封或册立。</p>
+<p><strong>MVP / 核心层边界</strong>：MVP 单政体起步（玩家文明自身取单一 <code>TitleTier</code>、<code>scaleTier</code> 随人口自动归带，不展开多级封贡）；核心层多聚落/多国家模块 ON 时，封贡全链路（suzerain/vassal/纳贡/分裂）生效。</p>
+<h4 id="2451-v143">2.4.5.1 各时代关系形态实例化（古代 / 中古 / 近代 / 现代）— v1.4.3 新增</h4>
+<p><strong>纲领</strong>：维度 A（法理等级 <code>TitleTier</code>）与维度 B（体量规模 <code>ScaleTier</code>）全时代通用、已在 §2.4.5 定义且<strong>本节不改动</strong>。本节补上第三个<strong>同样独立</strong>的轴——<strong>维度 C · 关系形态（<code>DominionMode</code>）</strong>：上下关系<strong>用什么制度形式表达</strong>。三轴互不推导：</p>
+<ul>
+<li><strong>A 法理等级</strong> = 我自称什么（头衔/礼制）；</li>
+<li><strong>B 体量规模</strong> = 我辖内多少人；</li>
+<li><strong>C 关系形态</strong> = 我与上/下位者以何种制度绑定。</li>
+</ul>
+<blockquote>
+<p><strong>三轴独立性验证（防止旧错误复发）</strong>：荷兰共和国 / 威尼斯共和国 = <strong>共和·城邦级法理（A）+ 小型~中型体量（B）+ 条约宗主权（C，海外属地与殖民地）</strong>——小体量、非君主、却是宗主。反向：神圣罗马皇帝 = 皇帝级法理 + 中型直辖体量 + 封建附庸关系。<strong>关系形态不由体量决定，也不由头衔决定</strong>；体量只影响索取的绝对值与维系成本（见机制 1/4）。</p>
+</blockquote>
+<p><strong>四时代关系形态对照表</strong></p>
+<table>
+<thead>
+<tr>
+<th>时代</th>
+<th>关系形态（<code>DominionMode</code>）</th>
+<th>上位者 / 下位者</th>
+<th>索取形态（下位者向上交付）</th>
+<th>下位者法理主权</th>
+<th>历史实例</th>
+<th>主要解体路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>古代</strong></td>
+<td><code>TributaryVassalage</code> 朝贡-藩属</td>
+<td>宗主 / 藩属；<strong>核心区可为郡县直辖（无中间王国亦成立）</strong></td>
+<td>贡赋、岁币、质子、受册封、朝觐</td>
+<td>内政名义自主、外交称臣</td>
+<td>汉—西域都护府/南越；罗马—客户王国；波斯—总督省(satrapy)</td>
+<td>藩属自立、边地割据、中央衰败</td>
+</tr>
+<tr>
+<td><strong>中古</strong></td>
+<td><code>FeudalVassalage</code> 封君封臣</td>
+<td>封君 / 封臣；<strong>支持层层分封（陪臣）与多重效忠</strong></td>
+<td>兵役与骑士义务、协助金(scutage)、领地税、司法上诉权</td>
+<td>封建<strong>契约</strong>关系（非行政隶属），封臣于封地内自治</td>
+<td>神圣罗马—诸侯；法兰西王—诺曼底公爵（同时为英王）；日本 幕府—守护/大名；唐—藩镇（准封建变体）</td>
+<td>附庸被兼并、王权集权（收兵权+官僚化）→ 通向近代</td>
+</tr>
+<tr>
+<td><strong>近代</strong></td>
+<td><code>TreatySuzerainty</code> 条约宗主权</td>
+<td>宗主国 / 保护国·殖民地·自治领</td>
+<td>赔款、协定关税、治外法权、驻军权、资源专营、市场准入</td>
+<td><strong>部分或完全丧失</strong>（保留名义主权但外交/关税权被剥夺）</td>
+<td>清—朝鲜/越南（旧朝贡被条约体系改写）；英—印度土邦、埃及保护国；法—印度支那</td>
+<td><strong>民族独立运动</strong>（与 §2.11 族群 + 民族国家合法性 <code>w_n</code> 直接耦合）</td>
+</tr>
+<tr>
+<td><strong>现代</strong></td>
+<td><code>HegemonicSphere</code> 霸权-势力范围</td>
+<td>霸权国 / 依附国·同盟成员</td>
+<td>军事基地与驻军、联盟义务、附条件援助、市场·技术·货币依附</td>
+<td><strong>法理主权完整平等</strong>（<code>sovereigntyDeJure = true</code>），但<strong>事实不对称依附</strong></td>
+<td>冷战两阵营；军事同盟体系；经济依附型伙伴关系</td>
+<td>阵营倒戈、中立化、依附度自然下降、霸权维系成本超载</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>关键设计点（现代）</strong>：现代国际体系<strong>在法理上没有附庸</strong>——所有国家主权平等。因此现代层级<strong>不能</strong>用 <code>suzerainId</code> 硬表达，必须用 <code>asymmetricDependency</code>（事实依附度 0–1）刻画。这正是"取消了藩属，但层级依然存在"的机制表达。</p>
+<p><strong>关键设计点（中古）</strong>：中古的多重效忠（一位领主同时向两位封君称臣，甚至分属敌对阵营——诺曼底公爵即英王的经典困局）<strong>无法用单一 <code>suzerainId</code> 表达</strong>，故引入 <code>allegiances</code> 列表。</p>
+</blockquote>
+<p><strong>内部行政层级 ≠ 国际关系形态</strong>：现代国家内部的联邦/邦联/自治区，以及古代的郡县、中古的领邦，属于<strong>同一政体内部的行政纵深</strong>，用 <code>internalTier</code> 表达，<strong>不进入 <code>DominionMode</code></strong>（后者只描述政体之间）。这条区分直接回应"藩属是外交臣服关系，不是帝国内部行政区划"。</p>
+<p><strong>数据模型扩展（在 §2.4.5 双维度字段之上追加，不改动既有字段语义）</strong>：</p>
+<pre><code>enum DominionMode { None, TributaryVassalage, FeudalVassalage, TreatySuzerainty, HegemonicSphere }
+enum InternalTierMode { Unitary, Prefectural, Feudal, Federal, Confederal, Autonomous }  // 政体内部行政纵深
+
+struct Allegiance {                     // 单条效忠关系（中古多重效忠的载体）
+    int suzerainId; float weight;       // 权重：多重效忠时的相对强度（Σweight ≤ 1）
+    DominionMode mode; bool exclusive;  // exclusive=false 允许并存（中古）
+}
+
+struct Polity {
+    ... // §2.4.5 既有双维度字段（internalTitleTier / externalTitleTier / scaleTier / suzerainId / vassalIds / centralization / tributeRate / loyaltyToSuzerain）
+    // —— 维度 C 关系形态字段，v1.4.3 新增 ——
+    DominionMode dominionMode;       // 本政体作为下位者时的关系形态；None = 无上位者
+    bool sovereigntyDeJure;          // 法理主权是否完整（近代保护国 = false；现代依附国 = true）
+    float asymmetricDependency;      // 事实依附度 (0-1)：现代主力刻画；古代/中古以 tributeRate + 义务表达
+    List&lt;Allegiance&gt; allegiances;    // 多重效忠（中古主力）；空 = 无上级
+    InternalTierMode internalTier;   // 内部行政纵深（与 DominionMode 严格区分）
+}
+</code></pre>
+<p><strong>字段一致性规则</strong>：<code>suzerainId</code> = <code>allegiances</code> 中 <code>weight</code> 最大者（保持 v1.4.2 字段向后兼容）；<code>allegiances</code> 为空 ⇒ <code>dominionMode = None</code>；<code>asymmetricDependency &gt; 0</code> 但 <code>allegiances</code> 为空 ⇒ 合法（现代无正式条约的事实依附）。</p>
+<p><strong>机制（复用 §2.4.5 四机制，按时代参数化，不另立体系）</strong>：</p>
+<ol>
+<li><strong>索取流（Extraction Flow，泛化原纳贡流）</strong>：<code>extraction = 下位者 scaleTier 产出基数 × rate × mode 系数</code>。四时代同一公式族，仅 <code>rate</code> 语义与索取内容不同：</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>时代</th>
+<th>rate 字段</th>
+<th>索取内容</th>
+<th>上位者收益</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>古代</td>
+<td><code>tributeRate</code></td>
+<td>贡赋/岁币/质子</td>
+<td>调配力 + 威望</td>
+</tr>
+<tr>
+<td>中古</td>
+<td><code>tributeRate</code>（军役折算）</td>
+<td>兵役/协助金/领地税</td>
+<td><strong>军力动员</strong>（§2.10）为主、财政为辅</td>
+</tr>
+<tr>
+<td>近代</td>
+<td><code>tributeRate</code>（条约税率）</td>
+<td>赔款/关税/资源专营</td>
+<td>工业原料 + 财政 + 市场</td>
+</tr>
+<tr>
+<td>现代</td>
+<td><code>asymmetricDependency</code></td>
+<td>基地/联盟义务/市场依附</td>
+<td>军事投射 + 经济收益，<strong>但无直接税收</strong></td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li><strong>忠诚 / 依附动态</strong>：</li>
+<li>古代/近代：沿用 <code>loyaltyToSuzerain</code>（受宗主 <code>performance</code>/<code>legitimacy</code>/军力/文化亲缘修正）。</li>
+<li><strong>中古多重效忠冲突</strong>：当某封臣的两位封君互相开战 → 封臣必须选边；未选边则<strong>双方 loyalty 同时下降</strong>，触发领地被剥夺或独立倾向（诺曼底困局的机制表达）。</li>
+<li><strong>现代</strong>：<code>asymmetricDependency</code> 随霸权 <code>performance</code> 与经济产出比升降；霸权衰退 → 依附度自然衰减 → 阵营倒戈。</li>
+<li><strong>解体路径（各时代主路径，接 §2.6 世代 / §2.11 族群 / §2.10 军事）</strong>：藩属自立（古代）→ 附庸兼并与王权集权（中古）→ <strong>民族独立运动</strong>（近代，由 <code>EthnicNationalism</code> + <code>polarization</code> 驱动）→ 阵营倒戈/中立化（现代）。四条路径均为<strong>涌现结果</strong>，不预设脚本。</li>
+<li><strong>体量缺口风险（§2.4.5 机制 4）全时代适用</strong>：现代形式为"名义势力范围人口 ≫ 直辖人口" → <strong>霸权维系成本</strong>（军费/援助占比）随缺口上升，过载则势力范围收缩。</li>
+</ol>
+<p><strong>耦合与红线（全部延续，不新增例外）</strong>：
+- <strong>合法性（§2.4.2）</strong>：合法性公式仍<strong>只</strong>吃 <code>TitleTier</code>（近代起叠加 <code>EthnicNationalism w_n</code>）；<strong><code>DominionMode</code> 与 <code>ScaleTier</code> 均不进 <code>legitimacy</code> 公式</strong>，只影响稳定度与外交——延续"无神法/纯世俗"原则。
+- <strong>军事（§2.10）</strong>：各时代动员方式不同（贡军 → 封建征召 → 条约驻军 → 同盟义务），均由 <code>scaleTier</code> 决定兵力基数。
+- <strong>法律（§2.9.1）</strong>：近代治外法权与殖民地法律移植是 <code>LegalFamily</code> <strong>跨国传播</strong>的机制来源（英美法系随殖民扩散），与 S5 <code>legalTraditionSeed</code> 呼应。
+- <strong>族群（§2.11）</strong>：近代解体路径的主驱动；多族群依附体内的边缘族群分离倾向随 loyalty 下降放大。
+- <strong>不下场红线（S1）</strong>：玩家<strong>不可</strong>指定谁向谁称臣、不可宣布保护国、不可让某国加入阵营——三轴状态全部为涌现派生，仅可经 <code>devBias_military</code>（中央军力与维系能力）/<code>devBias_trade</code>（经济依附路径）/<code>devBias_ethnicity</code>（族群亲缘与分离倾向）间接影响。</p>
+<p><strong>MVP / 核心层边界</strong>：MVP <code>dominionMode = None</code>（单政体，不展开关系形态）；核心层多国家模块 ON 时按当前 <code>Era</code> 启用对应形态。<strong>当今地缘政治模式</strong>开局直接以 <code>HegemonicSphere</code> / <code>None</code> 初始化（由 S5 提供初始关系）；<strong>远古沙盒模式</strong>随时代自然演进 <code>TributaryVassalage → FeudalVassalage → TreatySuzerainty → HegemonicSphere</code>——<strong>非强制线性</strong>，允许跳跃（如从朝贡直接进入条约体系）或长期停滞（"停滞文明"，见 §3.2 边界情况）。</p>
+<h3 id="25-social-structure">2.5 社会结构（Social Structure）</h3>
+<p><strong>核心逻辑</strong>：盈余产生阶层分化；家族/氏族是关系网载体；阶级流动由分工、战争、教育驱动。反映现实文明"从平权到等级、再到现代市民社会"的演进。</p>
+<pre><code>enum SocialClass { Elite, Commoner, Laborer, Outcast }
+struct Family {
+    int id; string clanName; SocialClass class;
+    int wealth; List&lt;int&gt; memberIds;
+    float reputation;                  // 声望（影响政治席位）
+}
+struct SocialStructure {
+    Dictionary&lt;SocialClass, float&gt; classRatio;
+    List&lt;Family&gt; families;
+    float mobilityRate;                // 阶级流动率 (0-1)
+    float inequality;                  // 不平等度 (0-1)：写入政治稳定度（2.4）
+    float ethnicInequality;           // 族群间不平等 (0-1)：来自 §2.11 EthnicComposition，写入政治稳定度（2.4/2.5）
+    float burgherRatio;                // 市民/中间阶层占比（近代起，驱动参政广度）
+}
+</code></pre>
+<p><strong>时代演进线</strong>：亲属团体（远古，无固定阶层）→ 贵族/平民/依附者分化（古代）→ 封建等级 + 官僚身份（中古）→ 市民阶层与工人阶层兴起（近代）→ 都市市民社会（现代，阶层边界模糊但不平等以财富形式延续）。</p>
+<p><strong>规则</strong>：
+- 分化：<code>divisionLevel</code> 提升→<code>classRatio[Elite]</code> 上升，<code>inequality</code> 同步上升。
+- 流动：战争胜利→平民可凭军功升阶；贸易繁荣→商人跃升；中古起学院/科举式选拔提供知识型流动；近代起工业与教育大幅提升 <code>mobilityRate</code> 与 <code>burgherRatio</code>。
+- 不平等的政治后果（v1.1.0 新增）：<code>inequality &gt; 0.7</code> 且 <code>mobilityRate &lt; 0.2</code> → 每个结算 pass 扣减稳定度，并压低法律遵从度（2.9 <code>compliance</code>）——这是"阶层冲突"这一长期张力的机制来源（R9 关联）。
+- 族群不平等的政治后果（v1.3.0 新增）：<code>ethnicInequality</code>（来自 §2.11 <code>EthnicComposition</code>）&gt; 0.6 且 <code>mobilityRate</code> 低 → 每个结算 pass 扣减稳定度，与 <code>inequality</code> 叠加放大"阶层 + 族群"复合冲突；高 <code>fractionalization</code> 文明若 <code>mixingRate</code> 低则 <code>ethnicInequality</code> 易累积（与 §2.11 耦合）。
+- 氏族：个体出生归属氏族，婚姻/继承改变氏族财富（2.6 关系网）。</p>
+<h3 id="26-individual-lifecycle">2.6 个体生命周期（Individual Lifecycle）</h3>
+<p><strong>核心逻辑</strong>：每个 NPC 是带状态机、关系、记忆、情感的 agent。文明是个体聚合的涌现，而非顶层数值。MVP 为骨架版（生—成—死），核心层为完整版。</p>
+<pre><code>struct Individual {
+    int id; int ageMonths;             // 月龄（在连续时间中逐结算 pass 增长）
+    int familyId; float health; float skill;
+    Occupation occupation;             // 猎人/农夫/工匠/书吏/学者/工程师/统治者…（随时代扩展）
+    float happiness;                   // 受粮储/灾害/文化/信仰影响
+    float literacy;                    // 识字度（文字发明后有效，中古起驱动知识产出）
+    List&lt;Relation&gt; relations; List&lt;Memory&gt; memories;   // 记忆含创伤/荣耀（D5）
+    NeedState needs;                   // 饥饿/安全/归属需求
+}
+struct Memory {
+    MemoryType type;                   // 兽患/丰收/背叛/迁徙/战乱…
+    int monthStamp;                    // 发生月龄（编年史锚点）
+    float emotionalWeight;             // 情感权重（影响后代叙事）
+}
+</code></pre>
+<p><strong>规则</strong>：
+- 生命曲线：出生（父母健康×幸福决定）→ 成长（技能累积）→ 成年（进入分工）→ 衰老（产能↓、死亡率↑）→ 死亡（自然/灾害/战争）。近代起医疗技术延长寿命并压低婴儿死亡率（人口结构随时代变化，现实人口转型的表达）。
+- 关系与记忆：记忆跨代遗传（D5）——某家族三代前的兽患记忆使其对森林态度负面，影响该家族执政时的政策倾向（AI 决策输入）。
+- 职业由分工（2.2）、阶级（2.5）与时代（2.0）共同决定；书吏/学者是知识产出的人力基础，祭司是宗教系统（2.7）的人力基础。
+- 幸福度：粮储足 + 无灾害 + 节庆 → 高；大旱/战乱/法律不公 → 低 → 可能出走或参与动荡（稳定度↓）。</p>
+<h3 id="27-religion-system-v110">2.7 宗教系统（Religion System）— v1.1.0 定位调整</h3>
+<p><strong>设计定位（v1.1.0 变更）</strong>：宗教<strong>保留</strong>为文明十一大子系统之一（用户明确要求），但定位为<strong>文化/信仰维度</strong>——它塑造世界观、节庆、伦理观念与个体心理。<strong>宗教不授予政治合法性（2.4），也不生成法律条文（2.9）。</strong> 原 v1.0.0 的"四维耦合"删去"政治合法性"与"伦理与法律"两维，保留"战争与冲突"与"资源与生态"，并明确"文化与个体"为宗教的主渠道。</p>
+<h4 id="271">2.7.1 宗教的起源与演进（独立文化线）</h4>
+<p>宗教不是初始存在的，而是随文明复杂化<strong>涌现</strong>的。演进阶段对应现实文明宗教史，且贯通到现代：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时代</th>
+<th>触发条件</th>
+<th>特征</th>
+<th>现实参照</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>自然崇拜 (Animism)</td>
+<td>远古</td>
+<td>聚落初期，对不可控自然（雷/河/兽）的敬畏</td>
+<td>万物有灵，无专职祭司，口头禁忌</td>
+<td>狩猎采集部落</td>
+</tr>
+<tr>
+<td>祖先崇拜 (Ancestor)</td>
+<td>远古末–古代初</td>
+<td>个体记忆累积 + 氏族形成</td>
+<td>祭祀先祖祈福，氏族长老兼祭司</td>
+<td>东亚宗法、罗马家神</td>
+</tr>
+<tr>
+<td>多神教 (Polytheism)</td>
+<td>古代</td>
+<td>分工出现祭司职业 + 农业周期固化</td>
+<td>神祇统辖自然/丰收/战争，神庙建成</td>
+<td>古希腊/美索不达米亚</td>
+</tr>
+<tr>
+<td>主神/一神教 (Henotheism→Monotheism)</td>
+<td>古代末–中古</td>
+<td><strong>聚落网络扩大 → 神祇谱系融合（贸易/移民带来的信仰整合）</strong></td>
+<td>至高神统摄众神，信仰跨聚落统一</td>
+<td>大区域文明的信仰整合</td>
+</tr>
+<tr>
+<td>伦理宗教 (Ethical)</td>
+<td>中古</td>
+<td>文字 + 哲学反思 + 集体苦难经验（疫病/战乱）</td>
+<td>信仰与伦理/来世绑定，经文制度化</td>
+<td>佛教/基督教/儒教化</td>
+</tr>
+<tr>
+<td>世俗多元 (SecularPluralism)</td>
+<td>近代–现代</td>
+<td>学术兴起 + 现代法系 + 都市化</td>
+<td>信仰成为个人选择，多信仰共存，<code>adherence</code> 下降但不归零</td>
+<td>现代社会的宗教处境</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注</strong>：主神/一神教的触发条件在 v1.1.0 中已从"王国形成 + 神权背书需求"改为"聚落网络扩大导致的神祇谱系融合"——去掉了政治授权动因，改为文化融合动因。</p>
+</blockquote>
+<pre><code>enum FaithStage { Animism, Ancestor, Polytheism, Monotheism, Ethical, SecularPluralism }
+struct Deity { int id; string name; Domain domain; float popularity;
+    float culturalReach; }            // culturalReach 替代 v1.0.0 的 stateEndorsed
+struct Religion { FaithStage stage;
+    List&lt;Deity&gt; pantheon; List&lt;int&gt; priestIds; List&lt;HolySite&gt; holySites; List&lt;Ritual&gt; rituals;
+    EthicalOutlook outlook;            // 伦理观念→输入文化价值观(2.8)，非法律来源
+    float adherence; int schismRisk; } // 信教度 / 教派分裂风险
+struct HolySite { Vector2 location; SiteType type; float sanctity; }  // 神山/圣林/圣泉/神庙 + 神圣度
+</code></pre>
+<h4 id="272">2.7.2 宗教对文明的影响（一主渠道 + 两项耦合）</h4>
+<ol>
+<li><strong>【主渠道】文化与个体</strong>：<code>outlook</code> 输出伦理观念（如"敬老""不可滥伐圣林"），作为<strong>文化价值观</strong>注入 <code>Culture.traits</code>（2.8）；仪式与节庆提升 <code>happiness</code> 与凝聚力；信仰为个体在灾难中提供心理支撑（降低灾后 happiness 跌幅）。这是宗教的主要作用面。</li>
+<li><strong>战争与冲突</strong>（保留）：教义差异 → 教派分裂（<code>schismRisk</code>）；异信仰聚落可能被视作威胁 → 自发宗教性冲突（v1.1.0 战争系统雏形，玩家可影响不可指挥）；圣地争夺是战争动机之一。<strong>但宗教不是政权正当性的来源</strong>——冲突动因是身份与圣地，而非"神授王权"。</li>
+<li><strong>资源与生态</strong>（保留）：圣林/圣泉受宗教保护 → 降低该地 <code>harvestRate</code>（生态保育的宗教动因）；祭祀消耗 <code>Luxury</code>/<code>Food</code> 储备（文明成本）。</li>
+</ol>
+<blockquote>
+<p><strong>明确解耦（v1.1.0）</strong>：① 宗教<strong>不</strong>进入 <code>Polity.legitimacy</code> 公式；② 宗教<strong>不</strong>生成 <code>Norm</code>；③ 宗教的伦理观念只能经由"文化价值观"这一公共通道影响法律<strong>遵从度</strong>（<code>compliance</code>）——即民众更愿意遵守与自身价值观相符的法律，但法律条文本身出自世俗治理需求（2.9）。</p>
+</blockquote>
+<h4 id="273">2.7.3 玩家干预如何影响宗教</h4>
+<p>玩家不直接创教，但可通过 <strong>S1 文明引导</strong>注入"信仰倾向"权重，间接塑造宗教演进方向：
+- 文明引导"农业倾向"持续 → 自然崇拜向"丰收神"聚焦，加速多神教。
+- 文明引导"防御倾向" → 战神信仰崛起（影响文化特质"尚武"，不影响政权授权）。
+- 灾厄"疫病"频繁 → 民众转向"治愈神/伦理宗教"（对现世苦难的宗教回应）。
+- 恩赐"灵感" → 可能触发"神迹记忆" → <code>adherence</code> 跃升、新圣地生成。
+- 反噬（S1 2.1）：同聚落 6 月内注入 ≥ 3 种信仰倾向 → 宗教混乱（<code>schismRisk</code>↑、稳定度↓）。</p>
+<h3 id="28-culture-system">2.8 文化系统（Culture System）</h3>
+<p><strong>核心逻辑</strong>：文化是一个文明的"签名"——艺术、节庆、口述传统、文字、文化特质，由文明路径与环境内生生成（用户指令"文化特质生成"），与宗教（2.7）、个体记忆（2.6）交叉滋养。文化价值观是宗教伦理与世俗经验的<strong>汇流处</strong>，也是它影响法律遵从度的唯一通道。</p>
+<pre><code>struct CulturalTrait { string id; string name;   // 如&quot;崇水&quot;&quot;尚武&quot;&quot;重商&quot;&quot;重法&quot;
+    TraitCategory category; float intensity; int originMonth; }  // 特质强度/诞生月龄
+struct CultureProfile {                 // v1.3.0 新增：跨国文化家族签名
+    string languageFamily;             // 语言家族（与族群 EthnicGroup.languageFamily 同源）
+    string aestheticTradition;         // 审美/艺术传统
+    SocialStructureOrientation socialStructureOrientation; // 社会结构取向（宗族/阶级/个人主义）
+    List&lt;ValueAxis&gt; coreValueAxes;     // 核心价值轴（集体主义↔个人主义、尚武↔尚文、重农↔重商…）
+}
+enum SocialStructureOrientation { LineageClan, ClassHierarchy, Individualist }
+struct Culture {
+    CultureProfile profile;            // v1.3.0：每个文明独立文化签名
+    List&lt;CulturalTrait&gt; traits; List&lt;Artwork&gt; artworks; List&lt;Festival&gt; festivals;
+    bool writingInvented;              // 文字是否诞生（中古门槛前置）
+    OralTradition oralTradition; ValueProfile values; }  // 价值观：宗教伦理+世俗经验+环境
+</code></pre>
+<p><strong>规则</strong>：
+- 特质生成：环境塑造价值（近水→"崇水"；多兽患→"尚武"）；经济形态塑造取向（贸易繁荣→"重商"）；成文法长期稳定运行→"重法"（v1.1.0 新增：制度经验也能沉淀为文化）；宗教塑造审美与伦理。
+- 节庆：绑定 S2 四季（春播祭/秋收庆/冬藏节）与宗教仪式，提升 <code>happiness</code> 与凝聚力（稳定度+）。现代时代节庆世俗化（国庆/纪念日与宗教节庆并存）。
+- 文字：<code>divisionLevel</code> 高 + 政治复杂 → 自动"发明文字" → 编年史从口述升级为可考文本（R4 叙事可读性、D5 记忆固化），并成为中古时代门槛的必要条件。
+- 艺术：繁荣度高的文明产出 <code>artworks</code>，成为视觉差异化（概念 5.3 文明演进表达）。
+- <code>values</code> → 影响法律 <code>compliance</code>（2.9）、个体 happiness、政治共识项（与艺术/节庆同级的通用渠道，无宗教专属加成）。
+- 跨国文化家族（v1.3.0 新增）：每个文明持有独立 <code>CultureProfile</code>（语言家族/审美传统/社会结构取向/核心价值轴），由环境/经济/宗教/族群（§2.11）共同塑造，但<strong>每个文明有独立签名</strong>，不是通用涌现——即便同处古代、同是王国，两文明的审美传统与核心价值轴也可截然不同。<code>Culture.traits</code>/<code>values</code> 的既有生成机制作为底层，CultureProfile 是其上层的"文明签名"聚合（保留 v1.1.0 的 values/traits 生成机制不变）。</p>
+<h3 id="29-law-institutions-v110">2.9 法律与制度（Law &amp; Institutions）— v1.1.0 核心重设计</h3>
+<p><strong>核心逻辑</strong>：法律从<strong>世俗治理需求</strong>中自然涌现——当聚落反复出现纠纷、资源争夺、治安事件与交易违约时，治理者被迫产出规范。法律随时代从口头习惯法演进到成文法典，再到现代分权法系。</p>
+<blockquote>
+<p><strong>v1.1.0 变更说明</strong>：移除 v1.0.0 的"早期 norms 全部 Religious（神法即最早的法律）"设定。<code>NormSource</code> 枚举中<strong>不含宗教项</strong>。宗教伦理只能经由文化价值观影响法律的<strong>遵从度</strong>，不生成法律条文（2.7.2）。</p>
+</blockquote>
+<pre><code>enum LawStage { Customary, Codified, ModernLegalSystem }
+enum LegalFamily { CivilLaw, CommonLaw, SocialistLaw, CustomaryLaw }  // 法律传统渊源家族：与 LawStage（成熟度）正交
+enum NormSource { Dispute, Resource, Security, Contract }        // 四类世俗治理需求
+enum NormDomain { Civil, Criminal, Property, Procedural, Constitutional }
+
+struct Norm { string description;      // 如&quot;盗窃者偿三倍&quot;&quot;水源林禁伐&quot;
+    NormSource source; NormDomain domain;
+    float compliance;                  // 遵从度(0-1)：文化价值观+执法+公正性
+    int originMonth; bool isWritten; } // 是否已成文（文字发明后）
+struct LawCode { LawStage stage; LegalFamily lawFamily; List&lt;Norm&gt; norms;
+    float enforcement;                 // 执法力度(0-1)：官僚深度/稳定度
+    float impartiality;                // 公正性(0-1)：阶级差别适用与否
+    List&lt;int&gt; courtIds; bool separationOfPowers; }  // 裁判席/官署/法院 / 权力分立(现代)
+</code></pre>
+<p><strong>法制演进三阶段</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时代</th>
+<th>形态</th>
+<th>裁决者</th>
+<th>触发条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>习惯法（Customary）</strong></td>
+<td>远古–古代初</td>
+<td>口头习俗与判例记忆，无成文条文</td>
+<td>长老 / 首领</td>
+<td>月纠纷事件数超阈值，且聚落人口 ≥ 50</td>
+</tr>
+<tr>
+<td><strong>成文法（Codified）</strong></td>
+<td>古代末–中古</td>
+<td>王室法典 / 城邦法条，刻写公示</td>
+<td>官署法庭</td>
+<td>文字已发明 + 官僚深度 ≥ 1 + 王国/帝国形态</td>
+</tr>
+<tr>
+<td><strong>现代法系（ModernLegalSystem）</strong></td>
+<td>近代–现代</td>
+<td>宪法 / 民法 / 刑法 / 程序法分离</td>
+<td>独立法院</td>
+<td>民族国家 + 制度合法性 ≥ 0.4 + 参政广度 ≥ 0.3</td>
+</tr>
+</tbody>
+</table>
+<p><strong>规则</strong>：
+- <strong>规范由治理压力涌现</strong>：每个结算 pass 统计四类压力（纠纷事件数 / 资源争夺事件 / 治安事件 / 交易违约），任一类超阈值 → 生成一条对应 <code>NormSource</code> 的 <code>Norm</code>（描述由 AI 按情境生成）。例：连年争水 → <code>Resource</code> 类规范"上游不得断流"；商路兴起后违约频发 → <code>Contract</code> 类规范"契约需两名见证"。
+- <strong>环保类法律的世俗来源</strong>：如"水源林禁伐"由 <code>Resource</code> 压力催生（水土流失的教训），而非宗教禁忌——宗教的圣林保护是<strong>另一条独立通道</strong>（2.7.2 第 3 项），两者可并存但机制不同。
+- 法律效果：降低内部冲突（稳定度 +）；提升契约与贸易效率（2.2 <code>tradeVolume</code> +）；规范资源使用（写入 S2 <code>harvestRate</code> 上限）；成文法与现代法系供给 <code>Polity.sources.institution</code>（2.4 唯一制度合法性来源）。
+- 公正性与阶层：<code>impartiality</code> 低 → 底层 <code>compliance</code> 下降 → 与 <code>inequality</code>（2.5）叠加放大阶层冲突；现代法系要求 <code>impartiality ≥ 0.5</code>，否则制度合法性项受损（现代分支的宪政危机机制）。
+- 遵从度合成：<code>compliance = f(enforcement, impartiality, cultureValueCongruence)</code>——文化价值观与规范契合度越高，民众越自愿遵守（宗教伦理经此通道间接生效）。</p>
+<h4 id="291-legal-family">2.9.1 法律体系家族（Legal Family）</h4>
+<p><strong>① 它是什么</strong>：除按成熟度阶段（<code>LawStage</code>：习惯法→成文法→现代法系）演进外，法律还按<strong>历史传统渊源</strong>区分出四大法系家族——<strong>大陆法系</strong>（Civil Law）、<strong>英美法系</strong>（Common Law）、<strong>社会主义法系</strong>（Socialist Law）、<strong>习惯法</strong>（Customary Law）。家族是"这国法律从哪路传统长出来"，独立于成熟度阶段——一个现代国家可以是大陆法系也可以是英美法系，两者都可达现代法系阶段。</p>
+<p><strong>② 与 <code>LawStage</code> 正交</strong>：<code>LawStage</code> = 成熟度（法律"多发达"）；法系家族 = 传统渊源（法律"从哪路传统来"）。二者<strong>正交</strong>——同一 <code>LawStage</code> 可挂不同家族（如现代法系既可是大陆法系也可是英美法系），同一家族可跨多个 <code>LawStage</code>（如大陆法系可处于成文法阶段也可处于现代法系阶段）。现有 <code>LawStage</code> 三阶段演进（§2.9）保留不变，法系家族是叠加在成熟度之上的"传统渊源"维度。</p>
+<p><strong>③ 四大家族含义</strong>：
+- <strong>大陆法系（CivilLaw）</strong>：以成文法典为最高法源、法官依法典裁判的传统（欧陆为典型）。
+- <strong>英美法系（CommonLaw）</strong>：以判例与习惯为法源、法官可"造法"的传统（英美学圈为典型）。
+- <strong>社会主义法系（SocialistLaw）</strong>：以成文宪法与计划经济法令为骨架、强调国家计划的传统（20 世纪社会主义国家为典型）。
+- <strong>习惯法（CustomaryLaw）</strong>：以长期习俗与社群规范为法源、无统一法典的传统（众多非国家社会为典型，亦与 §2.9 习惯法阶段同源，但此处指家族层）。</p>
+<p><strong>④ 延续"无神法"原则</strong>：四大家族均为<strong>世俗传统渊源</strong>，宗教法<strong>不进入</strong>合法性公式（与 §2.4 四项世俗来源、§2.7.2 解耦一致）。即便未来加入"宗教法家族"，也仅为<strong>描述性标签</strong>（记录该文明法律受宗教传统影响），<strong>绝不构成合法性授权或法律条文来源</strong>——宗教经此通道仍只可经文化价值观影响 <code>compliance</code>（§2.9 遵从度），不生成 <code>Norm</code>。</p>
+<p><strong>⑤ 初始化规则</strong>（v1.3.1 新增）：
+- <strong>地缘模式（当今地缘政治）</strong>：<code>mode == ModernGeopolitics</code> 时，由 S5 <code>WorldInitConfig.legalTraditionSeed</code>（按起始区域在真实/历史法律传统分布中映射的典型家族）初始化 <code>lawFamily</code>——如欧洲→大陆/英美、前苏东→社会主义、部落区域→习惯法；玩家可在 New Game 设置中可选"法律传统偏好"偏置该映射，但<strong>绝不指定某具体国家的家族</strong>。
+- <strong>沙盒模式（远古沙盒）</strong>：<code>mode == PrimordialSandbox</code> 时不预设家族，<code>lawFamily</code> 随政治形态/文化/时代门槛<strong>涌现</strong>——官僚制 + 成文法倾向 → 大陆法系；判例传统的海洋文明 → 英美法系；计划经济 + 近代革命 → 社会主义法系；并在进入<strong>近代 + 民族国家</strong>后趋于<strong>锁定</strong>（此后家族基本固定，仅极端政权更替可变更）。</p>
+<p><strong>⑥ 耦合与效果</strong>（v1.3.1 新增）：法律家族与多子系统耦合，影响治理与经济的若干指标——
+- <strong>政治</strong>：近代宪政 / 权力分立与<strong>大陆 / 英美</strong>法系更相容（其 <code>separationOfPowers</code> 与本族成文 / 判例传统契合）。
+- <strong>文化</strong>：<code>CultureProfile</code> 核心价值轴影响 <code>compliance</code>（家族传统与民众价值契合度越高，遵从度越高）。
+- <strong>制度谱</strong>：官僚制 / 世袭制倾向影响 <code>impartiality</code> 与成文倾向（官僚制更推成文，与大陆法系互相强化）。
+- <strong>经济</strong>：<strong>大陆 / 英美</strong>法系提升契约执行与贸易效率（<code>tradeVolume</code> +）；习惯法区域贸易半径受限；社会主义法系在计划经济指令下贸易形态不同。</p>
+<blockquote>
+<p>法律家族始终为文明<strong>自治派生状态</strong>，玩家仅经 S1 间接参数与 New Game 真实地理种子影响，绝不"下场"指定某国家族——与 §1 红线一致。</p>
+</blockquote>
+<hr />
+<hr />
+<h2 id="210-military-war-subsystem-v120-s3-s11">2.10 军事/战争子系统（Military / War Subsystem）— v1.2.0 新增（并入 S3，非独立 S11）</h2>
+<p><strong>设计理由</strong>：概念文档 v1.3.0 将「军事」明确列为「生存对抗」支柱的文明间表达；用户指令要求军事作为文明级抽象能力，玩家在战略层只引导军事方针/军备方向（间接），战争由系统在地图上自动结算，绝不出现 RTS 式直接指挥。因此军事并入 S3 作为第十子系统，而非独立 S11。<strong>军事/战争子系统在核心层即可用：当「多聚落」模块 ON 时，文明间即可在地图上自动开战（MVP 单聚落时仅被动应战、无主动开战 AI）；不再严格限定于延展层——与概念文档 v1.3.1 §4.3 对齐（延展层 v1.1.0 文明间关系在此基础上深化外交/联盟/吞并）。</strong></p>
+<h3 id="2101-militarystate">2.10.1 军事作为文明能力（MilitaryState）</h3>
+<p>每文明（及主要聚落）持有 <code>MilitaryState</code>：</p>
+<pre><code>struct MilitaryState {
+    float militaryPower;     // 军力（可动员战力总和，战力点；= 征召人口 × 装备系数）
+    int militaryTechLevel;   // 军事科技等级（已解锁的最高「军事/防御」主干线节点对应的 TechTier）
+    float defenseLevel;      // 防御等级（城防/要塞，0-1，衰减敌方进攻有效系数）
+    bool hasNavy;            // 是否拥有海军（仅沿海文明可达，由真实地理 S5 判定）
+    WarStatus warStatus;     // 和平/动员/交战中/战败/战胜
+    float warWeariness;      // 战争疲劳（累计，写入政治稳定度修正）
+    int supplyMonths;        // 补给可维持月数（由军费/粮储驱动，归零→战力衰减）
+}
+enum WarStatus { Peace, Mobilizing, AtWar, Defeated, Victorious }
+</code></pre>
+<p><strong>军力积累（每个结算 pass）</strong>：<code>militaryPower += levyPopulation × equipFactor(militaryTechLevel) × growthRate</code>（受征召上限约束，征召过多 → 劳动力↓ → 生产↓，见 2.2 经济耦合）。海军仅当文明含沿海聚落（S5 真实地理判定 <code>hasCoast</code>）且已解锁相应军事科技（T3 城防起）时 <code>hasNavy = true</code>。</p>
+<p><strong>时代耦合</strong>：军事能力随时代自然增强——远古游群仅有临时征召（木石兵器，militaryTechLevel=T1）；古代王国拥有常备军与城墙（T3）；中古工程筑城与攻城器械（T5）；近代火药（T6）；现代工业战争（T7/T8）。这与 2.0 时代框架一致：战争形态是时代演进的副产物，而非独立开关。</p>
+<h3 id="2102-23">2.10.2 科技树「军事/防御」主干线（第七主线，补全 2.3）</h3>
+<p>在 2.3 科技树新增<strong>第七主干线「军事/防御」</strong>，跨时代累积（与六条既有主线同构），节点解锁即写入 <code>MilitaryState</code>：</p>
+<table>
+<thead>
+<tr>
+<th>主干线</th>
+<th>T1–T2 远古</th>
+<th>T3–T4 古代</th>
+<th>T5 中古</th>
+<th>T6 近代</th>
+<th>T7–T8 现代</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>军事/防御</td>
+<td>木石兵器、陷阱</td>
+<td>铜兵、城墙、城防</td>
+<td>工程筑城、攻城器械</td>
+<td>火药、火器</td>
+<td>蒸汽铁甲、机枪 / 信息战、导弹</td>
+</tr>
+</tbody>
+</table>
+<p>节点效果（示例）：<code>城墙</code> → <code>defenseLevel += 0.3</code>；<code>火药</code> → <code>militaryTechLevel</code> 跳至 T6 等效；<code>信息战</code> → 现代战争指挥效率。军备方向由玩家 <code>devBias_military</code> 间接引导（见 2.10.4），文明按环境自主决定解锁顺序。</p>
+<h3 id="2103">2.10.3 战争/冲突：作为「生存对抗」的文明间表达</h3>
+<p>战争的动因来自文明自身的对抗性张力，与既有子系统耦合：</p>
+<ul>
+<li><strong>× 政治（2.4）</strong>：王国/帝国（中央调配力强）更易发动扩张战争；战败（<code>stability</code>↓ 跌破阈值）可能触发政权更替/动荡事件（2.4 政权更替表按时代呈现）。</li>
+<li><strong>× 经济（2.2）</strong>：军费每个结算 pass 消耗 <code>Material</code>/<code>Food</code>/<code>Luxury</code> 储备 → 压缩 surplus → 压低 <code>divisionLevel</code>（「穷兵黩武」长期削弱文明复杂化）；军力征召抽离劳动力 → 生产↓。</li>
+<li><strong>× 宗教（2.7.2，已耦合）</strong>：教义差异/圣地争夺 → 自发宗教性冲突；「圣战」作为战争动机之一（信仰动因，非政治授权）。</li>
+<li><strong>× 族群（§2.11，v1.3.0 新增）</strong>：<code>EthnicComposition.polarization</code> 高 → 内战动因（文明内部族群冲突）与文明间战争概率上升；多族群帝国的边缘族群易生分离主义，触发内战（同军费/稳定度/生态通道，与文明间战争并列）。族群战争由文明 AI 基于 <code>polarization</code>/<code>fractionalization</code> 自主爆发，玩家仅经 <code>devBias_ethnicity</code> 间接影响，绝不下场指挥。</li>
+<li><strong>× 生态（2.3/S2）</strong>：战争破坏环境——战场 <code>harvestRate[Forest/Soil]</code> 下降、聚落焚毁、人口流离 → 写入 S2 应力源（与 E3 现代生态回旋同通道）。</li>
+</ul>
+<h3 id="2104-s1">2.10.4 战略层：玩家经 S1 间接引导（不下场）</h3>
+<p>玩家<strong>不</strong>指挥任何部队。通过 S1 文明引导注入<strong>「军事/战争方针」</strong>方向，写入 S3 <code>devBias_military</code>（与 <code>devBias_agriculture</code> 等并列，聚落级，3-5 月衰减）：</p>
+<ul>
+<li><code>devBias_military &gt; 0</code>（尚武/扩张倾向）：AI 决策权重偏向优先解锁军事科技、提高征召比例、更易接受开战决策。</li>
+<li><code>devBias_military &lt; 0</code>（守势/城防倾向）：AI 偏向优先提升 <code>defenseLevel</code>、降低征召、回避主动开战。</li>
+<li>反噬同 S1——同聚落 6 月内注入 ≥ 3 种含军事的冲突倾向 → 决策混乱（S1 2.2.5）。</li>
+</ul>
+<h3 id="2105-rts">2.10.5 战斗自动结算模型（地图演示，非 RTS）</h3>
+<p>战争由系统检测触发（动因见 2.10.3），在地图上自动结算并演示（S8 可视化军队移动/攻城/战线），玩家不可介入单位级。结算为<strong>状态机 + 简版胜负公式</strong>：</p>
+<pre><code>// 参战有效战力（每方）
+effPower_A = militaryPower_A × techFactor(milA) × supplyFactor(supplyMonths_A) × moraleFactor(warWeariness_A)
+effPower_D = militaryPower_D × techFactor(milD) × supplyFactor(supplyMonths_D)
+           × (1 - defenseLevel_D × terrainDefenseBonus)   // 防守方受城防与地形衰减
+
+// 海军修正（仅跨水域作战）：进攻方无海军而目标为沿海 → effPower_A ×= 0.3（两栖劣势）
+// 地形修正（S5 真实地理）：山地/河流天险 → terrainDefenseBonus 上升
+
+// 胜负判定（每月结算一次战役步骤）
+ratio = effPower_A / effPower_D
+if ratio &gt; WIN_THRESHOLD (e.g. 1.5): 进攻方推进/破城 → warStatus 趋 Victorious
+elif ratio &lt; 1/WIN_THRESHOLD:       进攻方溃退 → Defeated
+else:                               拉锯 → 双方持续消耗 supplyMonths 与军力（warWeariness↑）
+
+// 战损写入
+casualtyScale = clamp(|effPower_A - effPower_D| / max(effPower_A, effPower_D), 0, 1)
+militaryPower_A *= (1 - casualtyScale × LOSS_RATE)
+// =&gt; 经济：粮储/材料消耗；生态：S2 harvestRate↓（战场破坏）；政治：stability 受 warWeariness 修正
+</code></pre>
+<p><strong>设计红线（与「不下场」一致）</strong>：玩家永不指定进攻目标、调动部队或下令交战；开战决策由文明 AI 基于动因（政治/经济/宗教/资源）自主做出，<code>devBias_military</code> 仅偏移其权重。战争的全部单位级过程由系统演示，玩家是旁观者（与 2.7.2 宗教战争、概念文档 2.2 支柱二（文明间战争）「战争应是文明自发的，玩家可影响但不能指挥」一致）。</p>
+<hr />
+<h2 id="211-ethnicity-subsystem-v130">2.11 族群/种族子系统（Ethnicity Subsystem）— v1.3.0 新增（第十一子系统）</h2>
+<p><strong>设计理由</strong>：决策 #1 将「种族」定为<strong>真实民族种子</strong>。在「当今地缘政治」模式用真实民族/语系分布（汉藏、印欧、闪米特、班图、南岛、乌拉尔、尼日尔-刚果等）作初始化种子；在「远古沙盒」模式，民族由游群分裂、迁徙、环境隔离<strong>涌现</strong>分化。族群是文明差异化的核心维度之一——不同国家/文明有不同民族构成、语言家族与文化底色，且承载政治（民族自决/民族主义）、军事（族群极化→内战）、文化（语言家族）、社会（族群不平等→稳定度）等多处耦合。</p>
+<h3 id="2111">2.11.1 数据模型</h3>
+<pre><code>enum LanguageFamily { SinoTibetan, IndoEuropean, Semitic, Bantu, Austronesian, Uralic, NigerCongo, ... }
+    // 主要语系（数据集驱动，可扩展；地缘模式引用真实语系，沙盒模式由分化涌现）
+
+struct EthnicGroup {
+    int id;
+    string displayName;              // 地缘模式=真实民族名；沙盒模式=涌现名（如&quot;北岭牧人&quot;）
+    float populationShare;           // 占本文明人口比例 (0-1)
+    Vector2 homelandRegion;          // 祖源地 (lat, lon, radius)
+    LanguageFamily languageFamily;
+    Dictionary&lt;string,float&gt; traits; // 族群特质（如&quot;尚牧&quot;&quot;航海&quot;&quot;重商&quot;，与 Culture.traits 同源生成）
+}
+
+struct EthnicComposition {
+    List&lt;EthnicGroup&gt; groups;
+    float dominanceIndex;            // 主导度 = max(populationShare)（0-1）
+    float fractionalization;         // 族群碎片化指数（0-1，越高越多元/越易极化）
+    float polarization;              // 族群极化度（0-1，月度更新；战争动因之一，§2.10.3）
+    float ethnicInequality;          // 族群间不平等（0-1，写入政治稳定度修正，§2.5）
+    float mixingRate;               // 同化/通婚混合率（0-1，沙盒涌现用；受 devBias_ethnicity 间接影响）
+}
+
+// 地缘模式种子（引用真实民族/语系分布数据集，如 Ethnologue / World Language Mapping System 简化版）
+struct RealEthnicDistribution {
+    List&lt;EthnicSeedEntry&gt; entries;   // 按 (lat, lon, radius) 映射的真实民族构成
+}
+struct EthnicSeedEntry { LanguageFamily family; string name; float share; Vector2 region; }
+
+&gt; **归属声明（v1.3.2 新增）**：S3 **不持有**真实民族/语系数据集——真实数据由 S5 在起始区域按 `(lat, lon, radius)` 生成 `RealEthnicDistribution` 种子并随 `WorldInitConfig.ethnicSeed` 交付（见 S5 §2.1 / §2.2.2 / §4.2）；S3 仅**消费**该种子初始化 `EthnicGroup` 列表，不生成真实数据集（沙盒模式则完全由游群分化涌现）。
+</code></pre>
+<h3 id="2112">2.11.2 两种初始化路径</h3>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>民族来源</th>
+<th>初始化方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ModernGeopolitics</code>（当今地缘政治）</td>
+<td><strong>真实民族种子</strong></td>
+<td><code>WorldInitConfig.ethnicSeed</code>（RealEthnicDistribution，由 S5 提供）按起始区域 <code>startRegionCenter + Radius</code> 映射真实民族构成 → 生成 <code>EthnicGroup</code> 列表；若起始区域跨多民族带，则 <code>fractionalization</code> 较高（如巴尔干/中东）。民族名用真实民族名。</td>
+</tr>
+<tr>
+<td><code>PrimordialSandbox</code>（远古沙盒）</td>
+<td><strong>涌现分化</strong></td>
+<td>初始单一游群（无分化）；随时代，游群分裂、迁徙、环境隔离 → 分化出新 <code>EthnicGroup</code>（新语言家族/特质）；同化/通婚由 <code>mixingRate</code> 驱动混合。民族名由系统按地理/环境生成（涌现名）。</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>MVP 简化开关（主理人已裁决，v1.3.2）</strong>：MVP 单文明最小路径下，族群子系统折叠为<strong>单一主导族群</strong>（<code>groups</code> 仅 1 项、<code>populationShare = 1</code>、<code>fractionalization = 0</code>）——<strong>结构保留不移除、不退化</strong>（<code>EthnicComposition</code> 字段完整保留，仅 <code>groups</code> 列表收敛为 1 项）；<strong>不保留「潜在分化入口」</strong>，族群分化仅在核心层（多聚落 / 多族群模块展开）发生。核心层默认展开完整多族群。</p>
+</blockquote>
+<h3 id="2113">2.11.3 与既有子系统耦合</h3>
+<ul>
+<li><strong>× 政治（§2.4）</strong>：近代民族国家可携带 <code>EthnicNationalism</code> 合法性变体——当 <code>Polity.type ∈ {NationState, ModernRepublic}</code> 且 <code>dominanceIndex</code> 较高时激活，向合法性公式叠加一项“民族自决/认同”加权（与既有四项世俗来源<strong>并存，不替代</strong>，权重 <code>w_n</code> 为暂行值，详见 §2.4.2）。多族群且 <code>polarization</code> 高时，民族自决诉求可能引发分离/动荡事件。</li>
+<li><strong>× 军事/战争（§2.10.3）</strong>：<code>polarization</code> 提升开战概率与<strong>内战</strong>动因——高 <code>fractionalization</code> + 低 <code>mixingRate</code> 的文明内部更易爆发族群冲突（文明间战争之外的新动因），内战消耗同军费/稳定度通道。</li>
+<li><strong>× 文化（§2.8）</strong>：族群承载 <code>languageFamily</code> 与部分文化特质（<code>traits</code>），是 <code>CultureProfile.languageFamily</code> 与底层 <code>Culture.traits</code> 的来源之一；不同族群带来不同语言家族 → 文化签名差异。</li>
+<li><strong>× 社会（§2.5）</strong>：<code>ethnicInequality</code> 写入政治稳定度（扩展 §2.5）——族群间不平等叠加阶级不平等，放大冲突与稳定度压力。</li>
+</ul>
+<h3 id="2114-pass-polarization">2.11.4 固定步长月级结算 pass 族群步骤（统计构成 / 同化通婚 / polarization 更新）</h3>
+<pre><code>// 每累计 1 游戏月（固定步长月级结算 pass，见 §4.3 步骤 10）：
+1. 统计构成：重算 groups.populationShare、dominanceIndex、fractionalization
+2. 同化/通婚：按 mixingRate 向主导族群收敛（沙盒模式为主；地缘模式 mixingRate 低、构成较稳定）
+3. polarization 更新：polarization += f(inequality, isolation, recentConflict) - assimilationDrag
+4. ethnicInequality 写入 SocialStructure → 政治稳定度修正（§2.5 / §2.4）
+</code></pre>
+<p><strong>设计红线（不下场）</strong>：玩家<strong>绝不</strong>指定某国民族构成或某族群属性；仅可经 S1 注入 <code>devBias_ethnicity</code>（迁移开放度/同化倾向，间接影响 <code>mixingRate</code> 与边界开放度）与 <code>devBias_culture</code>（文化开放/守传统，间接影响文化特质生成方向，§2.8）。族群分化/同化是文明自治涌现，玩家只调参数。</p>
+<hr />
+<h3 id="212-polity-aggregation-v140">2.12 国家 / 政体聚合（Polity Aggregation）— v1.4.0 核心新增</h3>
+<p><strong>核心逻辑</strong>：文明在「单聚落封顶 5 万」的旧尺度下，国家与聚落几乎同义。v1.4.0 将模拟量级提升到真实世界——<strong>国家（Polity / NationState）是聚合 ≥1 个聚落的政治体，其人口 = 下辖所有聚落人口之和</strong>：</p>
+<pre><code>struct Polity {                       // 沿用 §2.4.1，新增聚合字段
+    GovernanceType type; Era eraContext; int rulerId;
+    float governanceEfficiency; float stability; float legitimacy;
+    LegitimacySource sources; List&lt;int&gt; councilMemberIds;
+    float bureaucracyDepth; float franchiseBreadth;
+    // —— v1.4.0 聚合字段 ——
+    List&lt;int&gt; memberSettlementIds;    // 下辖聚落 ID 列表（≥1）
+    float totalPopulation;             // = Σ settlements.population（千万~十亿级）
+    float aggregateOutput;            // 总产出（Σ 各聚落经济产出）
+    float aggregateMilitaryPower;     // 总军力（Σ 各聚落 MilitaryState）
+    float aggregateStability;         // 聚合稳定度（加权）
+}
+
+// 聚合更新（每个结算 pass 末，见 §4.3 步骤 15）：
+nation.totalPopulation      = Σ s.population for s in memberSettlements
+nation.aggregateOutput      = Σ s.economy.monthlyProduction
+nation.aggregateMilitaryPower = Σ s.military.militaryPower
+nation.aggregateStability   = weightedAvg(s.stability, by s.population)
+</code></pre>
+<p><strong>真实量级参考</strong>（示例，非硬上限）：</p>
+<table>
+<thead>
+<tr>
+<th>政体类型</th>
+<th>聚合人口量级</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单聚落城邦</td>
+<td>数千~数万（市镇档）</td>
+<td>仅 1 个聚落，无下辖</td>
+</tr>
+<tr>
+<td>王国 / 帝国</td>
+<td>数万~数千万</td>
+<td>聚合数至数十个聚落</td>
+</tr>
+<tr>
+<td>民族国家</td>
+<td>数百万~数亿</td>
+<td>多聚落/多区域统合</td>
+</tr>
+<tr>
+<td>现代共和（大国）</td>
+<td>数千万~十亿+</td>
+<td>如中华级 ~1.4B、次大陆级 ~1B+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>明确边界（回应"5 万不是国家"）</strong>：单聚落 5 万（50,000）只是「市（City）」档的中段，是一个<strong>市</strong>的人口；而「国家」是聚合体，下辖可能包含数十个乃至上千个聚落，总人口达千万~十亿级。聚落分档（§2.1）与国家治理形态（§2.4.3）是两个不同尺度的概念——前者描述单聚落规模，后者描述聚合政体的规模与形态。</p>
+<p><strong>模拟策略（呼应 §6.1 CV4「人口分层聚合模拟」）</strong>：
+- <strong>聚落层</strong>：跑个体/代理微观模拟（村~市看得见人，关键个体带状态机/关系/记忆）。
+- <strong>国家层</strong>：<strong>仅做聚合统计</strong>（总人口 / 总产出 / 总军力 / 稳定度），<strong>不逐个模拟国民</strong>——避免"千万人口逐 NPC"的性能灾难（T1/T4 关联）。国家层是统计视图，其数值由各聚落微观模拟汇总而来，自身不产生新的个体级行为。
+- 这一分层使 S3 既能呈现"单聚落微缩沙盒"的可见个体，又能承载真实量级的多聚落国家，且性能可控。</p>
+<p><strong>与干预系统的耦合</strong>：玩家经 S1 注入的 <code>devBias_*</code> 仍<strong>异步、延迟生效</strong>（由 S4 连续时间驱动），写入各聚落的 AI 决策参数（§4.1）；国家层聚合数值随之在后续结算 pass 中自然反映，玩家绝不指挥具体国民或部队（全局"不下场"红线，§1）。</p>
+<hr />
+<h3 id="31">3.1 预期涌现行为</h3>
+<p><strong>D4 — 文明路径分叉（Civilization Path Divergence）</strong></p>
+<blockquote>
+<p>同初始条件，因玩家引导倾向（农业/狩猎/航海/商业）不同，文明走上不同路径：农业路径→灌溉技术线→丰收信仰→宗法社会→王国→帝国；狩猎路径→驯化线→祖先/战神信仰→平权氏族→长老会→议事城邦；航海路径→渔业/造船→重商城邦→近代港口工业。<strong>分叉在时代跃迁时被放大而非收束</strong>——两条路径进入近代时的工业形态完全不同。</p>
+</blockquote>
+<p><strong>D2 — 生存压力螺旋（Survival Pressure Spiral）</strong></p>
+<blockquote>
+<p>大旱→粮产↓→粮储消耗→饥饿→劳动力↓→生产再↓→人口死亡→分工崩塌→学者/工匠流失→科技与文化衰退→可能触发时代倒退（2.0.2）。文明引导（S1）或紧急干预可打断此螺旋。</p>
+</blockquote>
+<p><strong>D5 — 世代记忆累积（Generational Memory）</strong></p>
+<blockquote>
+<p>三代前兽患记忆→某家族对森林负面态度→该家族执政时限制伐木（生态保育的"历史惯性"源）。记忆使世界有纵深而非每次重置。</p>
+</blockquote>
+<p><strong>R7 — 文化特质涌现</strong></p>
+<blockquote>
+<p>长期重农 + 丰收信仰 → "崇土重农"特质固化 → 影响后代政策（优先粮储、轻视贸易）。成文法长期稳定运行 → "重法"特质 → 提升后世法律遵从度。文化成为长期动机的一部分，缓解 R9。</p>
+</blockquote>
+<p><strong>E1 — 时代跃迁的渐进生长（Era Growth）— v1.1.0 新增，R6 首攻</strong></p>
+<blockquote>
+<p>门槛达成后进入 12–24 月过渡期：先是几座砖房出现在夯土屋之间，接着官署替代长老议事的空地，然后旧仓储区被改建。玩家体验到的是"我的文明在长大"，而不是"游戏进入了第二章"。多线错位（科技已达中古但政治仍是王国）进一步模糊了跃迁边界——这正是 R6 的解法。</p>
+</blockquote>
+<p><strong>E2 — 合法性重心迁移（Legitimacy Shift）— v1.1.0 新增</strong></p>
+<blockquote>
+<p>古代靠血统维系的王朝，进入近代后血统权重降至 0.2，若该文明未积累制度合法性（无统一法典、无常备官僚），合法性总值将随时代跃迁而<strong>自动下滑</strong>——不是因为玩家做错了什么，而是因为"旧的正当性理由在新时代不够用了"。这会自发催生革命事件。政治现代化因此成为一道必须主动经营的坎，而非自动奖励。</p>
+</blockquote>
+<p><strong>E3 — 现代生态回旋（Modern Ecological Boomerang）— v1.1.0 新增</strong></p>
+<blockquote>
+<p>近代工业化 → <code>ecoImpactCoefficient</code> 升至 1.0+ → 森林与水质进入 S2 应力区 → 若文明继续扩张则触发不可逆相变 → 农业产出崩塌反噬工业人口。文明必须用 T8 的环境治理技术自我修正，否则崩溃。<strong>现代阶段的挑战不再是"如何发展"，而是"如何在自己改造过的世界里活下去"</strong>——这是概念文档 4.4 现代生态问题的动力学核心。</p>
+</blockquote>
+<p><strong>E4 — 文明间战争（War as Inter-Civ Survival Adversarial）— v1.2.0 新增</strong></p>
+<blockquote>
+<p>两个文明因资源争夺/圣地冲突/扩张欲而开战 → 系统在地图上自动结算 → 胜方吞并边区或索取贡赋，败方稳定度骤降可能触发动荡 → 战争破坏环境（S2 应力）→ 双方长期承受军费与战损。玩家只通过 <code>devBias_military</code> 偏移双方的尚武/守势倾向，不指挥任何一场战斗。战争使「生存对抗」从「文明 vs 自然」扩展到「文明 vs 文明」，本身即叙事素材（S6 战争编年）。</p>
+</blockquote>
+<h3 id="32">3.2 边界情况</h3>
+<table>
+<thead>
+<tr>
+<th>边界情况</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>聚落人口归零</td>
+<td>聚落消亡→若全消亡则文明灭绝（失败条件）；残余知识散为"遗迹"（R8 失败非终点）</td>
+</tr>
+<tr>
+<td>时代门槛长期达不到</td>
+<td>允许文明永久停留在某时代（"停滞文明"）——不强制推进，停滞本身是一种结局形态</td>
+</tr>
+<tr>
+<td>时代倒退触发</td>
+<td>高层级科技进入"休眠"而非删除；建筑逐级废弃为遗迹；治理形态回退（帝国→封建→王国）</td>
+</tr>
+<tr>
+<td>跨时代技术错配（恩赐·发现命中远期科技）</td>
+<td>技术记为"休眠已知"，时代门槛达成后才生效（2.3 保护规则）</td>
+</tr>
+<tr>
+<td>宗教 adherence 归零</td>
+<td>允许——文明进入完全世俗状态；<code>SecularPluralism</code> 阶段的正常终点，不影响政治与法律运转（v1.1.0 解耦的直接体现）</td>
+</tr>
+<tr>
+<td>政治现代化但公正性低</td>
+<td>现代共和分叉为威权现代国家：效率保持但共识项低 → 长期稳定度压力 → 周期性宪政危机</td>
+</tr>
+<tr>
+<td>粮储=0 且无 S2 资源可采</td>
+<td>饥荒→死亡率飙升→可能触发 D2 螺旋；玩家 2 月内不干预则聚落衰退</td>
+</tr>
+<tr>
+<td>多神教多神争宠</td>
+<td><code>pantheon</code> 内 <code>popularity</code> 竞争→落败神祇信众转异端→分裂风险</td>
+</tr>
+<tr>
+<td>文明引导反噬（S1）</td>
+<td>同聚落 6 月 ≥ 3 倾向→决策混乱→稳定度↓，宗教/文化同步紊乱</td>
+</tr>
+<tr>
+<td>文字诞生前编年史</td>
+<td>仅口述（易失传）；文字诞生后固化（D5 记忆可考）</td>
+</tr>
+<tr>
+<td>文明无军事科技（远古游群）被邻文明进攻</td>
+<td>防守方 effPower 极低 → 快速失守或被迫纳贡；游牧/狩猎路径可凭地形与机动性周旋（地形修正）</td>
+</tr>
+<tr>
+<td>跨水域进攻但进攻方无海军</td>
+<td>effPower_A ×0.3 两栖劣势 → 大概率战败；沿海文明据此获天然屏障（与 S5 真实地理耦合）</td>
+</tr>
+<tr>
+<td>长期战争耗尽补给（supplyMonths=0）</td>
+<td>双方战力衰减 → 自动和谈或溃散；避免「无限战争」卡死</td>
+</tr>
+<tr>
+<td>玩家强引导军事但文明无资源支撑军费</td>
+<td>军费挤压 surplus → divisionLevel↓、饥荒风险↑ → 过度尚武反噬自身（D2 螺旋变体）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-system-interactions">4. 系统交互（System Interactions）</h2>
+<h3 id="41-iinterventiontarget">4.1 IInterventionTarget 接口实现</h3>
+<p>S3 实现 S1 定义的 <code>IInterventionTarget</code>，注册可被干预的文明参数：</p>
+<pre><code>class CivilizationSystem : IInterventionTarget {
+    Dictionary&lt;string, CivParameter&gt; registeredParameters;
+
+    void RegisterInterventionParameter(string paramKey, float defaultValue, float min, float max) {
+        registeredParameters[paramKey] = new CivParameter(defaultValue, min, max);
+    }
+    void ApplyIntervention(string paramKey, float deltaValue, int durationMonths) {
+        CivParameter p = registeredParameters[paramKey];
+        p.pendingDelta += deltaValue;
+        p.remainingDuration = durationMonths;   // 文明引导倾向衰减（S1 2.2.5: 3-5 月衰减）
+    }
+    float GetParameterValue(string paramKey) { return registeredParameters[paramKey].currentValue; }
+}
+
+// S3 注册的可干预参数（节选）
+// ┌─────────────────────────────┬──────────┬────────┬────────┐
+// │ paramKey                    │ default  │ min    │ max    │
+// ├─────────────────────────────┼──────────┼────────┼────────┤
+// │ devBias_agriculture_{sid}   │ 0.0      │ -1.0   │ +1.0   │ ← 文明引导倾向权重
+// │ devBias_hunt_{sid}          │ 0.0      │ -1.0   │ +1.0   │
+// │ devBias_defense_{sid}       │ 0.0      │ -1.0   │ +1.0   │
+// │ devBias_trade_{sid}         │ 0.0      │ -1.0   │ +1.0   │ ← 商业倾向（技术/法制分叉）
+// │ devBias_faith_{sid}         │ 0.0      │ -1.0   │ +1.0   │ ← 信仰倾向注入（2.7.3）
+// │ devBias_military_{sid}      │ 0.0      │ -1.0   │ +1.0   │ ← 军事/战争方针（§2.10.4，尚武+/守势-）
+// │ devBias_ethnicity_{sid}     │ 0.0      │ -1.0   │ +1.0   │ ← 族群倾向（迁移开放度/同化倾向，§2.11；绝不下场指定民族）
+// │ devBias_culture_{sid}       │ 0.0      │ -1.0   │ +1.0   │ ← 文化倾向（文化开放/守传统，§2.8；绝不下场指定文化内容）
+// │ foodReserveCoeff_{sid}      │ 1.0      │ 0.0    │ 3.0    │ ← 粮储系数（恩赐/生命之泉）
+// │ techUnlockBoost_{sid}       │ 0.0      │ 0.0    │ 1.0    │ ← 科技解锁（恩赐·发现）
+// │ happinessMod_{sid}          │ 0.0      │ -1.0   │ +1.0   │ ← 幸福度（恩赐·灵感）
+// └─────────────────────────────┴──────────┴────────┴────────┘
+//
+// ⚠ 不可干预项（设计红线）：Era / legitimacy / LawStage / GovernanceType / EthnicComposition / LawFamily / InstitutionProfile 均为**派生状态**，
+//   不注册为可干预参数。玩家只能通过上述 devBias_* 前置参数间接影响时代、制度、族群与文化演进（1 节红线）。
+//   其中 `LawFamily`（法律家族）为派生状态，玩家不指定——地缘模式由 S5 真实法律传统种子初始化、沙盒模式由政治/文化涌现，均不开放直接干预。
+</code></pre>
+<h3 id="42">4.2 交互关系</h3>
+<table>
+<thead>
+<tr>
+<th>交互系统</th>
+<th>方向</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1 干预系统</td>
+<td>S1 → S3</td>
+<td>资源投放在聚落附近生成资源节点（S2 承接）；文明引导修改 <code>devBias_*</code> 权重（AI 决策输入）；恩赐提升粮储/科技/幸福；灾厄（旱/疫）压低粮储/健康</td>
+</tr>
+<tr>
+<td>S2 生态模拟引擎</td>
+<td>S2 → S3</td>
+<td>土壤肥力→农业产出系数；森林存量→建材供给；渔场储量→渔获；水系分布→聚落选址可行性；水质（近代起）→健康与农业</td>
+</tr>
+<tr>
+<td>S2 生态模拟引擎</td>
+<td>S3 → S2</td>
+<td>经济生产写入 <code>harvestRate[Forest/Soil/Fishery]</code>（2.2）；开垦面积驱动地貌演变（S2 2.5）；技术修改生态交互（2.3 TechEffect）；<strong><code>EraState.ecoImpactCoefficient</code> 作为全局乘数</strong>；近代起工业污染负荷作为新应力源</td>
+</tr>
+<tr>
+<td>S4 时间推进系统</td>
+<td>S4 → S3</td>
+<td>每累计 1 游戏月驱动 S3 结算 pass（原 tick 结算，与玩家回合解耦）；每累计 3 游戏月切换季节影响节庆/作物周期；世代传承触发个体死亡继承；推进时代过渡期计数</td>
+</tr>
+<tr>
+<td>S6 涌现叙事引擎</td>
+<td>S3 → S6</td>
+<td>输出事件：时代跃迁/政权更替（按时代形式）/法典颁布/文字诞生/教派分裂/大旱饥荒/工业污染事件</td>
+</tr>
+<tr>
+<td>S7 模块化开关框架</td>
+<td>S7 → S3</td>
+<td>控制科技树/多聚落/政治/宗教/文化/法律/时代演进模块启停（5 节）</td>
+</tr>
+<tr>
+<td>S8 UI/HUD 系统</td>
+<td>S3 → S8</td>
+<td>输出人口/粮储/经济/科技层级/时代与过渡进度/政治稳定度与合法性四来源/法制阶段/信教度/文化特质</td>
+</tr>
+<tr>
+<td>S10 存档系统</td>
+<td>S10 ↔ S3</td>
+<td>序列化 CivilizationState（含 EraState 与九子系统全量）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-pass-s4">4.3 固定步长月级结算 pass 顺序（由 S4 连续时间驱动）</h3>
+<pre><code>// 每累计 1 游戏月（由 S4 累加器触发，与玩家回合解耦），S3 执行一次结算 pass：
+1. 读取 S1 干预效果 → 应用 devBias_*/foodReserveCoeff*/techUnlockBoost* 待生效变更（含 v1.3.0 新增 devBias_ethnicity/devBias_culture）
+2. 读取 S2 生态参数 → 土壤肥力/森林/渔场/水质修正生产
+3. 个体层：needs 结算（饥饿/安全）→ 生死/关系/记忆更新
+4. 经济层：生产—消耗—储备结算 → foodSurplus/divisionLevel/exchangeMode 更新（含 InstitutionProfile.economy 对 tradeVolume 上限修正）
+5. 聚落层：population 增长/衰退 → 功能区/等级解锁（受时代门槛约束）
+6. 科技层：knowledge 累积 → 满足则解锁 TechNode（校验 minEra）→ 写入 S2 生态交互修正
+7. 社会层：classRatio/mobility/inequality/burgherRatio 更新 → 家族财富继承（含 ethnicInequality 引用，来自 §2.11）
+8. 宗教层：FaithStage 演进判定 → 神祇 popularity/holySite/schismRisk 更新 → 输出伦理观念
+9. 文化层：values 合成（宗教伦理 + 世俗经验 + 环境）→ trait 生成/节庆/文字判定 → CultureProfile 更新（§2.8，含 languageFamily 由族群注入）
+10. 族群层（§2.11，v1.3.0 新增）：统计构成（groups.populationShare/dominanceIndex/fractionalization）→ 同化/通婚（mixingRate 收敛）→ polarization 更新 → ethnicInequality 写入 SocialStructure
+11. 法律层：四类治理压力统计 → Norm 生成 → LawStage 演进判定 → LawFamily 演进/锁定判定（地缘模式取 S5 `WorldInitConfig.legalTraditionSeed`；沙盒模式按政治形态/文化在近代+民族国家后锁定）→ compliance/impartiality 更新
+12. 政治层：四项世俗合法性来源结算（含来自法律的 institution 项）+ 近代民族国家 EthnicNationalism 变体（§2.4.2，与四来源并存不替代）→ legitimacy 合成 → stability 结算（含 inequality + ethnicInequality 修正）→ 治理形态演进/动荡/更替事件
+13. 军事层：军费结算（Material/Food/Luxury 消耗）→ MilitaryState 更新（军力积累/防御等级/海军判定/补给）→ 战争检测（与邻聚落/邻国/内部族群极化，动因见 2.10.3）→ 若交战则自动结算（2.10.5 胜负简式）→ 战损写入 S2（环境破坏）/ 政治稳定度（warWeariness）
+14. 时代层：评估 EraGate → 进入/推进过渡期 或 累计倒退观察月数 → 更新 ecoImpactCoefficient
+15. 国家层聚合（§2.12）：Σ 下辖聚落统计 → nation.population / 总产出 / 总军力 / 稳定度（仅聚合，不逐人模拟）
+16. 输出事件 → S6（叙事）/ S8（UI）
+</code></pre>
+<blockquote>
+<p>结算顺序的因果依据（v1.1.0 调整，v1.3.0 补充）：法律（11）必须先于政治（12），因为制度合法性由法制阶段供给；族群层（10）置于文化（9）之后、法律（11）之前，使 <code>ethnicInequality</code>/<code>polarization</code> 在当月政治与军事结算前完成更新；时代（14）置于末位，因为时代门槛读取的是本月全部子系统的结算结果。</p>
+</blockquote>
+<hr />
+<h2 id="5-scope-layering">5. 范围分层（Scope Layering）</h2>
+<blockquote>
+<p>遵循概念文档模块化开关框架：宗教、文化、法律、时代演进与科技/政治同属可开关模块。<strong>GDD 完整设计五时代全部逻辑，但 MVP 默认仅开启远古→古代最小集</strong>——五时代框架是设计完整性的保证，不是 MVP 的交付承诺。</p>
+</blockquote>
+<h3 id="51-mvp">5.1 MVP 范围（默认开关）</h3>
+<table>
+<thead>
+<tr>
+<th>子系统</th>
+<th>MVP 状态</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>时代演进</td>
+<td>ON（最小）</td>
+<td>仅远古 → 古代 一次跃迁，验证"生长式过渡"的可感知性；中古门槛在 UI 可见但不可达</td>
+</tr>
+<tr>
+<td>聚落成长</td>
+<td>ON</td>
+<td>基础人口 + 居住/生产/仓储区，阈值解锁简化</td>
+</tr>
+<tr>
+<td>经济</td>
+<td>ON</td>
+<td>生产—消耗—储备（无贸易），四基类资源（无 Energy）</td>
+</tr>
+<tr>
+<td>个体生命周期</td>
+<td>ON（骨架）</td>
+<td>生—成—死，无深度关系/记忆/情感</td>
+</tr>
+<tr>
+<td>科技树</td>
+<td>OFF（默认关）</td>
+<td>开启 = T1–T3 简化 3-4 项（采集/农业/狩猎/防御）</td>
+</tr>
+<tr>
+<td>政治结构</td>
+<td>OFF（默认关）</td>
+<td>开启 = 游群→酋邦，合法性仅绩效 + 共识两项</td>
+</tr>
+<tr>
+<td>社会结构</td>
+<td>内含于个体</td>
+<td>仅阶层标记，无氏族/流动/不平等</td>
+</tr>
+<tr>
+<td><strong>宗教系统</strong></td>
+<td><strong>OFF（默认关）</strong></td>
+<td><strong>开启 = Animism 简化（自然崇拜 + 禁忌，无祭司职业）</strong></td>
+</tr>
+<tr>
+<td><strong>文化系统</strong></td>
+<td><strong>OFF（默认关）</strong></td>
+<td><strong>开启 = 节庆/口述简化，无文字/艺术</strong></td>
+</tr>
+<tr>
+<td><strong>法律</strong></td>
+<td><strong>OFF（默认关）</strong></td>
+<td><strong>开启 = 习惯法简化（长老裁决 + 2-3 条 Dispute 类规范）</strong></td>
+</tr>
+<tr>
+<td><strong>军事系统</strong></td>
+<td><strong>OFF（默认关）</strong></td>
+<td><strong>开启 = 简化：仅防御工事（城防倾向）+ 被动应战；无主动开战 AI、无海军</strong></td>
+</tr>
+<tr>
+<td><strong>族群/种族</strong></td>
+<td><strong>OFF（默认关）/ 简化折叠</strong></td>
+<td><strong>开启 = 单一主导族群折叠（groups 仅 1 项、populationShare=1、fractionalization=0），保留结构不移除、不退化，不保留「潜在分化入口」（族群分化仅在核心层展开）；地缘模式可选真实民族种子、沙盒模式可选涌现分化（核心层展开）</strong></td>
+</tr>
+<tr>
+<td><strong>文化家族</strong></td>
+<td><strong>OFF（默认关）</strong></td>
+<td><strong>开启 = CultureProfile 独立签名（语言家族/审美传统/社会结构取向/核心价值轴），每文明差异化</strong></td>
+</tr>
+<tr>
+<td><strong>经济制度谱</strong></td>
+<td><strong>OFF（默认关）</strong></td>
+<td><strong>开启 = LaborSystem/EconomySystem/AdministrationSystem 三国别维度（默认 Free/Market/Hereditary 简化）</strong></td>
+</tr>
+<tr>
+<td>IInterventionTarget</td>
+<td>ON</td>
+<td>注册 devBias_agriculture/hunt/ethnicity/culture + foodReserveCoeff 等</td>
+</tr>
+<tr>
+<td>多聚落</td>
+<td>OFF（1 个）</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>MVP 验证假设</strong>：间接控制下文明能否从 1 聚落存活 24 月（概念文档 4.1）。</p>
+<h3 id="52-v100">5.2 核心层范围（v1.0.0 游戏版本）</h3>
+<table>
+<thead>
+<tr>
+<th>子系统</th>
+<th>核心层状态</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>时代演进</td>
+<td>ON</td>
+<td><strong>远古 + 古代完整</strong>（含内部阶段与过渡期）；中古门槛可见可趋近，跃迁留待 v2.0.0</td>
+</tr>
+<tr>
+<td>聚落成长</td>
+<td>ON（完整）</td>
+<td>营地→城邦四级 + 全部古代功能区 + 空间布局</td>
+</tr>
+<tr>
+<td>经济</td>
+<td>ON（完整）</td>
+<td>+ 贸易 + 交换形态演进（互惠→贡赋→市场）+ 分工深度驱动解锁</td>
+</tr>
+<tr>
+<td>个体生命周期</td>
+<td>ON（完整）</td>
+<td>关系/记忆/情感/技能/识字度全量</td>
+</tr>
+<tr>
+<td>科技树</td>
+<td>ON（默认开）</td>
+<td>T1–T4 共 8-12 项，六主干线的古代段完整，生态交互修正完整</td>
+</tr>
+<tr>
+<td>政治结构</td>
+<td>ON（默认开）</td>
+<td>游群→酋邦→长老会/城邦→王国；<strong>四项世俗合法性完整</strong>（血统项启用，制度项由成文法供给）</td>
+</tr>
+<tr>
+<td>社会结构</td>
+<td>ON</td>
+<td>阶层/氏族/流动/不平等</td>
+</tr>
+<tr>
+<td><strong>宗教系统</strong></td>
+<td><strong>ON（简化→完整过渡）</strong></td>
+<td><strong>Animism→Ancestor→Polytheism；圣地 + 教派风险 + 伦理观念输出文化（无政治/法律耦合）</strong></td>
+</tr>
+<tr>
+<td><strong>文化系统</strong></td>
+<td><strong>ON（简化）</strong></td>
+<td><strong>特质生成 + 节庆 + 文字诞生 + 价值观合成</strong></td>
+</tr>
+<tr>
+<td><strong>法律</strong></td>
+<td><strong>ON（独立子系统）</strong></td>
+<td><strong>习惯法 → 成文法；四类世俗规范来源完整；供给制度合法性</strong></td>
+</tr>
+<tr>
+<td><strong>军事系统</strong></td>
+<td><strong>ON（简化→完整过渡）</strong></td>
+<td><strong>MilitaryState 全量 + 军事/防御科技线（T1–T6）+ 自动战争结算 + 海军（沿海）+ 与政治/经济/宗教/生态/族群耦合</strong></td>
+</tr>
+<tr>
+<td><strong>族群/种族</strong></td>
+<td><strong>ON（默认开）</strong></td>
+<td><strong>地缘模式=真实民族/语系种子映射（RealEthnicDistribution，S5 提供）；沙盒模式=游群分裂→分化涌现 + 同化/通婚（mixingRate）；polarization/ethnicInequality 全量耦合政治（§2.4）/军事（§2.10）/文化（§2.8）/社会（§2.5）</strong></td>
+</tr>
+<tr>
+<td><strong>文化家族</strong></td>
+<td><strong>ON（默认开）</strong></td>
+<td><strong>CultureProfile 全量（语言家族/审美传统/社会结构取向/核心价值轴）；每文明独立签名</strong></td>
+</tr>
+<tr>
+<td><strong>经济制度谱</strong></td>
+<td><strong>ON（默认开）</strong></td>
+<td><strong>LaborSystem/EconomySystem/AdministrationSystem 全量；与时代门槛/政治形态耦合；影响经济产出/稳定度/战争动员</strong></td>
+</tr>
+<tr>
+<td>多聚落</td>
+<td>ON（3-5 个）</td>
+<td>资源竞争/协作涌现</td>
+</tr>
+<tr>
+<td>IInterventionTarget</td>
+<td>ON</td>
+<td>全量参数（含 devBias_trade/faith/ethnicity/culture、techUnlockBoost、happinessMod、military）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-8-v110v150">5.3 延展层方向（对齐概念文档 8 版本路线图 v1.1.0–v1.5.0）</h3>
+<ul>
+<li>v1.1.0 文明间关系：外交/贸易/战争自发化（含宗教性冲突与圣地争夺）</li>
+<li>v1.2.0 复杂政治：王朝血脉与继承、阶层流动深化、法律独立成文法与法院</li>
+<li>v1.4.0 文化系统：艺术风格分化、建筑风格分化、完整编年史</li>
+<li>v1.5.0 文明兴衰周期与遗迹：时代倒退机制完整化、废墟被新文明发现</li>
+</ul>
+<h3 id="54-v200-v300">5.4 时代演进层（对齐概念文档 v2.0.0 / v3.0.0）</h3>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>时代交付</th>
+<th>S3 新增内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>v2.0.0</strong></td>
+<td>古代 → 中古</td>
+<td>帝国/封建领邦形态、官僚深度机制、T5 工程与学术、成文法典完整、学院型知识流动、大规模农业的 S2 应力</td>
+</tr>
+<tr>
+<td><strong>v3.0.0</strong></td>
+<td>中古 → 近代 → 现代</td>
+<td>民族国家/现代共和形态、参政广度机制、T6–T8 全谱、现代法系（宪法/民法/刑法/程序法分离与权力分立）、Energy 资源与污染负荷、市民阶层与都市市民社会、SecularPluralism 阶段、E3 现代生态回旋</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>五时代框架在本 GDD 中一次性设计完整，实现按上表分版本交付。这样做的理由是：政治、法律、科技三条线的<strong>演进终点</strong>必须在设计阶段就确定，否则古代阶段的数据结构（如 <code>LegitimacySource</code> 四项、<code>TechTier</code> 八级）会在进入近代时被迫重构——那才是 R6"断裂感"的真正技术根源。</p>
+</blockquote>
+<hr />
+<h2 id="6">6. 风险与未决问题</h2>
+<h3 id="61">6.1 本系统特有风险</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>风险</th>
+<th>级别</th>
+<th>说明</th>
+<th>待解方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CV1</td>
+<td>文明复杂度认知过载</td>
+<td>P1</td>
+<td>十一大子系统（含 §2.11 族群/种族）+ 五时代全开时信息量巨大，违反 R5 认知过载红线</td>
+<td>UX 分层呈现（总览→详情）；模块化开关按需开启；默认 MVP 仅最小集；时代跃迁以单条事件卡呈现而非全面板刷新</td>
+</tr>
+<tr>
+<td>CV2</td>
+<td>宗教解耦后是否仍有存在感</td>
+<td>P2</td>
+<td>移除政治合法性与法律来源后，宗教是否退化为"节庆装饰"，让用户觉得这个子系统被削弱了</td>
+<td>强化主渠道：宗教对文化特质、个体灾后心理、圣地生态保育、教派冲突四处的可见影响；playtest 提问"宗教在你的文明里起作用了吗"</td>
+</tr>
+<tr>
+<td>CV3</td>
+<td>文明路径分化是否显著</td>
+<td>P2</td>
+<td>D4 分叉若差异微弱，则每局雷同，R9 长期动机受损</td>
+<td>强化 devBias 对技术树/法制/文化的链式影响；确保四路径在时代跃迁点产生不同的政治形态分叉（议事城邦 vs 王国）</td>
+</tr>
+<tr>
+<td>CV4</td>
+<td>个体 AI 性能</td>
+<td>P1</td>
+<td>完整个体生命周期（数百至数千 NPC）性能压力（T1/T4）；现代都市圈人口规模（千万级）远超古代单聚落</td>
+<td>固定步长月级结算 pass（非每帧）；区域/国家 LOD；<strong>国家层改为人口分层聚合模拟</strong>（聚落层跑个体微观模拟，国家层仅聚合统计，不逐人模拟，见 §2.12）；ECS 评估</td>
+</tr>
+<tr>
+<td>CV5</td>
+<td>五时代跨度导致设计/实现膨胀</td>
+<td>P1</td>
+<td>GDD 完整设计五时代，但实现若不严格分层，MVP 与核心层会被拖垮</td>
+<td>5.4 节明确版本交付边界；数据结构一次设计到位（避免重构）但逻辑分版本实现；每个时代模块可独立关闭</td>
+</tr>
+<tr>
+<td>CV6</td>
+<td>世俗合法性的可读性</td>
+<td>P2</td>
+<td>玩家能否理解"合法性由绩效/共识/血统/制度四项按时代加权"这一相对抽象的机制</td>
+<td>UI 以四段堆叠条呈现合法性构成 + 时代权重变化提示（"进入近代，血统的分量减半了"）；更替事件文案点明主因</td>
+</tr>
+<tr>
+<td>CV7</td>
+<td>军事平衡（无主导策略）</td>
+<td>P2</td>
+<td>军力过强 → 「穷兵黩武必胜」主导策略，破坏「生存对抗」张力；或军费无代价 → 随意开战</td>
+<td>军费/战损/战争疲劳三重成本（经济+生态+政治）构成软上限；playtest 验证「纯军事扩张」是否优于「均衡发展」；V9 验证战争可观测且非玩家直接操控</td>
+</tr>
+<tr>
+<td>CV8</td>
+<td>族群分化/同化平衡（R12）</td>
+<td>P2</td>
+<td>沙盒模式族群分化过快 → 文明碎片化内战；或过慢 → 无差异化；地缘模式真实民族种子与沙盒涌现规则不一致 → 两模式族群行为割裂</td>
+<td>mixingRate/分化速率待 playtest 调优；两模式仅差异在 <code>WorldInitConfig.ethnicSeed</code>（地缘）vs 涌现（沙盒），族群机制本身一致；V? 验证 MVP 单文明折叠下族群子系统不退化阻塞</td>
+</tr>
+<tr>
+<td>CV9</td>
+<td>族群/民族主义权重调优</td>
+<td>P2</td>
+<td><code>w_n = 0.10</code>（EthnicNationalism 合法性变体权重）为暂行值，若过高导致民族主义过度主导合法性合成，需下调至 0.05–0.08</td>
+<td>经 playtest 验证权重区间，观察民族主义是否在合法性合成中过度主导；与 R11（无主导策略）协同审查</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-p0p1">6.2 与 P0/P1 风险的关联</h3>
+<table>
+<thead>
+<tr>
+<th>概念风险</th>
+<th>本 GDD 攻关</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R6</strong> 时代演进断裂</td>
+<td><strong>v1.1.0 首攻</strong>：① 五时代统一坐标系贯穿九子系统（2.0）；② 12–24 月过渡期 + 多线错位使跃迁"生长"而非"切换"（E1）；③ 六条科技主干线跨时代累积而非分段替换；④ 生态交互强度随时代连续递增而非阶跃；⑤ 数据结构一次设计到位（TechTier 八级、LegitimacySource 四项），避免进入新时代时的结构性重构</td>
+</tr>
+<tr>
+<td><strong>R9</strong> 无对手长期动机</td>
+<td>文明内生张力：时代跃迁的门槛经营、合法性重心迁移危机（E2）、现代生态回旋（E3）、阶层冲突、教派分裂、文化分化；D4 每局路径独特且在时代轴上放大</td>
+</tr>
+<tr>
+<td><strong>R7</strong> 中文文化内核</td>
+<td>"天命/祖先/天人合一"可作为东方路径的文化特质与信仰取向；但<strong>不作为政治合法性机制</strong>（v1.1.0 解耦后，"天命"是文化叙事而非授权制度）；基准仍是"现实世界文明多样性"，非单一东方模板</td>
+</tr>
+<tr>
+<td><strong>R2</strong> 干预与涌现</td>
+<td>文明引导仅改权重不改指令；时代/合法性/法制阶段均为派生状态不可直接干预（4.1 红线）；过度引导触发反噬</td>
+</tr>
+<tr>
+<td><strong>R5</strong> 认知过载</td>
+<td>时代作为"信息折叠层"：玩家可只看时代与几项核心指标，深入时才展开子系统——五时代框架反而为 UX 提供了天然的分层锚点</td>
+</tr>
+<tr>
+<td><strong>R11</strong> 军事平衡与不下场</td>
+<td>军事/战争子系统（§2.10）：战争自动结算、玩家不可直接指挥；军力/军费/战损与经济/生态/政治耦合且需避免「军事主导策略」</td>
+</tr>
+<tr>
+<td><strong>R12</strong> 族群分化与同化平衡</td>
+<td>族群/种族子系统（§2.11）：沙盒涌现分化速率、mixingRate、polarization 需平衡，避免「碎片化内战」或「无差异化」；两模式（真实种子/涌现）需行为一致</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-validation-criteria">7. 验证标准（Validation Criteria）</h2>
+<h3 id="71-mvp-v1v5">7.1 MVP 验证假设（V1–V5 保留并适配新时代框架）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>假设</th>
+<th>验证方法</th>
+<th>通过标准</th>
+<th>不通过调整</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>间接控制下文明能自治存活 24 月</td>
+<td>原型跑 30 局无引导自动模拟</td>
+<td>≥ 70% 局存活 ≥ 24 月（允许局部衰退）</td>
+<td>调高基础 growthRate / 降低基础消耗</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>文明引导倾向可被感知为"我在引导"</td>
+<td>Playtest：注入农业倾向后是否注意到农田扩张</td>
+<td>≥ 60% 玩家在 3 月内注意到倾向生效</td>
+<td>增强引导图标（S1 IV3）/ 事件通知</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>文明路径分叉可观测</td>
+<td>原型：同初始条件注入不同倾向，对比社会形态</td>
+<td>农业 vs 狩猎路径在 30 月内出现可见技术/功能区差异</td>
+<td>强化 devBias 链式影响</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>宗教模块开启后产生可感知演进<strong>且解耦后仍有存在感</strong></td>
+<td>Playtest（开宗教模块）：是否注意到自然崇拜→多神教事件；提问"宗教影响了你的文明什么"</td>
+<td>≥ 50% 玩家在 50 月内观察到至少一次宗教阶段事件；≥ 50% 能说出宗教的一项具体影响（文化/节庆/圣地/冲突）</td>
+<td>降低阶段触发阈值；强化宗教在文化特质与圣地保育上的可见性</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>生态耦合可感知（伐木→森林缩减→建材紧）</td>
+<td>Playtest：强农业引导后是否注意到森林退化预警</td>
+<td>≥ 50% 玩家归因到自己的引导</td>
+<td>强化 S2 预警文案（概念 EC-C4）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-v110-r6">7.2 新增验证假设（v1.1.0，攻关 R6 与世俗化重设计）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>假设</th>
+<th>验证方法</th>
+<th>通过标准</th>
+<th>不通过调整</th>
+<th>验证时机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V6</td>
+<td>时代跃迁被感知为"生长"而非"切换"</td>
+<td>Playtest：远古→古代跃迁后提问"刚才发生了什么"</td>
+<td>≥ 60% 玩家描述为"我的文明发展了/长大了"，≤ 20% 描述为"进入了新阶段/换了一套东西"</td>
+<td>延长过渡期月数；增加过渡期内新旧并存的视觉中间态；减少跃迁时的 UI 刷新幅度</td>
+<td>MVP（远古→古代）</td>
+</tr>
+<tr>
+<td>V7</td>
+<td>世俗合法性构成可被读懂</td>
+<td>Playtest：政权更替事件后提问"为什么倒台了"</td>
+<td>≥ 50% 玩家能指出正确主因（粮荒/失去共识/继承争议/无法典）</td>
+<td>UI 堆叠条 + 更替文案点明主因；减少同时生效的合法性衰减源</td>
+<td>核心层</td>
+</tr>
+<tr>
+<td>V8</td>
+<td>法律涌现感（世俗来源）可信</td>
+<td>原型：连年争水后观察是否生成 Resource 类规范；Playtest 提问该规范是否"合情理"</td>
+<td>规范生成率 ≥ 80% 命中对应压力类型；≥ 60% 玩家认为规范内容与情境相符</td>
+<td>调整压力阈值；优化规范描述生成模板</td>
+<td>核心层</td>
+</tr>
+<tr>
+<td>V9</td>
+<td>文明间战争可观测且非玩家直接操控</td>
+<td>原型：开多聚落/多文明，观察战争是否自动触发并在地图演示；Playtest 提问「你指挥了战斗吗」</td>
+<td>≥ 1 次战争在 50 月内自动发生；≤ 5% 玩家误以为自己指挥了部队；战争结果可被归因到动因</td>
+<td>调整开战动因阈值；强化 S8 战争演示的「自动」暗示（无可选指令 UI）</td>
+<td>核心层</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73">7.3 验证时机</h3>
+<ul>
+<li>V1–V5 在 <strong>MVP 原型 + 核心层 playtest</strong> 验证；V6 在 MVP 阶段随远古→古代跃迁验证（R6 的早期信号）。</li>
+<li>V1 是前提（文明先能活）；V3/V4 直接攻关 R9 长期动机；V5 验证三支柱咬合（S3→S2）；<strong>V6 是 R6 的关键验证</strong>——若 MVP 的单次跃迁就被感知为"切换"，则五时代方案需在实现前重新设计过渡机制。</li>
+<li>V7/V8 在核心层验证世俗化重设计是否可读、可信。</li>
+</ul>
+<hr />
+<h2 id="8">8. 评审检查清单</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CV-C1</td>
+<td>系统概述</td>
+<td>一句话定义 + 设计目标 + 概念对齐（3.1.3/R6/4.4/D4/D5/4.1-4.2/3.1.4）</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C2</td>
+<td>十一子系统覆盖</td>
+<td>聚落/经济/科技/政治/社会/个体/宗教/文化/法律/军事/族群各有数据模型与规则；含 §2.4.4 经济制度谱、§2.8 文化家族、§2.11 族群子系统</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C3</td>
+<td><strong>时代演进框架</strong></td>
+<td><strong>五时代（远古/古代/中古/近代/现代）各标注政治形态/科技层级/社会结构/典型建筑/生态交互强度 + 门槛参数 + 过渡与倒退规则</strong></td>
+<td>✅ v1.1.0 新增</td>
+</tr>
+<tr>
+<td>CV-C4</td>
+<td><strong>政治结构古代→现代演进</strong></td>
+<td><strong>九形态演进表（游群→酋邦→长老会/城邦→王国→帝国/封建→民族国家→现代共和）+ 更替形式按时代分列</strong></td>
+<td>✅ v1.1.0 重设计</td>
+</tr>
+<tr>
+<td>CV-C5</td>
+<td><strong>政治合法性世俗化</strong></td>
+<td><strong>合法性 = 绩效/共识/血统/制度四项世俗来源按时代加权；公式中无宗教项；宗教无专属授权通道</strong></td>
+<td>✅ v1.1.0 重设计</td>
+</tr>
+<tr>
+<td>CV-C6</td>
+<td><strong>法律世俗涌现与演进</strong></td>
+<td><strong>四类世俗来源（纠纷/资源/安全/契约）；习惯法→成文法→现代法系三阶段；NormSource 无宗教项</strong></td>
+<td>✅ v1.1.0 重设计</td>
+</tr>
+<tr>
+<td>CV-C7</td>
+<td><strong>科技树全谱</strong></td>
+<td><strong>TechTier T1 石器 → T8 信息；六条主干线跨时代累积；跨时代错配保护；现代技术双向性</strong></td>
+<td>✅ v1.1.0 扩展</td>
+</tr>
+<tr>
+<td>CV-C8</td>
+<td><strong>宗教定位调整</strong></td>
+<td><strong>保留为子系统；主渠道为文化与个体；保留战争/生态两项耦合；删除政治合法性与法律来源两项耦合；演进线延伸至世俗多元</strong></td>
+<td>✅ v1.1.0 调整</td>
+</tr>
+<tr>
+<td>CV-C9</td>
+<td>现实文明基准</td>
+<td>农业剩余→分工→阶层→国家→文字/法律制度化→工业化→现代国家；多路径差异（重农/重牧/重海/重商）</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C10</td>
+<td>IInterventionTarget</td>
+<td>S3 实现接口 + 注册参数清单 + 明确不可干预项（Era/legitimacy/LawStage/GovernanceType）</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C11</td>
+<td>S2 耦合</td>
+<td>S3→S2 写入 harvestRate/开垦/时代生态系数/污染；S2→S3 土壤/森林/渔场/水系/水质输入</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C12</td>
+<td>个体生命周期</td>
+<td>Individual 状态机 + 关系/记忆/情感 + 跨代遗传（D5）</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C13</td>
+<td>动态行为</td>
+<td>≥ 4 涌现行为（D4/D2/D5/R7 + 新增 E1/E2/E3）+ 边界情况处理</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C14</td>
+<td>范围分层</td>
+<td>MVP/核心层/延展层/时代演进层开关策略明确，与概念 v2.0.0/v3.0.0 路线图对齐</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C15</td>
+<td>风险关联</td>
+<td>R6（首攻）/R9/R7/R2/R5 各有攻关措施</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C16</td>
+<td>验证标准</td>
+<td>V1–V5 保留并适配 + V6/V7/V8 新增（时代生长感/合法性可读/法律涌现可信）</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C17</td>
+<td>时间单位一致</td>
+<td>所有时间引用以"连续时间下的固定步长月级结算 pass"为单位（衰减/持续/过渡期/倒退观察窗口/世代）；"月"为模拟粒度但非玩家回合</td>
+<td>✅ v1.4.0 对齐 S4 连续时间</td>
+</tr>
+<tr>
+<td>CV-C18</td>
+<td>不下场红线</td>
+<td>文明为自治 AI；时代/合法性/法制阶段为派生状态不可直接干预</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>CV-C19</td>
+<td><strong>军事/战争子系统</strong></td>
+<td><strong>第十子系统：MilitaryState + 军事/防御第七科技主线 + 战争自动结算（不下场）+ 与政治/经济/宗教/生态/族群（polarization 内战动因）耦合 + devBias_military 注册</strong></td>
+<td>✅ v1.2.0 新增</td>
+</tr>
+<tr>
+<td>CV-C20</td>
+<td><strong>族群/种族子系统 + 文化家族 + 经济制度谱</strong></td>
+<td><strong>§2.11 族群（真实种子/沙盒涌现 + 四耦合 + 不下场）；§2.8 CultureProfile 独立文化签名；§2.4.4 LaborSystem/EconomySystem/AdministrationSystem 三国别维度；均核心层默认 ON、MVP 可简化开关</strong></td>
+<td>✅ v1.3.0 新增</td>
+</tr>
+<tr>
+<td>CV-C21</td>
+<td><strong>法律体系家族（Legal Family）</strong></td>
+<td><strong>§2.9.1 正式实现：LegalFamily 枚举（大陆/英美/社会主义/习惯法）+ 与 LawStage 正交 + 地缘模式按真实法律传统种子初始化 / 沙盒模式涌现并在近代锁定 + 延续无神法 + 耦合政治/文化/制度谱/经济（compliance/impartiality/tradeVolume）+ 数据模型 LawFamily 字段 + 固定步长月级结算 pass 判定</strong></td>
+<td>✅ v1.3.1 已正式实现</td>
+</tr>
+<tr>
+<td>CV-C22</td>
+<td><strong>人口尺度层级（国家=多聚落聚合）</strong></td>
+<td><strong>§2.1 聚落分档（村/镇/市/都市圈，单聚落可至千万级不再封顶 5 万）+ §2.12 国家/政体聚合（Polity/NationState = Σ 聚落，真实量级小国数百万~大国十亿级，如中华级 ~1.4B）+ §2.4.3 治理形态人口区间改为聚合真实量级 + 国家层仅聚合统计不逐人模拟（呼应 CV4 人口分层聚合）+ 时间模型对齐 S4 连续时间（固定步长月级结算 pass）</strong></td>
+<td>✅ v1.4.0 新增</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>文策渊注（v1.1.0）</strong>：本次修订的三个核心动作是<strong>接上时代轴</strong>、<strong>政治与法律世俗化</strong>、<strong>宗教归位文化</strong>。</p>
+<p>① <strong>时代轴</strong>：v1.0.0 的问题不是设计错了，而是只设计到了古代——一份只覆盖古代的文明 GDD 会让 R6 在进入 v2.0.0 时以"结构性重构"的形式爆发。2.0 节的五时代坐标系与其说是新增内容，不如说是给九个子系统各装上一根贯通到现代的轨道：<code>TechTier</code> 从 4 级扩到 8 级、<code>LegitimacySource</code> 一次设计四项、<code>LawStage</code> 一次设计三阶段——结构现在就位，中古与近代才只是"填内容"而非"改地基"。这是 R6 的技术层解法；体验层解法是 12–24 月过渡期与多线错位（E1），需在 MVP 用 V6 验证。</p>
+<p>② <strong>世俗化</strong>：移除"神权背书→合法性"与"神法即最早法律"两处耦合后，政治与法律各自获得独立演进逻辑——合法性从"个人"（血统/魅力）迁移到"制度"（法典/程序），法律从治理压力涌现而非从教义降临。意外收益是 E2：古代靠血统立国的王朝，进入近代会因血统权重降至 0.2 而自动陷入合法性危机，使"政治现代化"成为必须主动经营的坎（R9 长期动机的新来源）。</p>
+<p>③ <strong>宗教归位</strong>：宗教保留为九子系统之一，主渠道改为文化与个体心理。风险在 CV2——解耦后是否退化为装饰。我判断不会：圣地生态保育、教派冲突动因、灾后心理支撑、文化特质塑造这四处足以让玩家感到它在起作用，但需 V4 的新增提问来证伪。</p>
+<p>主要设计赌注仍是 R6 的体验层解法：<strong>时代必须让玩家感到"我的文明长大了"，而不是"游戏进入了第二章"</strong>。若 MVP 的远古→古代单次跃迁就被感知为"切换"，则需在实现中古前重新设计过渡机制。</p>
+<p><strong>文策渊注（v1.2.0 新增）</strong>：本次修订将「军事」作为<strong>第十子系统并入 S3</strong>（而非独立 S11），与用户「军事归属 = 并入 S3」的拍板一致。核心设计约束是<strong>「不下场」原则在军事轴上的延伸</strong>：玩家只经 S1 注入 <code>devBias_military</code>（尚武/守势倾向），绝不指定进攻目标或调动部队；开战由文明 AI 基于政治/经济/宗教/资源动因自主决定，战斗在地图上自动结算并演示。军事能力随时代自然增强（木石兵器→城墙→火药→工业战争），与 2.0 时代框架同源。主要风险在 CV7/R11——需避免「穷兵黩武必胜」主导策略：军费（经济）、战损（生态 S2）、战争疲劳（政治稳定度）构成三重软成本，使纯军事扩张劣于均衡发展。V9 验证战争「可观测且非玩家直接操控」是本条红线的硬判定。</p>
+<p><strong>文策渊注（v1.2.1 补丁）</strong>：本次仅做层级对齐——明确军事/战争子系统在核心层即可用（多聚落模块 ON 时文明间即可开战），与概念文档 v1.3.1 §4.3 一致，删除「战争＝严格延展层」旧说；同时修正 §2.10.5 对「概念 4.3 延展层」的旧引用为「概念文档 2.2 支柱二」。十大子系统、MilitaryState、军事/防御科技线、自动结算、各耦合、devBias_military 注册全部保留，且与 S1 v1.1.2 的 devBias_military 定义一致（未改动 S1）。</p>
+<p><strong>文策渊注（v1.3.0 新增）</strong>：本次按主理人四项决策落地——① 族群/种族作为第十一子系统，双路径（地缘真实民族种子 / 沙盒涌现分化），与政治（近代民族国家 EthnicNationalism 合法性变体，四项世俗来源并存不替代）/军事（polarization 内战动因）/文化（承载语言家族）/社会（ethnicInequality 稳定度）耦合，玩家仅经 <code>devBias_ethnicity</code> 间接调迁移开放度/同化倾向，绝不下场指定民族；② 文化系统升级为显式跨国文化家族（CultureProfile），每个文明独立签名；③ 制度广度补齐——在九政治形态 + 法律之外新增经济/社会制度谱（LaborSystem/EconomySystem/AdministrationSystem）三国别维度；④ §2.9 仅写「法律体系家族（待用户确认）」解释性候选小节，明确其与 LawStage 的区别、四大家族含义、并延续无神法原则，标注暂缓实现、未加枚举。族群/文化家族/经济制度谱均列核心系统（默认 ON），MVP 经简化开关折叠（单文明可退化为单族群），保留最小可运行路径。<strong>待主理人裁决点</strong>：(a) MVP 单文明下族群子系统是否彻底退化为单族群、还是保留"潜在分化入口"；(b) 真实民族数据集与 S5 真实地图的数据依赖边界（RealEthnicDistribution 由 S5 在起始区域按 (lat,lon,radius) 映射，S3 只消费不生成）。</p>
+</blockquote>
+</div>
+</body>
+</html>

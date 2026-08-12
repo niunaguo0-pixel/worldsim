@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界地图生成 GDD</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 world-map-generator.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#gdd">世界地图生成 GDD</a><ul>
+<li><a href="#1-system-overview">1. 系统概述（System Overview）</a></li>
+<li><a href="#2-mechanics">2. 机制设计（Mechanics）</a><ul>
+<li><a href="#21-real-earth-data-source">2.1 真实地球地理数据基底（Real-Earth Data Source）</a></li>
+<li><a href="#22-start-mode-switch-new-game">2.2 开局模式开关（Start Mode Switch）— 由 New Game 设置面板参数化</a><ul>
+<li><a href="#221-new-game">2.2.1 New Game 设置面板（四个可配置项，均为参数、可被玩家改）</a></li>
+<li><a href="#222">2.2.2 起始区域预设表（高精度起始区域建议值）</a></li>
+</ul>
+</li>
+<li><a href="#23-lod-global-scale-lod">2.3 全球尺度与 LOD 分层（Global Scale &amp; LOD）</a></li>
+<li><a href="#24-data-model">2.4 数据模型（Data Model）</a></li>
+<li><a href="#25">2.5 算法 / 公式</a></li>
+</ul>
+</li>
+<li><a href="#3-dynamics">3. 动态行为（Dynamics）</a><ul>
+<li><a href="#31">3.1 预期涌现行为</a></li>
+<li><a href="#32">3.2 边界情况</a></li>
+</ul>
+</li>
+<li><a href="#4-system-interactions">4. 系统交互（System Interactions）</a><ul>
+<li><a href="#41">4.1 接口契约</a></li>
+<li><a href="#42">4.2 交互关系</a></li>
+</ul>
+</li>
+<li><a href="#5-scope-layering">5. 范围分层（Scope Layering）</a><ul>
+<li><a href="#51-mvp">5.1 MVP 范围</a></li>
+<li><a href="#52">5.2 核心层范围</a></li>
+<li><a href="#53">5.3 延展层方向</a></li>
+</ul>
+</li>
+<li><a href="#6">6. 风险与未决问题</a><ul>
+<li><a href="#61">6.1 本系统特有风险</a></li>
+<li><a href="#62-p0p1">6.2 与 P0/P1 风险的关联</a></li>
+</ul>
+</li>
+<li><a href="#7-validation-criteria">7. 验证标准（Validation Criteria）</a><ul>
+<li><a href="#71-mvp">7.1 MVP 验证假设</a></li>
+<li><a href="#72">7.2 验证时机</a></li>
+</ul>
+</li>
+<li><a href="#8">8. 评审检查清单</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="gdd">世界地图生成 GDD</h1>
+<h2 id="1-system-overview">1. 系统概述（System Overview）</h2>
+<p><strong>一句话定义</strong>：世界地图生成系统是世界的空间基底——以真实地球地理数据（大陆/海洋/地形/海拔/气候带/生物群系）构建全球尺度世界，并提供<strong>开局模式开关</strong>（远古沙盒 / 当今地缘政治），所有模拟系统与真实地理咬合运行。</p>
+<p><strong>设计目标</strong>：
+- 兑现用户指令「要现在的真实世界地图」——世界是玩家认识的真实地球，而非程序化虚构大陆。
+- 提供<strong>双开局模式</strong>（远古沙盒 / 当今地缘政治）：文明从零在真实地球上自行生长（远古沙盒），或以真实国界开局（当今地缘政治）——两者由 <strong>New Game 设置面板</strong>（起始时代 / 起始区域 / 国界年份 / 法律传统偏好 自选）参数化派生，详见 §2.2。
+- 在<strong>全球尺度</strong>下以 LOD 分层解决性能——MVP 对单一起始区域高精度，其余低精度，保证地球级世界可跑。
+- 为 S2 提供真实生物群系空间基底、为 S3 提供真实地理约束（河流/山脉/海岸作为自然边界）、为 S9 相机提供地球尺度 LOD 联动。</p>
+<p><strong>与概念文档的对齐</strong>：
+- 概念文档 v1.3.4 §4.1 / §4.2 地图决策：原"类现实世界地图 = 程序化生成大陆级地图"已改写为"真实地球地理 + 双开局模式"——本 GDD 即该决策的落地。
+- 概念文档 5.1 视觉锚点：全时代统一微缩沙盘手绘风格——地图视觉语言不因文明阶段或地理模式切换而改变。
+- 概念文档 R10（双模式参数化一致性，本 GDD 首攻）/ R11（军事平衡，关联 S3 军事子系统）。</p>
+<hr />
+<h2 id="2-mechanics">2. 机制设计（Mechanics）</h2>
+<h3 id="21-real-earth-data-source">2.1 真实地球地理数据基底（Real-Earth Data Source）</h3>
+<p>世界不再是程序化生成的虚构大陆，而是来自<strong>真实地理数据</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>数据层</th>
+<th>数据源（公开/可商用）</th>
+<th>提供内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>海岸线 / 陆地 / 河湖</td>
+<td>Natural Earth 1:10m/1:50m Physical（coastline / land / rivers / lakes）</td>
+<td>大陆轮廓、海洋、主要河流与湖泊</td>
+</tr>
+<tr>
+<td>行政区划 / 城市</td>
+<td>Natural Earth 1:10m Cultural（countries / populated places）</td>
+<td>现存国界多边形、首都与主要城市（当今地缘政治模式用）</td>
+</tr>
+<tr>
+<td>高程</td>
+<td>ETOPO1 / NASADEM / SRTM</td>
+<td>海拔（米），驱动地形与坡度</td>
+</tr>
+<tr>
+<td>气候带</td>
+<td>Köppen–Geiger 气候分类（WorldClim 等）</td>
+<td>真实气候区（热带/温带/寒带/旱区等）</td>
+</tr>
+<tr>
+<td>生物群系</td>
+<td>由高程 + 纬度 + 真实气候推导</td>
+<td>森林/草原/荒漠/冻原/热带雨林/群岛等</td>
+</tr>
+<tr>
+<td>真实民族/语系分布</td>
+<td><strong>Natural Earth 1:10m Cultural（countries / populated places）</strong> 提供空间分布 + <strong>Ethnologue / Glottolog 语言家族分类</strong>（简化版，≥7 主语系：汉藏/印欧/闪米特/班图/南岛/乌拉尔/尼日尔-刚果/美洲原住民等）作为语系标注；MVP 用简化版即可</td>
+<td>真实民族/语系分布：按 (lat,lon,radius) 标注的民族构成与语系——<strong>归属：S5 拥有真实数据集与空间映射</strong>（在起始区域按 (lat,lon,radius) 生成 <code>RealEthnicDistribution</code> 种子）；<strong>仅地缘模式（当今地缘政治）用作 S3 族群子系统初始化种子</strong>，由 S5 在起始区域映射；S3 仅消费不生成、不持有；沙盒模式不使用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>MVP 可用简化真实数据</strong>：MVP 不要求全分辨率全球高程，可用低分辨率真实数据（如 1:50m 海岸线 + 低精度高程 + 简化气候带）保证原型可跑；核心层再提升至更高精度与更全群系。</p>
+<p><strong>MVP 可用简化真实民族数据（v1.0.2 新增）</strong>：真实民族/语系分布数据集 MVP 可用简化版（主要语系 ≥ 7 类 + 代表性民族构成），仅在起始区域精度映射；核心层再补更细民族颗粒度。沙盒模式（远古沙盒）不消费此数据集——民族由 S3 自主涌现分化（见 §4.2）。</p>
+</blockquote>
+<p><strong>投影与网格</strong>：采用等距圆柱投影（equirectangular，plate carrée），经纬度直接映射为网格 <code>WorldTile[latIdx][lonIdx]</code>，便于 S2 生态与 S3 文明的经纬度定位。</p>
+<h3 id="22-start-mode-switch-new-game">2.2 开局模式开关（Start Mode Switch）— 由 New Game 设置面板参数化</h3>
+<blockquote>
+<p><strong>v1.0.1 修订</strong>：以下四项<strong>不再硬编码默认</strong>，全部参数化到 New Game 设置面板，玩家开局自选；MVP 原型首跑保留「建议默认值」便于快速开局，但四项均为可改参数（详见 §2.2.1）。</p>
+</blockquote>
+<p>两种开局模式（远古沙盒 / 当今地缘政治）仍保留为概念层模式，但其取值<strong>由 New Game 设置面板的四项参数派生</strong>，不再写死：</p>
+<pre><code>enum StartMode { PrimordialSandbox, ModernGeopolitics }
+
+struct WorldInitConfig {
+    // —— New Game 设置面板（玩家自选；MVP 给建议默认值，均可改）——
+    Era         startEra;          // 起始时代：Primordial(远古沙盒) / EarlyModern(近代) / Modern(现代)，玩家自选
+    Vector2     startRegionCenter; // 高精度起始区域中心（经纬度）——玩家自由框选真实地理区块
+    float       startRegionRadius; // 高精度起始区域半径（度）
+    string      startRegionPreset; // 推荐预设标签（仅 UI 提示，不锁定）：&quot;两河/新月沃地&quot; | &quot;黄河长江&quot; | &quot;尼罗河&quot; | &quot;地中海/欧洲&quot; | &quot;印度河-恒河&quot; | &quot;中美洲&quot; | &quot;自定义&quot;
+    int         borderYear;        // 国界年份（仅 useRealBorders=true 时生效）：2026=现状 / 历史年份(如1914,1945) / 自定义，玩家自选
+
+    // —— 派生 / 内部字段 ——
+    bool        useRealBorders;    // = (startEra != Primordial)；决定 GeoPoliticalInit 取哪一年国界快照
+    StartMode   mode;              // 由 (startEra, useRealBorders) 派生
+    string      geoDataBuild;      // 数据版本（如 &quot;Natural Earth 1:50m&quot;）
+    RealEthnicDistribution? ethnicSeed; // = (mode == ModernGeopolitics) 时按起始区域 (startRegionCenter+Radius) 映射的真实民族/语系分布；沙盒模式为 null（民族由 S3 涌现）。结构见 S3 v1.3.2 §2.11.1
+    LegalFamily? legalTraditionSeed;   // = (mode == ModernGeopolitics) 时按起始区域映射的典型法系家族（欧洲→大陆/英美、前苏东→社会主义、部落区域→习惯法）；沙盒模式为 null（家族由 S3 涌现）。枚举见 S3 v1.3.2 §2.9.1
+}
+}
+</code></pre>
+<h4 id="221-new-game">2.2.1 New Game 设置面板（四个可配置项，均为参数、可被玩家改）</h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>可配置项</th>
+<th>选项 / 取值</th>
+<th>建议默认值（MVP 原型首跑）</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 起始时代</td>
+<td><code>startEra</code></td>
+<td>远古沙盒（Primordial）/ 近代（EarlyModern）/ 现代（Modern）</td>
+<td>现代（Modern）</td>
+<td>决定世界从哪个时代起步，不再硬编码为现代；选「远古沙盒」则无真实国界、文明从零生长；选「近代/现代」则启用真实国界</td>
+</tr>
+<tr>
+<td>② 起始区域</td>
+<td><code>startRegionCenter</code> + <code>startRegionRadius</code>（附推荐预设）</td>
+<td>玩家自由框选任意真实地理区块；推荐预设：两河/新月沃地、黄河长江、尼罗河、地中海/欧洲、印度河-恒河、中美洲</td>
+<td>两河/新月沃地（仅预设推荐，玩家可改）</td>
+<td>MVP 高精度起始区域即落在此区块；<strong>不锁定</strong>，玩家可选任意经纬度区块</td>
+</tr>
+<tr>
+<td>③ 国界年份</td>
+<td><code>borderYear</code>（仅 <code>useRealBorders=true</code> 时生效）</td>
+<td>现状 2026 / 历史年份（如 1914、1945）/ 玩家自定义年份</td>
+<td>2026（现状）</td>
+<td>「当今地缘政治」模式用哪一年的真实国界，不再硬编码 2026</td>
+</tr>
+<tr>
+<td>④ 法律传统偏好</td>
+<td><code>legalTraditionSeed</code> 偏置（仅 <code>mode == ModernGeopolitics</code> 生效）</td>
+<td>大陆法系 / 英美法系 / 社会主义法系 / 习惯法 / 由起始区域自动映射（默认）</td>
+<td>由起始区域自动映射</td>
+<td>地缘模式按起始区域映射典型法系家族作为 S3 <code>lawFamily</code> 初始种子；玩家可偏置但<strong>绝不为单个国家指定家族</strong>，沙盒模式为空（家族由 S3 涌现）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>MVP 原型首跑可用上表「建议默认值」快速开局；四项均为参数，玩家 New Game 时可自由改。R10（双模式参数化一致性）不因参数化而破坏——无论选何参数，S3 都经同一 <code>IWorldGeography</code> 入口读地理（见 §4.2）。</p>
+<p><strong>面板第 ⑤ 项归属声明（v1.0.6 新增）</strong>：New Game 设置面板在 UI 上还有第 ⑤ 项「<strong>目标模式</strong>」（沙盒·无胜利条件（默认）/ 里程碑·城邦或王国级 / 自定义目标），其定义与判定归<strong>概念文档 §3.4.1</strong> 与 S8 UI 所有，<strong>不属于地理参数、不进入 <code>WorldInitConfig</code></strong>——S5 不读、不写、不因其改变任何地图生成行为。此处仅作跨文档一致性说明，避免"面板到底几项"的口径分歧：<strong>地理参数 4 项（本表）+ 玩法目标 1 项（概念 §3.4.1）= 面板共 5 项</strong>。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>中文名</th>
+<th>地理基底</th>
+<th>文明初始化</th>
+<th>时代起点（= startEra，玩家自选）</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PrimordialSandbox</code></td>
+<td>远古沙盒</td>
+<td>真实地球（无现代国界）</td>
+<td>S3 在真实宜居带（大河河谷/沿海平原）初始化空聚落，从零生长</td>
+<td>Primordial（远古）— 当 <code>startEra=远古沙盒</code></td>
+<td>文明在真实地球上自行演进到现代</td>
+</tr>
+<tr>
+<td><code>ModernGeopolitics</code></td>
+<td>当今地缘政治</td>
+<td>真实地球 + <strong>所选年份</strong>国界 + 主要城市</td>
+<td>S3 以真实国家开局：NationState / ModernRepublic 形态、真实领土多边形、城市作为初始聚落</td>
+<td>EarlyModern（近代）/ Modern（现代）— 由 <code>startEra</code> 选定</td>
+<td>以所选年份的真实地球开局，战争/外交在真实国界上发生</td>
+</tr>
+</tbody>
+</table>
+<p><strong>双模式共享同一空间基底</strong>：两种模式都跑在同一份真实地球 <code>WorldTile</code> 网格上，差异仅在「谁被初始化」「时代起点 <code>startEra</code>」与「国界年份 <code>borderYear</code>」——S3 读取地理的方式完全一致（见 §4.2），参数化只改初始化内容、不改地理机制。这保证了 R10（双模式参数化一致性）的结构基础。</p>
+<p><strong>民族初始化（v1.0.2 新增）</strong>：<code>WorldInitConfig.ethnicSeed</code> 由模式派生——
+- <strong>地缘模式（当今地缘政治）</strong>：<code>mode == ModernGeopolitics</code> 时，S5 按起始区域 <code>startRegionCenter + startRegionRadius</code> 在「真实民族/语系分布数据集」（§2.1）中映射该区域的真实民族构成，生成 <code>RealEthnicDistribution</code> 作为 <code>ethnicSeed</code>，随 <code>WorldInitConfig</code> 一并交付 S3；若起始区域跨多民族带（如巴尔干/中东），则映射出较高 <code>fractionalization</code> 的多族群种子。
+- <strong>沙盒模式（远古沙盒）</strong>：<code>mode == PrimordialSandbox</code> 时 <code>ethnicSeed = null</code>——S5 <strong>不提供</strong>任何民族种子，民族由 S3 族群子系统（v1.3.2 §2.11）从单一游群自主涌现分化。两模式仅差异在初始化源，族群机制本身一致，保证 R12 行为一致。</p>
+<p><strong>法律传统初始化（v1.0.3 新增）</strong>：<code>WorldInitConfig.legalTraditionSeed</code> 由模式派生——S5 与 <code>ethnicSeed</code> 共用同一「按起始区域映射」机制，但映射对象为真实/历史法律传统（典型家族按地理带分布），交付 S3 法律家族子系统（v1.3.2 §2.9.1）作为地缘模式的 <code>lawFamily</code> 初始种子。
+- <strong>地缘模式（当今地缘政治）</strong>：<code>mode == ModernGeopolitics</code> 时，S5 按起始区域 <code>startRegionCenter + startRegionRadius</code> 在真实/历史法律传统分布中映射该区域的典型法系家族（欧洲→大陆/英美、前苏东→社会主义、部落区域→习惯法），生成 <code>LegalFamily</code> 作为 <code>legalTraditionSeed</code>，随 <code>WorldInitConfig</code> 一并交付 S3；New Game 可选"法律传统偏好"偏置该映射，但<strong>绝不为单个国家指定家族</strong>。
+- <strong>沙盒模式（远古沙盒）</strong>：<code>mode == PrimordialSandbox</code> 时 <code>legalTraditionSeed = null</code>——S5 <strong>不提供</strong>任何法律传统种子，家族由 S3 法律子系统（v1.3.2 §2.9.1）从政治形态/文化中自主涌现并在近代+民族国家后锁定。两模式仅差异在初始化源，法律家族机制本身一致。</p>
+<h4 id="222">2.2.2 起始区域预设表（高精度起始区域建议值）</h4>
+<p>下表提供 6 个真实地理区块的高精度起始区域预设——<code>(lat, lon)</code> 为区域中心、<code>radius°</code> 为建议半径；玩家 New Game 仍可<strong>自由框选任意区块</strong>（不锁定），下表仅作推荐落点。地缘模式下，<code>ethnicSeed</code> / <code>legalTraditionSeed</code> 即由下表预设经 S5 空间映射（<code>(lat, lon, radius)</code> → <code>RealEthnicDistribution</code> / <code>LegalFamily</code>）生成，交付 S3 初始化族群 / 法律家族子系统。</p>
+<table>
+<thead>
+<tr>
+<th>预设名</th>
+<th>中心(lat,lon)</th>
+<th>半径(°)</th>
+<th>典型民族/语系种子</th>
+<th>法系默认(地缘模式)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>两河/新月沃地</td>
+<td>(33.0, 44.0)</td>
+<td>8</td>
+<td>闪米特语系（阿卡德/巴比伦/亚述/腓尼基）、苏美尔语系（孤立）</td>
+<td>CustomaryLaw</td>
+<td>大河河谷文明摇篮；多民族层叠，苏美尔为孤立语系</td>
+</tr>
+<tr>
+<td>黄河长江</td>
+<td>(34.0, 110.0)</td>
+<td>10</td>
+<td>汉藏语系（汉语支）、壮侗、苗瑶、藏缅</td>
+<td>CivilLaw（中华成文法典传统）</td>
+<td>东亚大河文明；语系内部多样性高</td>
+</tr>
+<tr>
+<td>尼罗河</td>
+<td>(26.0, 31.0)</td>
+<td>6</td>
+<td>亚非语系（古埃及/科普特）、努比亚</td>
+<td>CustomaryLaw</td>
+<td>单一河谷廊道；上游努比亚语系并存</td>
+</tr>
+<tr>
+<td>地中海/欧洲</td>
+<td>(42.0, 12.0)</td>
+<td>12</td>
+<td>印欧语系（拉丁/希腊/日耳曼/斯拉夫/凯尔特，跨多民族带）</td>
+<td>按子区域映射 CivilLaw / CommonLaw</td>
+<td>跨多民族带，<code>fractionalization</code> 高；南欧大陆法系、西北欧英美法系</td>
+</tr>
+<tr>
+<td>印度河-恒河</td>
+<td>(25.0, 78.0)</td>
+<td>9</td>
+<td>印欧语系（印度-雅利安）、达罗毗荼</td>
+<td>CustomaryLaw</td>
+<td>南北语系分野明显（雅利安/达罗毗荼）</td>
+</tr>
+<tr>
+<td>中美洲</td>
+<td>(18.0, -97.0)</td>
+<td>6</td>
+<td>美洲原住民语系（玛雅、纳瓦特尔等）</td>
+<td>CustomaryLaw</td>
+<td>新大陆原生文明；语系与旧大陆无继承关系</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>说明</strong>：<code>radius°</code> 为「高精度起始区域」建议值——MVP 对起始区域做 High 精度模拟、其余 Low/Mid（见 §2.3 LOD）。玩家 New Game 仍可自由框选任意真实地理区块（半径亦可自定），下表预设仅为推荐落点，<strong>不锁定</strong>。地缘模式下，<code>ethnicSeed</code> / <code>legalTraditionSeed</code> 即由下表预设经 S5 空间映射生成（S5 拥有真实数据集与空间映射，S3 仅消费不生成，见 §2.1 / §4.2）。</p>
+</blockquote>
+<h3 id="23-lod-global-scale-lod">2.3 全球尺度与 LOD 分层（Global Scale &amp; LOD）</h3>
+<p>世界为整颗地球（全球尺度）。受性能约束，按与「高精度起始区域 / 相机焦点」的距离做 LOD 分层：</p>
+<pre><code>enum LODLevel { High, Mid, Low }
+
+// LOD 选择（每月或相机移动时重算）
+LODLevel SelectLOD(Vector2 tilePos, Vector2 focus, Vector2 startCenter) {
+    if (distance(tilePos, startCenter) &lt;= startRegionRadius) return High;  // 起始区域：高精度
+    if (distance(tilePos, focus)      &lt;= MID_RADIUS)        return Mid;   // 相机附近：中精度
+    return Low;                                                          // 其余地球：低精度
+}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>LOD</th>
+<th>精度</th>
+<th>生态/S3 处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>High</td>
+<td>起始区域：逐 tile 高精度（真实高程/气候/生物群系全量）</td>
+<td>S2 生态逐 tile 模拟；S3 聚落可逐 tile 选址</td>
+</tr>
+<tr>
+<td>Mid</td>
+<td>相机附近：区域级聚合</td>
+<td>S2 区域级简化；S3 聚落级</td>
+</tr>
+<tr>
+<td>Low</td>
+<td>其余地球：大陆级</td>
+<td>S2 仅保留生物群系与生态应力代理；S3 仅国家/文明级聚合（当今地缘政治模式便于远域国家渲染）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24-data-model">2.4 数据模型（Data Model）</h3>
+<pre><code>struct WorldTile {
+    int id; int latIdx; int lonIdx;     // 网格坐标（equirectangular）
+    bool isLand; BiomeType biome;       // 是否陆地 / 生物群系（来自真实数据）
+    float elevation;                    // 海拔（米，真实数据）
+    ClimateZone climate;                // 气候带（纬度 + 真实气候）
+    float baseTemp; float baseRain;     // 基准温/雨（真实气候，S2 气候输入）
+    bool hasCoast;                      // 是否沿海（S3 海军判定）
+    LODLevel lod;                      // LOD 等级
+}
+
+struct GeoPoliticalInit {               // 仅当今地缘政治模式
+    List&lt;CountryInit&gt; countries;        // 真实国界多边形 + 首都/主要城市
+    List&lt;CityInit&gt;    cities;
+}
+struct CountryInit { string name; Polygon territory; GovernanceType type; List&lt;CityInit&gt; capitals; }
+struct CityInit    { string name; Vector2 location; int population; }
+
+struct WorldMapState {
+    WorldInitConfig config;
+    WorldTile[,] tiles;                 // 全球网格
+    GeoPoliticalInit? geoPolities;      // 非空 = 当今地缘政治模式
+}
+</code></pre>
+<h3 id="25">2.5 算法 / 公式</h3>
+<p><strong>生物群系推导（数据驱动）</strong>：<code>biome = f(elevation, latitude, climate)</code>——低海拔+湿热气候→热带雨林；中海拔+温带→森林；干旱+中纬→草原/荒漠；高纬/高海拔→冻原/苔原。MVP 以简化映射表实现，核心层接入真实生物群系数据。</p>
+<p><strong>聚落选址可行性（供 S3 调用）</strong>：S3 聚落必须邻近 <code>water</code> 资源节点、坡度 <code>elevation</code> 低于阈值、且 <code>biome</code> 属可居住群系——这些判定全部读取 <code>WorldTile</code> 属性，确保文明只在真实地球的宜居带上生长（与 S3 §2.1 选址约束一致）。</p>
+<p><strong>自然边界（供 S3 调用）</strong>：河流（<code>isLand=false</code> 且两侧 <code>isLand=true</code> 的 tile 链）与山脉（高 <code>elevation</code> 连续带）作为文明/国家扩张的自然障碍与边界；沿海（<code>hasCoast=true</code>）聚落解锁海军（S3 §2.10）。</p>
+<hr />
+<h2 id="3-dynamics">3. 动态行为（Dynamics）</h2>
+<h3 id="31">3.1 预期涌现行为</h3>
+<p><strong>D1 — 真实地理塑造文明路径（Real Geography Shapes Civ Path）</strong></p>
+<blockquote>
+<p>大河河谷（真实地球的两河流域/黄河长江/尼罗河）提供肥沃冲积平原 → 农业文明优先在此萌发；沿海群岛文明偏航海/贸易；内陆草原文明偏游牧。真实地理使每局文明的"起点故事"与玩家认知的真实历史呼应，又因玩家干预不同而分叉（与 S3 D4 路径分叉叠加）。</p>
+</blockquote>
+<p><strong>D2 — 自然边界约束扩张（Natural Borders Constrain Expansion）</strong></p>
+<blockquote>
+<p>山脉与海洋成为文明扩张的硬边界——古代文明翻越山脉成本极高，沿海文明借海军跨水域但遭遇两栖劣势（S3 §2.10.5）。真实地理的"难走之处"自然产生文明势力范围，无需人工划定。</p>
+</blockquote>
+<p><strong>D3 — 双模式的文明密度差异（Mode-Dependent Density）</strong></p>
+<blockquote>
+<p>远古沙盒模式早期全球仅有零星聚落，文明密度低、扩张空间大；当今地缘政治模式开局即全球布满真实国家，战争/外交在既成国界上发生。同一套真实地理，两种密度，对应 S3 不同的演进与冲突节奏。</p>
+</blockquote>
+<h3 id="32">3.2 边界情况</h3>
+<table>
+<thead>
+<tr>
+<th>边界情况</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真实数据缺口（某区域高程/气候缺失）</td>
+<td>以邻近 tile 插值或该纬度气候带默认值填充，标记 <code>lod=Low</code> 不追求高精度</td>
+</tr>
+<tr>
+<td>极地投影畸变（equirectangular 在高纬横向拉伸）</td>
+<td>视觉上接受轻微拉伸（微缩沙盘风格本就非写实）；模拟定位仍用经纬度，不影响机制</td>
+</tr>
+<tr>
+<td>子午线接缝（经度 ±180°）</td>
+<td>网格首尾相接处理，跨接缝的距离计算取较短弧</td>
+</tr>
+<tr>
+<td>纯海洋 tile（无陆地）</td>
+<td>不生成聚落/生态种群，仅作为海军移动空间与气候背景</td>
+</tr>
+<tr>
+<td>当今地缘政治模式的飞地/微小政区</td>
+<td>MVP 可合并/忽略人口过少的政区，避免无意义的微型国家 AI；核心层再完整支持</td>
+</tr>
+<tr>
+<td>起始区域半径覆盖不足（玩家缩放远出高精度区）</td>
+<td>相机移出后该区降为 Mid/Low，回移时恢复 High；S3 聚落已落子的区域维持其数据精度</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-system-interactions">4. 系统交互（System Interactions）</h2>
+<h3 id="41">4.1 接口契约</h3>
+<p>S5 是空间基底生产者，向其他系统输出只读地理数据；不消费其他系统的回写（除 S10 序列化）。</p>
+<pre><code>// S5 向其他系统暴露的只读地理查询接口
+interface IWorldGeography {
+    BiomeType GetBiome(Vector2 pos);        // S2/S3 查询生物群系
+    float     GetElevation(Vector2 pos);    // S3 选址/坡度判定
+    ClimateZone GetClimate(Vector2 pos);    // S2 气候输入
+    bool      HasCoast(int settlementId);   // S3 海军判定
+    List&lt;Vector2&gt; GetRivers();              // S3 自然边界
+    LODLevel  GetLOD(Vector2 pos);          // S9 渲染联动
+}
+</code></pre>
+<h3 id="42">4.2 交互关系</h3>
+<table>
+<thead>
+<tr>
+<th>交互系统</th>
+<th>方向</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S2 生态模拟引擎</td>
+<td>S5 → S2</td>
+<td>真实地球生物群系/地形/气候带作为 S2 的空间基底输入（S2 本就消费 biome/terrain 作为生态模拟基底，不自生成地形——本次仅替换数据来源，<strong>S2 接口无需改动</strong>，见回传标注）</td>
+</tr>
+<tr>
+<td>S3 文明发展系统</td>
+<td>S5 → S3</td>
+<td>真实地理约束文明边界与扩张（河流/山脉为自然边界、沿海解锁海军、宜居带决定聚落选址）；当今地缘政治模式的 <code>GeoPoliticalInit</code> 直接初始化 S3 的 <code>Polity</code> 与聚落；<code>WorldInitConfig.ethnicSeed</code>（仅地缘模式非 null）按起始区域映射真实民族构成，初始化 S3 族群子系统（v1.3.2 §2.11）—<strong>S3 只消费不生成</strong>（S3 不持有真实数据集，真实数据集与空间映射归 S5 所有）</td>
+</tr>
+<tr>
+<td>S9 相机系统</td>
+<td>S5 ↔ S9</td>
+<td>S5 计算每个 tile 的 <code>LODLevel</code>；S9 相机缩放/平移时读取 LOD，决定渲染精度（地球尺度 LOD 联动）</td>
+</tr>
+<tr>
+<td>S10 存档系统</td>
+<td>S10 ↔ S5</td>
+<td>序列化 <code>WorldMapState</code>（全球网格体量大，采用分层/增量存储）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>真实数据集归属（v1.0.5 明确）</strong>：真实民族/语系数据集及其空间映射（在起始区域按 <code>(lat, lon, radius)</code> 生成 <code>RealEthnicDistribution</code> / <code>LegalFamily</code> 种子）<strong>由 S5 拥有</strong>；S3 仅消费 <code>WorldInitConfig.ethnicSeed</code> / <code>legalTraditionSeed</code> 初始化对应子系统，<strong>不持有真实数据集、不生成</strong>（见 S3 §2.11.1 归属声明）。两系统仅差异在初始化的数据来源，族群 / 法律机制本身一致。</p>
+<p><strong>与 S2 的耦合说明</strong>：S2 生态模拟引擎的输入是 biome/terrain/climate（见 S2 §2.2/§2.6），其本身不生成地形——地形来自外部基底。S5 把"程序化地形"替换为"真实地球地形"，S2 只是换了一份数据来源，注册参数与稳态区间机制不变。<strong>无需修改 S2 GDD</strong>（若实现时发现 S2 需在初始化时显式接收外部 biome 定义而非默认可选，仅在回传中标注，本次不擅改 S2）。</p>
+</blockquote>
+<hr />
+<h2 id="5-scope-layering">5. 范围分层（Scope Layering）</h2>
+<h3 id="51-mvp">5.1 MVP 范围</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>MVP 实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据</td>
+<td>简化真实数据：1:50m 海岸线 + 低精度高程 + 简化气候带（Natural Earth 简化版）；生物群系由映射表推导</td>
+</tr>
+<tr>
+<td>尺度</td>
+<td>全球尺度网格，但仅<strong>单一起始区域高精度（High）</strong>，其余 Mid/Low</td>
+</tr>
+<tr>
+<td>开局模式</td>
+<td>双模式均可用，且均由 New Game 设置面板参数化（起始时代/起始区域/国界年份自选，见 §2.2.1）；MVP 原型首跑建议默认值：起始时代=现代、起始区域=两河/新月沃地、国界年份=2026（均为可改参数）；MVP 验证另优先以「远古沙盒」模式验证从零演进路径，当今地缘政治模式以中精度全局呈现（国界为粗略多边形）</td>
+</tr>
+<tr>
+<td>视觉</td>
+<td>全时代统一微缩沙盘手绘风格（与美术圣经一致），不随地理模式切换</td>
+</tr>
+<tr>
+<td>LOD</td>
+<td>High/Mid/Low 三级，按起始区域 + 相机焦点切换</td>
+</tr>
+<tr>
+<td>交互</td>
+<td>S2 真实 biome 输入；S3 真实地理约束（选址/自然边界/沿海海军）；S9 LOD 联动（基础）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52">5.2 核心层范围</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>核心层实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据</td>
+<td>完整真实数据：高精度海岸线/河湖 + 高程（ETOPO1/NASADEM）+ 真实 Köppen 气候 + 全生物群系</td>
+</tr>
+<tr>
+<td>尺度</td>
+<td>全球 High/Mid/Low 动态 LOD，相机缩放无卡顿</td>
+</tr>
+<tr>
+<td>开局模式</td>
+<td>双模式完整——远古沙盒（真实地球从零演进）+ 当今地缘政治（真实国界 + 主要城市初始化，S3 国家形态完整）</td>
+</tr>
+<tr>
+<td>交互</td>
+<td>S2 全量真实 biome/climate；S3 完整真实边界与海军；S9 地球尺度平滑 LOD</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53">5.3 延展层方向</h3>
+<ul>
+<li>更高精度高程与地貌动态演变（河流改道/荒漠化/绿洲化，与 S2 地貌演变联动）</li>
+<li>历史国界模式（按真实历史时期的疆域开局，如古代文明鼎盛期边界）</li>
+<li>更多生物群系（冻原/热带雨林/群岛）与极端地貌（火山/冰川）</li>
+<li>真实洋流/季风对气候与文明的影响</li>
+</ul>
+<hr />
+<h2 id="6">6. 风险与未决问题</h2>
+<h3 id="61">6.1 本系统特有风险</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>风险</th>
+<th>级别</th>
+<th>说明</th>
+<th>待解方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WM1</td>
+<td>双模式参数化一致性（R10）</td>
+<td>P1</td>
+<td>远古沙盒与当今地缘政治共用真实地理基底，但初始化对象与时代不同——若两种模式下 S3 读取地理的方式不一致，会出现"同一张地图两种规则"的割裂感</td>
+<td>锁定 <code>IWorldGeography</code> 为唯一地理查询入口，S3 无论何种模式都经同一接口读地理；两种模式仅差异在 <code>WorldInitConfig</code>（谁初始化/时代起点），地理机制完全一致；V2 验证两模式 S3 演进一致</td>
+</tr>
+<tr>
+<td>WM2</td>
+<td>真实数据体量/性能</td>
+<td>P1</td>
+<td>全球真实高程/气候数据体量大，逐 tile 模拟不可行</td>
+<td>LOD 分层（§2.3）是核心解法——High 仅限起始区域，其余 Mid/Low 聚合；tick-based 月结算（非每帧）；S10 分层增量存储</td>
+</tr>
+<tr>
+<td>WM3</td>
+<td>真实地理与游戏性冲突</td>
+<td>P2</td>
+<td>真实地球的某些区域对游戏不友好（如极地无文明、微小岛国、飞地）</td>
+<td>MVP 忽略极端不利区域；宜居带自动作为起始候选；当今地缘政治模式合并微小政区</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-p0p1">6.2 与 P0/P1 风险的关联</h3>
+<table>
+<thead>
+<tr>
+<th>概念风险</th>
+<th>本 GDD 的攻关措施</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R10</strong> 双模式参数化一致性</td>
+<td><code>IWorldGeography</code> 单一查询入口 + 两模式仅差异在 <code>WorldInitConfig</code>；地理机制完全一致；V2 验证</td>
+</tr>
+<tr>
+<td><strong>R11</strong> 军事平衡</td>
+<td>真实海岸线/山脉经 S3 §2.10.5 影响海军与地形防御，使战争受地理制约而非数值碾压（关联 S3 军事子系统）</td>
+</tr>
+<tr>
+<td><strong>R6</strong> 时代演进断裂</td>
+<td>真实地理作为恒定空间基底，文明在「同一张真实地球」上从远古生长到现代——地理不变，时代变，强化"生长而非切换"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-validation-criteria">7. 验证标准（Validation Criteria）</h2>
+<h3 id="71-mvp">7.1 MVP 验证假设</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>假设</th>
+<th>验证方法</th>
+<th>通过标准</th>
+<th>不通过时的调整方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>真实地球数据可加载且生物群系分布与真实世界吻合</td>
+<td>原型加载简化真实数据，抽查大陆轮廓/主要河流/气候带位置</td>
+<td>主要大陆轮廓与真实地球偏差在视觉可接受范围；≥ 80% 抽样 tile 的 biome 符合真实预期</td>
+<td>校验数据源与投影映射；提高数据精度</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>双模式均可初始化且 S3 正常演进</td>
+<td>原型分别跑两种模式各 30 局</td>
+<td>两种模式下 S3 聚落均能存活并演进；地理读取一致（同坐标同 biome）</td>
+<td>收敛 <code>IWorldGeography</code> 接口；统一初始化路径</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>LOD 切换无卡顿</td>
+<td>原型缩放相机跨越 High/Mid/Low</td>
+<td>缩放/平移时帧率稳定，无长时间卡顿</td>
+<td>收紧 High 区域半径；降低 Low 级计算量</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>起始区域高精度、其余 LOD 性能达标</td>
+<td>性能采样：起始区域逐 tile + 全球聚合</td>
+<td>全球网格下月度 tick 时间在预算内（参考 S2 T4/S3 CV4）</td>
+<td>扩大 Low 聚合粒度；评估异步加载</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72">7.2 验证时机</h3>
+<ul>
+<li>V1–V4 在 <strong>MVP 原型阶段</strong>验证（与 S2/S3 原型并行）。</li>
+<li>V2 是 R10 的关键验证——双模式参数化一致性不成立则地理基底设计需重做。</li>
+<li>V3/V4 是 WM2 的性能验证，决定 LOD 策略是否可行。</li>
+</ul>
+<hr />
+<h2 id="8">8. 评审检查清单</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WM-C1</td>
+<td>系统概述</td>
+<td>一句话定义 + 设计目标 + 概念 v1.3.4 对齐（真实地球 + 双模式）</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C2</td>
+<td>真实数据基底</td>
+<td>数据层清单（海岸线/高程/气候/生物群系）+ 数据源 + MVP 简化策略</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C3</td>
+<td>双开局模式</td>
+<td><code>StartMode</code> 枚举（由 New Game 设置面板参数派生）+ 两模式对照表（地理/文明初始化/时代起点=startEra 玩家自选/国界年份=borderYear 玩家自选）+ 共享基底 + 四参数（起始时代/起始区域/国界年份/法律传统偏好）说明</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C4</td>
+<td>全球尺度 + LOD</td>
+<td><code>LODLevel</code> + <code>SelectLOD</code> 公式 + 三级精度处理表</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C5</td>
+<td>数据模型</td>
+<td><code>WorldTile</code> / <code>WorldInitConfig</code> / <code>GeoPoliticalInit</code> / <code>WorldMapState</code> 定义</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C6</td>
+<td>算法/公式</td>
+<td>生物群系推导 + 选址可行性 + 自然边界判定</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C7</td>
+<td>系统交互</td>
+<td><code>IWorldGeography</code> 接口 + 与 S2/S3/S9/S10 交互关系 + S2 不改说明</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C8</td>
+<td>动态行为</td>
+<td>≥ 3 预期涌现（D1/D2/D3）+ 边界情况处理</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C9</td>
+<td>范围分层</td>
+<td>MVP/核心层/延展层各有明确边界</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C10</td>
+<td>风险关联</td>
+<td>R10（首攻）/R11/R6 各有攻关措施</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C11</td>
+<td>验证标准</td>
+<td>V1–V4 + 验证方法 + 通过标准 + 不调整方向</td>
+<td>✅ 已完成</td>
+</tr>
+<tr>
+<td>WM-C12</td>
+<td>视觉一致</td>
+<td>全时代统一微缩沙盘手绘风格，不随模式切换</td>
+<td>✅ 已完成</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>文策渊注</strong>：S5 的核心变更是从"程序化大陆"pivot 到"真实地球"——这是用户明确推翻 2026-08-12「S5 = 程序化生成大陆级地图」决策后的新版设计。设计上最关键的不是"画一张真实地图"，而是<strong>让真实地理成为所有系统的恒定空间基底</strong>：S2 在其上跑生态、S3 在其上长文明、S9 在其上做地球尺度 LOD。双开局模式（远古沙盒/当今地缘政治）共用同一份 <code>WorldTile</code> 网格，差异仅在 <code>WorldInitConfig</code>——这是 R10（双模式参数化一致性）不被破坏的结构保证。主要性能赌注在 LOD：若 V3/V4 不通过，需收紧 High 区域或加强 Low 级聚合，而非放弃全球尺度。S2 生态引擎无需因本次变更改动接口（详情见回传标注）。</p>
+</blockquote>
+</div>
+</body>
+</html>

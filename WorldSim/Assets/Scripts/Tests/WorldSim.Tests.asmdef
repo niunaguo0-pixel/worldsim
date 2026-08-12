@@ -1,0 +1,26 @@
+{
+  "name": "WorldSim.Tests",
+  "rootNamespace": "WorldSim.Tests",
+  "references": [
+    "WorldSim.Simulation.Core",
+    "WorldSim.Simulation.Time",
+    "WorldSim.Simulation.WorldMap",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

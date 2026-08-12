@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "description": "起始区域预设——高精度起始区域中心(lat,lon)、半径(度)、典型民族/语系种子、地缘模式法系默认。玩家 New Game 仍可自由框选任意区块。",
+  "presets": [
+    {
+      "key": "fertile_crescent",
+      "name": "两河/新月沃地",
+      "center": { "lat": 33.0, "lon": 44.0 },
+      "radiusDeg": 8,
+      "ethnicSeed": [
+        { "languageFamily": "Semitic", "name": "阿卡德/巴比伦/亚述/腓尼基", "share": 0.6 },
+        { "languageFamily": "Sumerian", "name": "苏美尔", "share": 0.4 }
+      ],
+      "legalFamilyDefault": "CustomaryLaw"
+    },
+    {
+      "key": "yellow_yangtze",
+      "name": "黄河长江",
+      "center": { "lat": 34.0, "lon": 110.0 },
+      "radiusDeg": 10,
+      "ethnicSeed": [
+        { "languageFamily": "SinoTibetan", "name": "汉语支", "share": 0.55 },
+        { "languageFamily": "TaiKadai", "name": "壮侗", "share": 0.15 },
+        { "languageFamily": "HmongMien", "name": "苗瑶", "share": 0.15 },
+        { "languageFamily": "TibetoBurman", "name": "藏缅", "share": 0.15 }
+      ],
+      "legalFamilyDefault": "CivilLaw"
+    },
+    {
+      "key": "nile",
+      "name": "尼罗河",
+      "center": { "lat": 26.0, "lon": 31.0 },
+      "radiusDeg": 6,
+      "ethnicSeed": [
+        { "languageFamily": "Afroasiatic", "name": "古埃及/科普特", "share": 0.7 },
+        { "languageFamily": "Nubian", "name": "努比亚", "share": 0.3 }
+      ],
+      "legalFamilyDefault": "CustomaryLaw"
+    },
+    {
+      "key": "mediterranean_europe",
+      "name": "地中海/欧洲",
+      "center": { "lat": 42.0, "lon": 12.0 },
+      "radiusDeg": 12,
+      "ethnicSeed": [
+        { "languageFamily": "IndoEuropean", "name": "拉丁/希腊", "share": 0.4 },
+        { "languageFamily": "IndoEuropean", "name": "日耳曼", "share": 0.3 },
+        { "languageFamily": "IndoEuropean", "name": "斯拉夫", "share": 0.2 },
+        { "languageFamily": "Celtic", "name": "凯尔特", "share": 0.1 }
+      ],
+      "legalFamilyDefault": "CivilLaw",
+      "legalFamilyNote": "跨多民族带，fractionalization 高；子区域映射：南欧大陆法系、西北欧英美法系"
+    },
+    {
+      "key": "indus_ganges",
+      "name": "印度河-恒河",
+      "center": { "lat": 25.0, "lon": 78.0 },
+      "radiusDeg": 9,
+      "ethnicSeed": [
+        { "languageFamily": "IndoEuropean", "name": "印度-雅利安", "share": 0.6 },
+        { "languageFamily": "Dravidian", "name": "达罗毗荼", "share": 0.4 }
+      ],
+      "legalFamilyDefault": "CustomaryLaw"
+    },
+    {
+      "key": "mesoamerica",
+      "name": "中美洲",
+      "center": { "lat": 18.0, "lon": -97.0 },
+      "radiusDeg": 6,
+      "ethnicSeed": [
+        { "languageFamily": "Mayan", "name": "玛雅", "share": 0.5 },
+        { "languageFamily": "Nahuan", "name": "纳瓦特尔", "share": 0.5 }
+      ],
+      "legalFamilyDefault": "CustomaryLaw"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+---
+项目名: WorldSim
+文档名: Phase 3 出口控制清单（Control Checklist）
+版本: v1.0.2
+日期: 2026-08-12
+作者: 程基岩
+阶段: Phase 3 — 技术搭建（出口门）
+关联: worldsim-architecture.md / adr/ADR-001~004 / architecture-review.md
+变更摘要: v1.0.2（P0 修复）——重写 UTF-8；同步 Sprint 1 / Epic 0 实装状态：G0-1~G0-8 与 B2/B3/B8 标为已由代码+CI 闭环（自托管 Windows + Unity 6000.0.81f1）；澄清 gate0.yml 跑全量 WorldSim.Tests EditMode + pin-versions 含 check-sim-asmdef；B4 仍为 Phase 4 入口（MVP region 切片已做，完整地球管线待 Epic 5）。v1.0.1 曾修复 §C/§D 自相矛盾表述。
+---
+
+# Phase 3 出口控制清单（Control Checklist）
+
+> 本清单是 Phase 3 技术搭建的**出口门**：进入 Phase 4 预制作前，下列四类项须全部满足。
+> 优先级：P0（Gate-0 确定性）> ADR 用户确认 > 架构评审阻塞项清零 > Phase 4 入口条件就绪。
+
+---
+
+## A. Gate-0 确定性 CI 门禁项（P0 — S4 §7.3）
+
+| # | 门禁项 | 通过标准 | 状态 |
+|---|--------|---------|------|
+| G0-1 | 固定步长唯一时间源 + 模拟核心零引擎引用 | `check-sim-asmdef.ps1`：Simulation 无 `using UnityEngine` / `noEngineReferences=true`；已入 `gate0.yml` pin-versions | ✅ Sprint 1 |
+| G0-2 | 双频 pass 按边界时间戳升序合并 | `SimOrchestrator` 整数 month/week 边界；week 先 month 后 | ✅ V0-3 |
+| G0-3 | 稳定 ID 排序遍历 | `SortedByStableId` / `StableIdSet`；单测覆盖 | ✅ V0-2/V0-3 |
+| G0-4 | RNG 分流入档 | xoshiro256** class；256-bit 全状态随档；禁 `System.Random` | ✅ V0-2/V0-4 |
+| G0-5 | 禁不确定并发与浮点漂移 | Gate-0 串行；`Quantize` 写回；回退 2 留 `Fix` | ✅ 切片期 |
+| G0-6 | 四路 Replay 哈希一致 | 同 seed+干预：1×/20×/变速/存读档；≥120 月；`Gate0DeterminismTest` | ✅ V0-5 |
+| G0-7 | 哈希函数确定 | FNV-1a-64 over 确定性字节流；禁 `string.GetHashCode` | ✅ V0-2 |
+| G0-8 | 三级回退可用 | `DeterminismFallback` 默认 None；NarrowSpeed/SerialFix/Lockstep 钩子+单测 | ✅ V0-7 |
+
+> CI：`.github/workflows/gate0.yml`
+> 1. `pin-versions`（ubuntu）：`assert-burst-pinned` + `check-sim-asmdef`
+> 2. `gate0`（**self-hosted Windows X64**）：`resolve-unity.ps1`（Hub + `HKLM\SOFTWARE\Unity Technologies\Installer\Unity 6000.0.81f1` 双重确认）→ 全量 `WorldSim.Tests` EditMode → 上传 `gate0.xml`
+> 本地：`tests/ci/run-gate0-local.ps1`
+
+---
+
+## B. ADR 待用户确认项（已清零：4/4 已接受，2026-08-12）
+
+| # | ADR | 采纳选项 | 状态 |
+|---|-----|---------|------|
+| U1 | ADR-001 仿真范式 | C 确定性数据导向核心+有序流水线 | ✅ 已接受 |
+| U2 | ADR-002 确定性数学 | 2 float+禁 fast-math+量化写回+`Fix` 兜底 | ✅ 已接受 |
+| U3 | ADR-003 CLI/CI | A 本地 CLI + GitHub Actions（Gate-0 自动门禁） | ✅ 已接受 |
+| U4 | ADR-004 序列化 | 1 全量二进制快照+命令日志+LOD/delta（后者延后） | ✅ 已接受 |
+
+---
+
+## C. 架构评审阻塞项（来自 architecture-review.md §5）
+
+| # | 阻塞项 | 状态 | 阻断 Phase 4？ | 归属 |
+|---|--------|------|---------------|------|
+| B1 | ADR-002 选项 2 确认 | ✅ 已解决 | 原：是 | 用户 |
+| B2 | CI 锁定同 Unity + 同 Burst | ✅ V0-8（`version-pins.json` + Burst 1.8.30 直依） | 是（已闭环） | 工程 |
+| B3 | Quantize + 哈希 + Gate-0 入 CI | ✅ V0-5/V0-9（全量 EditMode + 自托管） | 是（已闭环） | 工程 |
+| B4 | 真实地球管线 + region-presets 消费 | ⏳ 部分：V0-6 MVP 消费已做；完整 Natural Earth 管线 → Epic 5 | 是（完整管线） | Phase 4 |
+| B5 | 空间映射「绝不指定单国家族」红线 | ✅ V0-6 `RegionPresetRedLines` | 建议 | Phase 4 |
+| B6 | 核心层全开月级 pass 预算 profiler | 建议 | 否 | Phase 4 |
+| B7 | AI Navigation 不入模拟核心 | 建议 | 建议 | Phase 4 |
+| B8 | `com.unity.burst` 固定版本入 manifest + CI assert | ✅ V0-8 | 是（已闭环） | 工程 |
+
+---
+
+## D. Phase 4 预制作入口条件
+
+进入 Phase 4 前须满足：
+
+1. ✅ A 类 Gate-0（G0-1~G0-8）代码通过；CI 接 `gate0.yml`（需自托管 Windows runner 预装 Unity 6000.0.81f1）
+2. ✅ B 类 ADR（U1–U4）用户确认
+3. ⏳ C 类：B1/B2/B3/B8 ✅；**B4 完整地球管线**仍待 Epic 5（MVP region-presets 已可消费）
+4. ✅ `WorldSim.Simulation.*` asmdef + CI `check-sim-asmdef`
+5. ⏳ `WorldSim.Editor.BuildScript.cs`（ADR-003 声称；**尚未建文件**，属 P1）
+6. ✅ region-presets 导入/消费（V0-6）；StreamingAssets 与 design 数据当前一致
+7. ⏳ 模块化开关框架（S7）完整配置 — 切片仅有 `ModuleToggles` 字典
+8. ⏳ NPR 微缩沙盘渲染原型 — 美术侧，非 Epic 0
+9. ✅ `com.unity.burst@1.8.30` 直依 + `assert-burst-pinned`
+
+> 环境：Unity **6000.0.81f1**；Hub：`C:\Program Files\Unity\Hub\Editor\6000.0.81f1`；注册表：`HKLM\SOFTWARE\Unity Technologies\Installer\Unity 6000.0.81f1`（`Location x64`）。
+
+---
+
+## E. Phase 3 交付物清单
+
+- [x] `docs/architecture/worldsim-architecture.md`
+- [x] `docs/architecture/adr/ADR-001` … `ADR-004`
+- [x] `docs/architecture/architecture-review.md`
+- [x] `docs/architecture/control-checklist.md`（本文）
+- [x] Epic 0 代码：V0-1~V0-9（含 V0-7 Could）
+- [x] `.github/workflows/gate0.yml` + `tests/ci/*`

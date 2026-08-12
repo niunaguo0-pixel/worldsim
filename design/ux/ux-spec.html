@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldSim UX 规格（UX Specification）</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 ux-spec.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#worldsim-ux-ux-specification">WorldSim UX 规格（UX Specification）</a><ul>
+<li><a href="#0-dependency-collaboration">0. 依赖与协同声明（Dependency &amp; Collaboration）</a></li>
+<li><a href="#1-design-goals-red-line-alignment">1. 设计目标与红线对齐（Design Goals &amp; Red-line Alignment）</a><ul>
+<li><a href="#11-ux">1.1 UX 层设计目标</a></li>
+<li><a href="#12">1.2 红线自检</a></li>
+</ul>
+</li>
+<li><a href="#2-information-architecture">2. 信息架构（Information Architecture）</a><ul>
+<li><a href="#21">2.1 核心面板清单</a></li>
+<li><a href="#22-navigation-hierarchy">2.2 导航层级（Navigation Hierarchy）</a></li>
+<li><a href="#23-focus-r5">2.3 关注焦点（Focus / 防认知过载 R5）</a></li>
+</ul>
+</li>
+<li><a href="#3-interaction-model">3. 交互模型（Interaction Model — 间接干预）</a><ul>
+<li><a href="#31">3.1 核心立场：光标是"参数指针"，不是"单位选择器"</a></li>
+<li><a href="#32-3-ux">3.2 间接干预光标操作流程（核心循环"③ 施加干预"的 UX 落地）</a></li>
+<li><a href="#33-r1r2s4">3.3 异步延迟生效的反馈表达（让玩家理解因果 — R1·R2·S4）</a></li>
+<li><a href="#34-ui-s1-21-iv4">3.4 反噬预警 UI（软引导，非硬性限制 — S1 §2.1 / IV4）</a></li>
+<li><a href="#35-selection-markers">3.5 地图标记与选取（Selection &amp; Markers）</a></li>
+</ul>
+</li>
+<li><a href="#4-hud-lod">4. HUD 布局草案（含时间尺度联动 LOD）</a><ul>
+<li><a href="#41-ascii">4.1 主屏幕布局示意（ASCII）</a></li>
+<li><a href="#42-art-bible-55-61">4.2 面板布局原则（呼应 art-bible §5.5 / §6.1）</a></li>
+<li><a href="#43-s4-s8">4.3 时间轴控件（S4 ↔ S8）</a></li>
+<li><a href="#44-lodhud-s4-24-art-bible-34-93">4.4 时间尺度联动 LOD（HUD 信息密度自适应 — S4 §2.4 / art-bible §3.4 / §9.3）</a></li>
+</ul>
+</li>
+<li><a href="#5-ax-2">5. 事件通知 &amp; 编年史可读性规范（呼应可访问性 AX-2 / 持久日志）</a><ul>
+<li><a href="#51-event-notification">5.1 事件通知卡（Event Notification）</a></li>
+<li><a href="#52-ax-2-ax-1-p0">5.2 AX-2 / AX-1 强制约束（P0 安全项）</a></li>
+<li><a href="#53-r5">5.3 日志可读性（防认知过载 R5）</a></li>
+<li><a href="#54-chroniclep4-s6">5.4 编年史（Chronicle，P4 全屏视图 — 待 S6 落地对接）</a></li>
+</ul>
+</li>
+<li><a href="#6">6. 控制映射与可重映射方案（全键盘可玩）</a><ul>
+<li><a href="#61-mvp-basic">6.1 基础键位（MVP = Basic 档）</a></li>
+<li><a href="#62-standard">6.2 重映射与完整键盘导航（核心层 = Standard 档）</a></li>
+<li><a href="#63">6.3 与架构边界一致</a></li>
+</ul>
+</li>
+<li><a href="#7-onboarding">7. 新手引导 / 首次运行 Onboarding（沙盒默认模式）</a><ul>
+<li><a href="#71">7.1 设计立场</a></li>
+<li><a href="#72">7.2 引导步骤（渐进式、可跳过）</a></li>
+</ul>
+</li>
+<li><a href="#8-goalmode-ui-341">8. GoalMode UI 规格（呼应概念 §3.4.1）</a><ul>
+<li><a href="#81-341">8.1 设计原则（来自概念 §3.4.1）</a></li>
+<li><a href="#82-new-game-5">8.2 New Game 面板（第⑤项）</a></li>
+<li><a href="#83-hud">8.3 运行期 HUD 呈现（三种模式）</a></li>
+<li><a href="#84">8.4 运行期切换</a></li>
+</ul>
+</li>
+<li><a href="#9-ax-2-r3">9. AX-2 设计侧：R3 灾害前兆安全阀（预警触发·前兆时长·信号分层）</a><ul>
+<li><a href="#91-s2">9.1 预警触发时机（对齐 S2 稳态区间）</a></li>
+<li><a href="#92">9.2 前兆时长（反应窗口设计）</a></li>
+<li><a href="#93-ax-2">9.3 信号内容层级（前兆 → 警告 → 危机，AX-2 冗余）</a></li>
+<li><a href="#94-r14">9.4 高速下预警强化（R14 对策）</a></li>
+<li><a href="#95-s2-s6-s6">9.5 与 S2 / S6 的协同接口（待 S6 落地对接）</a></li>
+</ul>
+</li>
+<li><a href="#10-cross-doc-consistency">10. 跨文档一致性自检（Cross-doc Consistency）</a></li>
+<li><a href="#11-scope-layering">11. 范围分层（Scope Layering）</a></li>
+<li><a href="#12-s6-p0">12. 风险与待办（含与 S6 协同 / 新 P0 风险判定）</a><ul>
+<li><a href="#121">12.1 本规格特有风险</a></li>
+<li><a href="#122-s6">12.2 与 S6 协同待办（回传主理人）</a></li>
+<li><a href="#123-p0">12.3 新 P0 风险判定</a></li>
+</ul>
+</li>
+<li><a href="#13-ux-phase-4-playtest">13. 验证标准（UX 侧，Phase 4 预制作后 playtest）</a></li>
+<li><a href="#14">14. 评审检查清单</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="worldsim-ux-ux-specification">WorldSim UX 规格（UX Specification）</h1>
+<blockquote>
+<p>本文是 Phase 4 预制作中"UX 规格"职责项的产出。它把概念文档、S1 干预、S2 生态、S4 时间三份 GDD 与美术圣经、可访问性分级，收敛为一份<strong>玩家如何读世界、如何干预世界</strong>的体验蓝图。
+红线重申：<strong>玩家不下场</strong>——agency 来自"可见的因果影响力"，而非资源稀缺；<strong>无认知过载</strong>（R5）、<strong>无支柱漂移</strong>、<strong>无主导策略</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="0-dependency-collaboration">0. 依赖与协同声明（Dependency &amp; Collaboration）</h2>
+<table>
+<thead>
+<tr>
+<th>协同方</th>
+<th>关系</th>
+<th>本规格的落点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>美术圣经</strong> <code>design/art/art-bible.md</code> v1.0.0</td>
+<td>上游（视觉编码唯一基准）</td>
+<td>图标形状编码（§3.3 / §5 / §9）、统一色板（深褐/暖金/朱砂/青绿，UI≤4色）、半透明容器+暖白实色内容卡、AX-1 平滑脉冲、AX-2 图标+文字冗余——本规格<strong>全部引用，不另定义视觉值</strong></td>
+</tr>
+<tr>
+<td><strong>可访问性分级</strong> <code>docs/art/accessibility-grade.md</code> v1.1.0</td>
+<td>上游（可达性档位）</td>
+<td>MVP=Basic、核心层=Standard；全键盘可玩、控制重映射、持久通知日志、CVD 色盲模式、减少动态——本规格 §5/§6/§9 直接落地</td>
+</tr>
+<tr>
+<td><strong>S1 干预系统</strong> GDD</td>
+<td>上游（玩家唯一行动接口）</td>
+<td>间接干预光标操作流程（§3）、异步延迟生效反馈（§3.2）、反噬预警 UI（§3.4）、因果链追溯（§3.3）—— 与 S1 §5 / §2.4 数据模型对齐</td>
+</tr>
+<tr>
+<td><strong>S2 生态模拟引擎</strong> GDD</td>
+<td>上游（R3 安全阀数据源）</td>
+<td>稳态区间三段式 → AX-2 设计侧信号分层（§9）；生态指标 3 项(MVP)/5 项(核心层) → 世界总览面板（§2.2）</td>
+</tr>
+<tr>
+<td><strong>S4 时间推进系统</strong> GDD</td>
+<td>上游（连续时间 / LOD）</td>
+<td>时间轴控件（§4.3）、时间尺度联动相机 LOD + HUD 信息密度（§4.4）、20× 高速预警强化（R14，§4.4 / §9.4）</td>
+</tr>
+<tr>
+<td><strong>S6 涌现叙事引擎</strong> GDD</td>
+<td><strong>下游（尚未实现，待建）</strong></td>
+<td>本规格 §5 / §9 定义"事件/预警/编年史"的<strong>呈现契约</strong>，作为 S6 落地时的下游输入；凡涉及 S6 处均标注 <strong>「待 S6 落地对接」</strong></td>
+</tr>
+<tr>
+<td><strong>S8 UI/HUD 系统</strong> GDD</td>
+<td>平行（本规格即 S8 的 UX 输入）</td>
+<td>本规格是 S8 的前置 UX 输入；S8 实现时须遵守 §2–§9 全部约定</td>
+</tr>
+<tr>
+<td><strong>架构</strong> <code>worldsim-architecture.md</code> v1.0.0</td>
+<td>边界约束</td>
+<td><strong>UI 只读 <code>WorldView</code> 快照与 <code>SimEvent</code>，所有写入仅经 <code>InterventionSystem</code> 入口</strong>（S8 §2.3）；本规格不触碰任何确定性/模拟态</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠ <strong>跨文档路径一致性提示（待主理人拍板）</strong>：可访问性分级 v1.1.0 第 7 节仍引用 UX 规格路径为 <code>design/accessibility-requirements.md</code>（Phase 2 待产出口径），与本文实际落位 <code>design/ux/ux-spec.md</code> 不一致。两者指向同一职责项，建议主理人统一路径引用，避免双文档歧义。</p>
+</blockquote>
+<hr />
+<h2 id="1-design-goals-red-line-alignment">1. 设计目标与红线对齐（Design Goals &amp; Red-line Alignment）</h2>
+<h3 id="11-ux">1.1 UX 层设计目标</h3>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>对应系统风险</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>让"不下场"也能感到 agency（代理感）</strong></td>
+<td>R1（S1）</td>
+<td>通过"干预印记 + 因果链追溯 + 历史档案"三件套，使玩家把世界变化归因到自己（§3.2/§3.3）</td>
+</tr>
+<tr>
+<td><strong>让异步延迟后果可理解</strong></td>
+<td>R1·R2（S1/S4）</td>
+<td>干预不即时生效，UI 以"待生效微光→渐变到位→远期后果回指"表达因果（§3.2）</td>
+</tr>
+<tr>
+<td><strong>防止认知过载</strong></td>
+<td>R5（S8）</td>
+<td>信息分层（总览→详情→逐项）、智能事件筛选、可关注焦点（§2 / §5.3）</td>
+</tr>
+<tr>
+<td><strong>R3 安全阀可读可达</strong></td>
+<td>R3（S2）</td>
+<td>灾害前兆在应力区即预警，给 3–6 游戏月反应窗口；AX-2 冗余确保色弱玩家不丢安全阀（§9）</td>
+</tr>
+<tr>
+<td><strong>高速下不丢预警</strong></td>
+<td>R14（S4）</td>
+<td>20× 加速下弱化细节、强化预警、引导减速响应（§4.4 / §9.4）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12">1.2 红线自检</h3>
+<ul>
+<li><strong>无认知过载</strong>：所有面板默认收起，信息密度随尺度/速度自适应（§4.4），非焦点信息不挤占主视野。</li>
+<li><strong>无支柱漂移</strong>：核心循环三面板（生态/文明/威胁）始终同屏可达，单面板不孤立呈现（§2.1）。</li>
+<li><strong>无主导策略</strong>：干预类型无数值优劣排序，UI 不暗示"最优干预"；反噬预警是<strong>软引导</strong>而非硬性限制（S1 §2.1）。</li>
+<li><strong>不下场红线</strong>：光标是"参数调节指针"而非"单位选择器"；选取用于读取状态/设定落点，绝不下达个体命令（§3.1）。</li>
+</ul>
+<hr />
+<h2 id="2-information-architecture">2. 信息架构（Information Architecture）</h2>
+<h3 id="21">2.1 核心面板清单</h3>
+<p>世界是主角，UI 是辅助工具。五类核心面板均<strong>默认收起</strong>（半透明容器 + 暖白实色内容卡，art-bible §6.1），按需展开，不遮挡主视野。</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>面板</th>
+<th>职责</th>
+<th>数据来源</th>
+<th>默认态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1</td>
+<td><strong>世界总览 World Overview</strong></td>
+<td>全局生态指标、季节/年/时代、国运聚合、当前速度</td>
+<td>S2 生态指标(3/5项) + S4 时钟 + S3 国家聚合</td>
+<td>顶部极简条常驻（仅关键数）</td>
+</tr>
+<tr>
+<td>P2</td>
+<td><strong>当前聚落 Current Settlement</strong></td>
+<td>选中聚落详情：人口/粮储/经济/科技/稳定度/发展倾向</td>
+<td>S3 聚落态</td>
+<td>选中后展开</td>
+</tr>
+<tr>
+<td>P3</td>
+<td><strong>文明 Civilization</strong></td>
+<td>多聚落/国家层聚合统计（核心层）：总人口/总产出/总军力/稳定度</td>
+<td>S3 国家聚合（仅聚合统计，不逐人）</td>
+<td>多聚落模块 ON 时可用</td>
+</tr>
+<tr>
+<td>P4</td>
+<td><strong>编年史 Chronicle</strong></td>
+<td>全屏阅览：事件时间线、可搜索/筛选/缩放</td>
+<td>S6（待建）事件序列</td>
+<td>全屏覆盖，按需打开</td>
+</tr>
+<tr>
+<td>P5</td>
+<td><strong>干预光标上下文 Intervention Cursor Context</strong></td>
+<td>干预模式下：类型/参数预览/作用范围/反噬风险/近期同区记录</td>
+<td>S1 pending/反噬追踪器/历史</td>
+<td>干预模式激活时跟随</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-navigation-hierarchy">2.2 导航层级（Navigation Hierarchy）</h3>
+<pre><code>[主视图：世界地图（正交俯视）]
+   │
+   ├─ 顶部常驻：世界总览条 P1（极简：季节·年·时代·全局生态灯·速度）
+   │
+   ├─ 左侧边缘标签（点击/Tab 呼出，半透明侧栏）
+   │     ├─ P2 当前聚落（依赖选中态；未选则提示&quot;点击地图选取聚落&quot;）
+   │     ├─ P3 文明（核心层；MVP 单聚落时折叠为 P2 同视图）
+   │     └─ P4 编年史（全屏覆盖，Esc/关闭返回）
+   │
+   ├─ 底部：时间轴 + 速度控件（暂停/1×/2×/5×/20×）+ LOD 指示（§4.3）
+   │
+   ├─ 右侧：事件通知滑入卡 + 持久日志入口（§5）
+   │
+   └─ 光标上下文 P5（干预模式激活时浮现；§3）
+
+导航原则：
+  · 总览(P1) 始终可达；详情(P2/P3) 依赖&quot;选取态&quot;，无选中不空占屏。
+  · 编年史(P4) 为全屏模态视图，打开时世界暂停建议（不强制）。
+  · 全部面板支持键盘焦点遍历（Tab/Shift+Tab + 方向键），不依赖鼠标（§6）。
+</code></pre>
+<h3 id="23-focus-r5">2.3 关注焦点（Focus / 防认知过载 R5）</h3>
+<ul>
+<li>玩家可"关注"某聚落/某区域（星标），右侧日志仅优先推送关注对象的事件（智能筛选，S8 实现）。</li>
+<li>未关注对象仅入后台日志，不弹卡——避免"什么都想管"的焦虑（S1 IV5）。</li>
+</ul>
+<hr />
+<h2 id="3-interaction-model">3. 交互模型（Interaction Model — 间接干预）</h2>
+<h3 id="31">3.1 核心立场：光标是"参数指针"，不是"单位选择器"</h3>
+<p>玩家不下场。所有操作通过"光标 + 面板"完成：
+- <strong>光标</strong> = 世界坐标指针，用于在地图选取位置/区域/聚落，或设定干预落点。
+- <strong>面板</strong> = 读取状态（P2/P3）、选择干预（P5）、查阅事件（P4）。
+- 绝不允许：选中个体 NPC、拖动单位、下达移动/攻击指令（架构红线 + 概念 §2.3）。</p>
+<h3 id="32-3-ux">3.2 间接干预光标操作流程（核心循环"③ 施加干预"的 UX 落地）</h3>
+<pre><code>[常态：观察] ──按 I / 点干预工具栏──▶ [干预模式]
+                                              │
+                              ┌───────────────┴───────────────┐
+                              ▼                                ▼
+                     [选干预类型]                      [选目标]
+              气候调节/资源投放/文明引导…          移动光标到地图落点
+              （MVP：增雨·减雨·水源·可种地·农/猎倾向）   （异步延迟生效，落点显&quot;待生效&quot;微光）
+                              └───────────────┬───────────────┘
+                                                ▼
+                                         [调参预览]
+                              显示：作用范围(涟漪半径) + 预计参数变化
+                              + 反噬风险（同区近期同类干预计数，§3.4）
+                                                ▼
+                                         [确认施放 Enter]
+                              → 金色光环 + 涟漪即时反馈（art-bible §6.2）
+                              → 落点保留淡金&quot;行动印记&quot;微光（持续 1 游戏月，R1）
+                              → 参数进入 S1 pendingQueue，异步延迟生效（§3.3）
+                                                ▼
+                                         [返回观察]（世界继续推进）
+</code></pre>
+<h3 id="33-r1r2s4">3.3 异步延迟生效的反馈表达（让玩家理解因果 — R1·R2·S4）</h3>
+<p>干预不即时改变世界。UX 用四层反馈表达"我做了什么、何时生效、后果从哪来"：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>反馈</th>
+<th>时机</th>
+<th>设计意图</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>① 即时印记</strong></td>
+<td>施放处金色光环+涟漪（art-bible §6.2）；落点保留淡金微光<strong>1 游戏月</strong>作为"我的行动印记"</td>
+<td>t=施放时刻</td>
+<td>让玩家感到"我做了什么"（R1 即时回应感）</td>
+</tr>
+<tr>
+<td><strong>② 待生效</strong></td>
+<td>落点微光由淡金渐变为"参数渐变中"态（如降雨区云量缓增），不硬切</td>
+<td>t→t+1 游戏月渐变到位（S1 §2.2.1：降雨 1 月内渐变）</td>
+<td>表达"延迟生效"，非即时可控（R2）</td>
+</tr>
+<tr>
+<td><strong>③ 渐变响应</strong></td>
+<td>生态/文明指标趋势箭头（Rising/Falling）与数值缓变；视觉量（植被/水面）平滑插值</td>
+<td>t+1 月起逐 pass 显现</td>
+<td>玩家可观察"正在发生"（S2 §2.7 指标更新）</td>
+</tr>
+<tr>
+<td><strong>④ 远期回指</strong></td>
+<td>远端后果（3–12 游戏月后）显现时，UI 提示"此事件源于 N 游戏月前的干预"（时间戳锚定，S1 causalChainNode）</td>
+<td>t+Δ 后果显现</td>
+<td>因果链可归因，闭环 agency（S1 IV2 / V3）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>因果理解三件套（R1 攻关）</strong>：① 行动印记（印记微光）② 干预历史档案（P5 历史记录，可翻阅自己的干预）③ 远期回指提示（时间戳）。三者共同使"世界的变化"归因到"我的决策"。</p>
+</blockquote>
+<h3 id="34-ui-s1-21-iv4">3.4 反噬预警 UI（软引导，非硬性限制 — S1 §2.1 / IV4）</h3>
+<p>反噬是"世界推回"，不是系统惩罚。UX 表达：</p>
+<ul>
+<li><strong>预警时机</strong>：同区域同类型干预接近反噬阈值时（如降雨 3 月内已 2 次），P5 显示"该区域近期降雨频繁，继续增雨可能引发洪涝"（S1 §2.1 阈值表）。</li>
+<li><strong>预警形式</strong>：暖金边框 + 文字标签（<strong>非朱砂</strong>——反噬预警是"建议收手"不是"危机"）；图标用"回旋箭头"形状编码，不依赖颜色（AX-2）。</li>
+<li><strong>预警窗口</strong>：2–3 游戏月预警（S1 IV4），给玩家调整空间；反噬严重度与过度程度成正比。</li>
+<li><strong>不阻断</strong>：预警不灰化/不禁止施放，仅软提示（玩家仍可选择继续，承担自然后果）。</li>
+</ul>
+<h3 id="35-selection-markers">3.5 地图标记与选取（Selection &amp; Markers）</h3>
+<p>标记全部遵循 art-bible §6.2 <strong>形状编码为主、颜色为辅</strong>（AX-2）：</p>
+<table>
+<thead>
+<tr>
+<th>标记</th>
+<th>形状</th>
+<th>文字标签</th>
+<th>选取交互</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>聚落</td>
+<td>"屋"形图标</td>
+<td>名称+人口</td>
+<td>点击/键盘聚焦 → 打开 P2</td>
+</tr>
+<tr>
+<td>物种</td>
+<td>"足印"图标</td>
+<td>物种名</td>
+<td>点击 → 生态详情浮层</td>
+</tr>
+<tr>
+<td>资源</td>
+<td>"圆点"图标</td>
+<td>资源名+数值</td>
+<td>点击 → 资源浮层</td>
+</tr>
+<tr>
+<td>灾害/前兆</td>
+<td>朱砂惊叹三角</td>
+<td>"旱灾前兆"等文字</td>
+<td>点击 → 预警详情（§9）</td>
+</tr>
+<tr>
+<td>危机</td>
+<td>朱砂双环惊叹</td>
+<td>"文明存亡危机"等文字</td>
+<td>点击 → 危机详情（§9）</td>
+</tr>
+<tr>
+<td>干预落点</td>
+<td>金色光环+涟漪</td>
+<td>—</td>
+<td>不可选取（仅视觉印记）</td>
+</tr>
+<tr>
+<td>正向状态</td>
+<td>青绿圆点+标签</td>
+<td>状态文字（深褐）</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>选取 = 读取/设落点</strong>，绝不选个体。选中态以暖金边框高亮（art-bible §2.3）。</li>
+<li>键盘选取：方向键移动光标栅格，Enter 选中/确认（§6）。</li>
+</ul>
+<hr />
+<h2 id="4-hud-lod">4. HUD 布局草案（含时间尺度联动 LOD）</h2>
+<h3 id="41-ascii">4.1 主屏幕布局示意（ASCII）</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│ [P1 世界总览条] 春·第3年·远古  │ 生态灯:●稳态  │ ⏸1×2×5×20×        │ ← 顶部常驻
+├──────────┬────────────────────────────────────────────┬──────────────┤
+│ [左栏]    │                                            │ [右栏]        │
+│ 总览 P1  │           世 界 地 图（正交俯视）            │ 事件通知卡    │
+│ 聚落 P2  │        （微缩沙盘手绘 · 俯视可读）           │ (滑入·不消失) │
+│ 文明 P3  │                                            │ ───────────  │
+│ 编年史P4 │        ◉聚落  ··物种  ·资源  ⚠前兆         │ 持久日志入口  │
+│ [Tab呼出]│                                            │              │
+│          │              ✦干预落点(金色印记)            │              │
+├──────────┴────────────────────────────────────────────┴──────────────┤
+│ [底部] 时间轴 ──春──夏──秋──冬──┤第3年├──  ⏸ │1×│2×│5×│20×│ [LOD:聚落级] │
+└──────────────────────────────────────────────────────────────────────┘
+   [P5 干预光标上下文] 浮现于角落（干预模式激活时）：
+   类型:增雨  范围:1区域  预计:降雨+30% 持续2月  反噬风险:⚠近期已2次(建议收手)
+</code></pre>
+<h3 id="42-art-bible-55-61">4.2 面板布局原则（呼应 art-bible §5.5 / §6.1）</h3>
+<ul>
+<li><strong>极简、不遮挡主视野</strong>：容器 85% 半透明，内容卡 100% 不透明暖白（文本恒 ≥12:1）。</li>
+<li><strong>信息分层</strong>：总览(关键数) → 详情(选中对象) → 逐项(展开细节)，三级折叠。</li>
+<li><strong>UI 用色 ≤4</strong>：深褐(文字/轮廓) + 暖金(高亮/干预) + 朱砂(警示) + 青绿(正向)，面板底不计入。</li>
+</ul>
+<h3 id="43-s4-s8">4.3 时间轴控件（S4 ↔ S8）</h3>
+<ul>
+<li>底部细条：季节(春/夏/秋/冬) + 年标记 + 时代门槛提示。</li>
+<li>速度：暂停(空格) + 1×/2×/5×/20×（数字键）；<strong>点击设值替代拖拽</strong>（可访问性 §3.4 Standard）。</li>
+<li>世代节点：文明级世代更替在轴上标"⌘ 世代节点"（可点击看编年史条目）。</li>
+<li>关联 S4 §4.2：UI 仅暴露 pause/速度倍率，逻辑由 S4 时钟驱动。</li>
+</ul>
+<h3 id="44-lodhud-s4-24-art-bible-34-93">4.4 时间尺度联动 LOD（HUD 信息密度自适应 — S4 §2.4 / art-bible §3.4 / §9.3）</h3>
+<p>相机缩放（正交 Size 倍数）与时间加速<strong>联动 HUD 信息密度</strong>，避免近看信息爆炸、远看一片空白：</p>
+<table>
+<thead>
+<tr>
+<th>相机正交 Size</th>
+<th>实体 LOD（美术）</th>
+<th>HUD 信息密度</th>
+<th>时间尺度联动</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0–0.5× (近)</td>
+<td>L0 全细节</td>
+<td>显示个体级状态浮层（关键个体/职业字形）</td>
+<td>个体级 LOD</td>
+</tr>
+<tr>
+<td>0.5–1.5×</td>
+<td>L1</td>
+<td>聚落级面板(P2)全量</td>
+<td>聚落级 LOD</td>
+</tr>
+<tr>
+<td>1.5–3×</td>
+<td>L2</td>
+<td>聚合统计，弱化个体</td>
+<td>国家/文明级 LOD（标注"聚合统计"）</td>
+</tr>
+<tr>
+<td>3×+ (远)</td>
+<td>L3 点 sprite</td>
+<td>仅全局生态灯 + 速度 + 战略标记</td>
+<td>世代级概览</td>
+</tr>
+</tbody>
+</table>
+<p><strong>时间加速联动规则（R14 对策）</strong>：
+- <strong>1×/2×</strong>：全信息密度，趋势箭头/数值正常呈现。
+- <strong>5×/20×</strong>：① 弱化逐个体动效，仅保战略级标记；② <strong>预警/危机信号强化</strong>（前兆卡置顶、危机平滑脉冲加粗，§9）；③ 时间轴显示"⚠高速：建议减速至 1× 响应应力窗口"提示；④ 引导玩家在高速下可一键减速（不强制）。
+- <strong>暂停</strong>：所有插值冻结，玩家无压观察/布署 pending 干预/查阅编年史。</p>
+<blockquote>
+<p>联动意图：速度越高，玩家越需要"宏观预警"而非"微观细节"——HUD 随速度自动从"细节模式"切到"预警模式"，呼应 S4 R14 与 S1 IV5（减少焦虑）。</p>
+</blockquote>
+<hr />
+<h2 id="5-ax-2">5. 事件通知 &amp; 编年史可读性规范（呼应可访问性 AX-2 / 持久日志）</h2>
+<h3 id="51-event-notification">5.1 事件通知卡（Event Notification）</h3>
+<ul>
+<li><strong>不瞬时消失</strong>（Basic 底线）：右侧滑入 ~0.3s，进入<strong>可滚动、可回看的持久通知日志</strong>（与 S1 干预历史、S6 编年史同源）。</li>
+<li><strong>关键/紧急事件持续至玩家确认</strong>（不自动滚出）。</li>
+<li><strong>分级视觉编码（AX-2：图标+文字，非纯色）</strong>：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>视觉编码（形状+文字）</th>
+<th>图形色</th>
+<th>持续</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正面</td>
+<td>暖金图标 + 文字"丰/发/灵"</td>
+<td>暖金</td>
+<td>入日志</td>
+</tr>
+<tr>
+<td>中性</td>
+<td>深褐图标 + 文字</td>
+<td>深褐</td>
+<td>入日志</td>
+</tr>
+<tr>
+<td>警告</td>
+<td>朱砂惊叹三角 + 文字"告"</td>
+<td>朱砂</td>
+<td>入日志，建议响应</td>
+</tr>
+<tr>
+<td><strong>紧急</strong></td>
+<td><strong>朱砂双环惊叹 + 文字"急" + 平滑脉冲（AX-1）</strong></td>
+<td>朱砂</td>
+<td><strong>持续至确认</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-ax-2-ax-1-p0">5.2 AX-2 / AX-1 强制约束（P0 安全项）</h3>
+<ul>
+<li><strong>AX-2（意义不单靠颜色，与 R3 同 P0）</strong>：所有事件/预警/状态<strong>同时具备图标 + 文字冗余</strong>；颜色仅强化（art-bible §6.2/§7.1）。色弱玩家不丢失任何信息通道。</li>
+<li><strong>AX-1（危机无硬闪烁，P0）</strong>：紧急事件<strong>默认平滑脉冲（呼吸，~1.5–2s 缓变，无瞬变黑/白跳变）</strong>；硬闪烁仅作可关闭选项、默认 OFF（art-bible §6.4）。</li>
+<li><strong>减少动态总开关</strong>（Standard）：关闭硬闪烁、平滑季节 lerp、衰减 Bloom、削弱天气粒子、平滑 LOD 跳变（art-bible §8.4）——全局生效。</li>
+</ul>
+<h3 id="53-r5">5.3 日志可读性（防认知过载 R5）</h3>
+<ul>
+<li><strong>智能筛选</strong>（核心层 Standard）：日志可按 系统(生态/文明/战争/灾害/时代) / 聚落 / 严重度 筛选排序。</li>
+<li><strong>闭式字幕式呈现</strong>：每条 = 标题 + 简明正文 + 游戏月时间戳（"第3年·春"）。</li>
+<li><strong>关注焦点</strong>：仅优先推送玩家关注对象事件（§2.3），其余沉底。</li>
+<li><strong>可检索</strong>：搜索框 + 时间范围筛选。</li>
+</ul>
+<h3 id="54-chroniclep4-s6">5.4 编年史（Chronicle，P4 全屏视图 — 待 S6 落地对接）</h3>
+<ul>
+<li>全屏阅览，暗色铺底；可搜索/筛选/缩放（缩放联动全局字体缩放）。</li>
+<li>内容由 S6 涌现叙事引擎生成（<strong>待 S6 落地对接</strong>：本规格定义呈现契约——事件时间线 + 关键个体追踪条目 + 世代节点；S6 负责内容生成与模板匹配）。</li>
+<li>世界事件记录：沙盒模式下"文明灭绝/生态崩溃"作为<strong>编年史叙事资产</strong>记录（概念 §3.4.1），非惩罚。</li>
+</ul>
+<hr />
+<h2 id="6">6. 控制映射与可重映射方案（全键盘可玩）</h2>
+<h3 id="61-mvp-basic">6.1 基础键位（MVP = Basic 档）</h3>
+<p>间接干预无操作时序压力 → 本作先天适合全键盘（可访问性 §3.4）。</p>
+<table>
+<thead>
+<tr>
+<th>动作</th>
+<th>默认键</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>暂停/继续</td>
+<td><code>Space</code></td>
+<td>S4 时钟冻结/恢复</td>
+</tr>
+<tr>
+<td>速度 1×/2×/5×/20×</td>
+<td><code>1</code>/<code>2</code>/<code>5</code>/<code>0</code></td>
+<td>数字键直接设速（注：20× 用 <code>0</code> 避免与 1× 混淆，或 <code>4</code> 键）</td>
+</tr>
+<tr>
+<td>干预模式开关</td>
+<td><code>I</code></td>
+<td>进入/退出 P5 干预上下文</td>
+</tr>
+<tr>
+<td>干预类型切换</td>
+<td><code>[</code> <code>]</code> 或 <code>Q</code>/<code>E</code></td>
+<td>循环气候/资源/引导（MVP 5 类）</td>
+</tr>
+<tr>
+<td>光标移动</td>
+<td>方向键 / <code>WASD</code></td>
+<td>世界光标栅格移动</td>
+</tr>
+<tr>
+<td>参数增减</td>
+<td><code>+</code>/<code>-</code> 或 <code>↑</code>/<code>↓</code></td>
+<td>调节降雨/类型/倾向</td>
+</tr>
+<tr>
+<td>确认施放</td>
+<td><code>Enter</code></td>
+<td>提交 pending 干预</td>
+</tr>
+<tr>
+<td>取消</td>
+<td><code>Esc</code> / 右键</td>
+<td>退出当前模式/取消选取</td>
+</tr>
+<tr>
+<td>面板切换</td>
+<td><code>Tab</code> / <code>Shift+Tab</code></td>
+<td>遍历左栏面板</td>
+</tr>
+<tr>
+<td>编年史</td>
+<td><code>C</code></td>
+<td>打开/关闭 P4</td>
+</tr>
+<tr>
+<td>关注/星标</td>
+<td><code>F</code></td>
+<td>标记当前选中对象为关注焦点</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>说明：所有核心循环（观察→干预→反馈→时间控制→查阅）均可纯键盘完成（Basic 底线：鼠标+键盘双通道均可）。</p>
+</blockquote>
+<h3 id="62-standard">6.2 重映射与完整键盘导航（核心层 = Standard 档）</h3>
+<ul>
+<li><strong>可视化重绑定 UI</strong>：设置 → 控制，列出全部动作，点击后"按新键"捕获；冲突检测 + 重置默认。</li>
+<li><strong>预设方案</strong>：左手布局 / 右手布局 / 纯鼠标 / 单手（Comprehensive 扩展）。</li>
+<li><strong>完整键盘导航</strong>：<code>Tab</code>/<code>方向键</code> 遍历所有面板与控件；时间轴支持"点击/方向键设值"替代拖拽（可访问性 §3.4）。</li>
+<li><strong>配置档导入导出</strong>（Comprehensive）：多套键位 profile。</li>
+</ul>
+<h3 id="63">6.3 与架构边界一致</h3>
+<p>控制仅产生"玩家输入"→ UI → <code>InterventionSystem.pendingQueue</code>；<strong>绝不</strong>直接写 <code>WorldState</code>（架构 §2.3 / §5.2）。重映射只改"输入→动作"映射，不改逻辑。</p>
+<hr />
+<h2 id="7-onboarding">7. 新手引导 / 首次运行 Onboarding（沙盒默认模式）</h2>
+<h3 id="71">7.1 设计立场</h3>
+<ul>
+<li><strong>沙盒默认（无胜利条件）</strong> → 引导应"宽容、探索式"，不制造失败压力（概念 §3.4.1 A）。</li>
+<li><strong>不阻断模拟</strong>：引导以"提示卡"叠加，玩家可随时暂停/跳过；不强制长教学。</li>
+<li><strong>教学目标</strong>：让玩家在 10 分钟内完成"观察→第一次干预→理解异步延迟→理解因果回指→知道失败不终止"。</li>
+</ul>
+<h3 id="72">7.2 引导步骤（渐进式、可跳过）</h3>
+<table>
+<thead>
+<tr>
+<th>步</th>
+<th>内容</th>
+<th>呈现</th>
+<th>关联</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>认识世界：三面板（生态/文明/威胁）同屏可达</td>
+<td>轻提示卡指向左栏/顶部</td>
+<td>§2</td>
+</tr>
+<tr>
+<td>2</td>
+<td>第一次干预：在旱情区增雨</td>
+<td>高亮干预工具栏 + 光标引导落点</td>
+<td>§3.2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>等待延迟生效：降雨 1 月内渐变到位</td>
+<td>"待生效"微光提示 + 时间轴建议 1×</td>
+<td>§3.3 ②③</td>
+</tr>
+<tr>
+<td>4</td>
+<td>观察后果：植被返青、粮储回稳</td>
+<td>趋势箭头 + 因果印记微光</td>
+<td>§3.3</td>
+</tr>
+<tr>
+<td>5</td>
+<td>理解因果回指：远端后果提示"源于 N 月前干预"</td>
+<td>示例事件卡（教学用）</td>
+<td>§3.3 ④</td>
+</tr>
+<tr>
+<td>6</td>
+<td>编年史与通知：世界事件被记录</td>
+<td>打开 P4 演示</td>
+<td>§5</td>
+</tr>
+<tr>
+<td>7</td>
+<td>时间轴与速度：快进无聊期、暂停观察</td>
+<td>速度控件演示</td>
+<td>§4.3</td>
+</tr>
+<tr>
+<td>8</td>
+<td>GoalMode 说明：你在沙盒模式，无胜利条件，失败不终止游戏</td>
+<td>模式提示卡（指向设置可切换）</td>
+<td>§8</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>引导卡全部遵循 AX-2（图标+文字）；高速/减少动态下自动降级为静态提示（AX-1）。</p>
+</blockquote>
+<hr />
+<h2 id="8-goalmode-ui-341">8. GoalMode UI 规格（呼应概念 §3.4.1）</h2>
+<h3 id="81-341">8.1 设计原则（来自概念 §3.4.1）</h3>
+<ul>
+<li><strong>三种模式模拟逻辑完全相同</strong> → UI 只影响"判定与呈现"，绝不改变生态/文明/时间任何模拟规则。</li>
+<li><strong>达成 ≠ 结束</strong>：里程碑/自定义达成仅播报叙事，玩家可选继续（延续 R8「失败不是终点」→「成功也不是终点」）。</li>
+<li><strong>随时可切换</strong>：设置内切换（沙盒↔里程碑），不影响存档与世界状态。</li>
+</ul>
+<h3 id="82-new-game-5">8.2 New Game 面板（第⑤项）</h3>
+<pre><code>┌─ New Game 设置 ─────────────────────────────┐
+│ ① 起始时代： [远古沙盒▼]                     │
+│ ② 起始区域： [黄河长江▼]                     │
+│ ③ 国界年份： [2026▼]  (仅地缘模式)          │
+│ ④ 法律传统偏好：[由区域映射▼] (仅地缘模式)   │
+│ ⑤ 目标模式：                                 │
+│    (●) A 沙盒 — 无胜利条件（默认）           │
+│    ( ) B 里程碑 — 城邦或王国级               │
+│    ( ) C 自定义目标 — 自设条目               │
+│        [+ 添加条目：让文明活过10代 ▢]         │
+└────────────────────────────────────────────┘
+</code></pre>
+<blockquote>
+<p>目标模式不进 <code>WorldInitConfig</code>（架构 §9.1 / S5 §2.2.1 ⑤ 归属声明），由概念/S3 承载；New Game 仅作 UI 选择。</p>
+</blockquote>
+<h3 id="83-hud">8.3 运行期 HUD 呈现（三种模式）</h3>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>HUD 呈现</th>
+<th>失败/达成处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A 沙盒</strong></td>
+<td>顶部无胜利进度条；显示"沙盒模式 · 无胜利条件"小标。无计分、不弹通关。</td>
+<td>文明灭绝/生态崩溃 → <strong>不终止</strong>，作为世界事件记入编年史；玩家可继续观察/干预，或从残存聚落重启。</td>
+</tr>
+<tr>
+<td><strong>B 里程碑</strong></td>
+<td>显示进度条"城邦级 62%"（由聚落分档 村→镇→市→都市圈 推进度计算，S3 §2.1/§2.12）。</td>
+<td>达成城邦/王国级 → 弹里程碑叙事卡（不强制结束，可继续）；失败事件（聚落消亡）仅作反馈，不终止。</td>
+</tr>
+<tr>
+<td><strong>C 自定义</strong></td>
+<td>侧栏显示玩家自设条目清单（勾选式，如"活过10代""零生态崩溃至近代"），逐项检测进度。</td>
+<td>条目达成 → 播报叙事；不终止。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="84">8.4 运行期切换</h3>
+<ul>
+<li>入口：设置 → 目标模式 → 切换（沙盒↔里程碑↔自定义）。</li>
+<li><strong>切换不影响 <code>WorldState</code></strong>：仅改判定层与 HUD 呈现（概念 §3.4.1 "随时可切换"）。</li>
+<li>UX 须明确区分"判定层（GoalMode）"与"模拟层"，避免玩家误认切换模式改变了世界（<strong>设计提示：切换时在 HUD 显示"仅调整目标判定，世界状态不变"提示</strong>）。</li>
+</ul>
+<hr />
+<h2 id="9-ax-2-r3">9. AX-2 设计侧：R3 灾害前兆安全阀（预警触发·前兆时长·信号分层）</h2>
+<blockquote>
+<p><strong>本文的核心协同交付项</strong>（art-bible §7.1 / accessibility-grade §6 标注的"AX-2 设计侧"由 design-strategist 负责）。本节约定义<strong>预警逻辑（何时、多长、什么内容）</strong>，美术侧仅做视觉编码冗余（已落 art-bible §6.2/§6.3）。<strong>协同 S2 稳态区间（数据源）+ S6 涌现叙事（内容生成，待建）</strong>。</p>
+</blockquote>
+<h3 id="91-s2">9.1 预警触发时机（对齐 S2 稳态区间）</h3>
+<p>S2 生态指标与稳态区间（§2.1）是预警的数据源。三层触发：</p>
+<table>
+<thead>
+<tr>
+<th>触发源（S2）</th>
+<th>触发条件</th>
+<th>对应信号层级</th>
+<th>反应窗口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>趋势预警</strong></td>
+<td>某生态指标连续 N 月同向恶化（如食草种群连续 3 月下降）但未入应力区</td>
+<td>前兆 Foreshadow</td>
+<td>早于应力区，约 3–6 月可观察</td>
+</tr>
+<tr>
+<td><strong>应力区 Stress</strong></td>
+<td>指标 ∈ [临界下限, 下限) 或 (上限, 临界上限]（S2 §2.1）</td>
+<td>警告 Warning</td>
+<td><strong>3–6 游戏月</strong>（S2 <code>stressDurationLimit</code>，MVP 6 月，核心层可渐进恶化）</td>
+</tr>
+<tr>
+<td><strong>相变区 Phase Transition</strong></td>
+<td>指标 &lt; 临界下限 或 &gt; 临界上限，或应力持续超限</td>
+<td>危机 Crisis / 灾害事件</td>
+<td>已临界，需紧急干预（S1 紧急干预 24 月冷却）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92">9.2 前兆时长（反应窗口设计）</h3>
+<ul>
+<li><strong>总反应窗口 ≥ 3–6 游戏月</strong>（S2 应力区 + <code>stressDurationLimit</code>），给玩家充足决策时间（R3 攻关、S2 V3）。</li>
+<li><strong>趋势预警更早</strong>：在指标入应力区之前即以"前兆"提示，把窗口前移。</li>
+<li><strong>连锁预警传递</strong>：食物链某环入应力区 → 下游环在 1–2 月后预警（S2 §2.3 连锁崩溃规则）→ 形成"逐级预警链"，玩家有 3–5 月挽回（S2 §2.3）。</li>
+</ul>
+<h3 id="93-ax-2">9.3 信号内容层级（前兆 → 警告 → 危机，AX-2 冗余）</h3>
+<p>每一层<strong>同时具备 形状图标 + 文字标签 + （图形）颜色</strong>，颜色绝不唯一通道：</p>
+<pre><code>层级① 前兆 Foreshadow（建议观察）
+   图标: 朱砂惊叹三角 ⚠
+   文字: &quot;旱灾前兆 · 河谷区降雨持续偏低&quot;
+   色: 朱砂(图形)  ·  动效: 静态（或极缓脉冲）
+   行为: 入右侧日志，不置顶
+
+层级② 警告 Warning（建议反应）
+   图标: 朱砂惊叹三角 ⚠（加粗边框）
+   文字: &quot;警告 · 食草种群应力区，3 月内可能崩溃&quot;
+   色: 朱砂(图形)  ·  动效: 平滑脉冲(呼吸, AX-1)
+   行为: 置顶日志 + 地图标记闪烁(非硬闪) + P1 生态灯转朱砂
+
+层级③ 危机 Crisis（紧急）
+   图标: 朱砂双环惊叹 ⛔
+   文字: &quot;危机 · 文明存亡：粮储枯竭&quot;
+   色: 朱砂(图形)  ·  动效: 平滑脉冲(强, AX-1, 无硬闪)
+   行为: 持续至玩家确认 + 弹出危机详情(建议紧急干预)
+</code></pre>
+<h3 id="94-r14">9.4 高速下预警强化（R14 对策）</h3>
+<ul>
+<li>20× 加速时，所有"前兆/警告"信号<strong>置顶+加粗</strong>，时间轴显示"⚠高速：建议减速至 1× 响应"（§4.4）。</li>
+<li>预警以<strong>游戏月</strong>为单位呈现，加速不改变预警逻辑（S4 §6.1 TP2）；玩家可一键减速响应。</li>
+</ul>
+<h3 id="95-s2-s6-s6">9.5 与 S2 / S6 的协同接口（待 S6 落地对接）</h3>
+<table>
+<thead>
+<tr>
+<th>协同方</th>
+<th>本规格提供的契约</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S2 生态</strong></td>
+<td>输出：生态指标(3/5项) + 稳态区间状态(Stable/Stress/Critical) + <code>monthsInStress</code> + <code>warningMessage</code>（S2 §2.7）</td>
+<td>已定义，S2 GDD 已实现</td>
+</tr>
+<tr>
+<td><strong>S6 叙事</strong></td>
+<td>输入契约：<strong>事件分级(正面/中性/警告/紧急) + 游戏月时间戳 + 来源实体 + templateId</strong>（对齐架构 <code>SimEvent</code>）。S6 据此生成编年史条目与事件卡文案</td>
+<td><strong>待 S6 落地对接</strong>：本规格定义呈现契约，S6 负责内容生成与模板匹配</td>
+</tr>
+<tr>
+<td><strong>美术</strong></td>
+<td>视觉编码（图标形状/文字/平滑脉冲）已落 art-bible §6.2/§6.3/§6.4</td>
+<td>已落，本规格引用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠ <strong>S6 协同待办（回传主理人）</strong>：AX-2 设计侧的信号分层（§9.3）与 <code>SimEvent</code> 分级契约需 S6 在落地时消费；当前 S6 未实现，本规格先行定义下游输入，待 S6 GDD 排期对接。</p>
+</blockquote>
+<hr />
+<h2 id="10-cross-doc-consistency">10. 跨文档一致性自检（Cross-doc Consistency）</h2>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>干预类型与 S1 一致</td>
+<td>✅</td>
+<td>MVP 5 类（增雨/减雨/水源/可种地/农·猎倾向）对齐 S1 §5.1</td>
+</tr>
+<tr>
+<td>异步延迟与 S1/S4 一致</td>
+<td>✅</td>
+<td>pendingQueue + 游戏月延迟，时间戳锚定（S1 §2.1 / S4 §2.3）</td>
+</tr>
+<tr>
+<td>稳态区间与 S2 一致</td>
+<td>✅</td>
+<td>三段式 + 应力窗口 3–6 月（S2 §2.1）</td>
+</tr>
+<tr>
+<td>时间轴/LOD 与 S4 一致</td>
+<td>✅</td>
+<td>暂停+1×/2×/5×/20×、尺度跃迁 LOD（S4 §2.1/§2.4）</td>
+</tr>
+<tr>
+<td>色彩/图标与 art-bible 一致</td>
+<td>✅</td>
+<td>引用统一色板、形状编码、实色内容卡、AX-1/AX-2</td>
+</tr>
+<tr>
+<td>可访问性档位一致</td>
+<td>✅</td>
+<td>MVP=Basic、核心=Standard（accessibility-grade §0）</td>
+</tr>
+<tr>
+<td>GoalMode 与概念 §3.4.1 一致</td>
+<td>✅</td>
+<td>三选、模拟逻辑同、可切换、失败不终止</td>
+</tr>
+<tr>
+<td>UI 不持状态/写入仅经 S1</td>
+<td>✅</td>
+<td>对齐架构 §2.3</td>
+</tr>
+<tr>
+<td><strong>路径引用不一致</strong></td>
+<td>⚠</td>
+<td>accessibility-grade 仍引 <code>design/accessibility-requirements.md</code>，本文件落 <code>design/ux/ux-spec.md</code>（见 §0）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="11-scope-layering">11. 范围分层（Scope Layering）</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>MVP（Basic）</th>
+<th>核心层（Standard）</th>
+<th>延展层</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>面板</td>
+<td>P1 总览 + P2 聚落 + P5 光标上下文 + P4 编年史(简)</td>
+<td>+ P3 文明(国家聚合) + 关注焦点筛选</td>
+<td>完整编年史/多视角</td>
+</tr>
+<tr>
+<td>干预光标</td>
+<td>5 类 MVP 干预 + 印记 + 因果回指(1层)</td>
+<td>全 5 类 + 多级因果链 + 反噬预览</td>
+<td>条件触发/组合干预</td>
+</tr>
+<tr>
+<td>预警</td>
+<td>应力区预警 + 相变事件（AX-2 冗余）</td>
+<td>+ 趋势预警 + 连锁预警链 + CVD 模式</td>
+<td>细分三型预览</td>
+</tr>
+<tr>
+<td>控制</td>
+<td>热键重映射(Basic) + 全键盘核心循环</td>
+<td>完整键盘导航 + 重绑定 UI + 预设</td>
+<td>多 profile 导入导出</td>
+</tr>
+<tr>
+<td>时间联动</td>
+<td>基础速度控件 + 暂停</td>
+<td>时间尺度 LOD 联动 + 高速预警强化</td>
+<td>世纪尺度暴露</td>
+</tr>
+<tr>
+<td>可访问性</td>
+<td>Basic 六项（SDF/形状编码/持久日志/无TAA/热键/无硬闪）</td>
+<td>Standard（CVD/高对比/减少动态/字体缩放/键盘导航/可检索日志）</td>
+<td>Comprehensive</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="12-s6-p0">12. 风险与待办（含与 S6 协同 / 新 P0 风险判定）</h2>
+<h3 id="121">12.1 本规格特有风险</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>风险</th>
+<th>级别</th>
+<th>说明</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UX-1</td>
+<td>异步延迟下玩家"感觉没反应"</td>
+<td>P1（影响 R1）</td>
+<td>施放后世界不即时变，玩家可能以为失效</td>
+<td>① 即时印记微光 ② 待生效态 ③ 趋势箭头；playtest V1(S1) 验证</td>
+</tr>
+<tr>
+<td>UX-2</td>
+<td>高速下预警被忽略（R14）</td>
+<td>P1</td>
+<td>20× 压缩 3–6 月窗口至现实 1–2 秒</td>
+<td>高速预警置顶+减速引导（§4.4/§9.4）</td>
+</tr>
+<tr>
+<td>UX-3</td>
+<td>四面板 + 编年史认知过载（R5）</td>
+<td>P1</td>
+<td>核心层信息密度高</td>
+<td>默认收起 + 分层 + 智能筛选 + 关注焦点（§2/§5.3）</td>
+</tr>
+<tr>
+<td>UX-4</td>
+<td>GoalMode 切换误读为"改了世界"</td>
+<td>P1</td>
+<td>玩家可能困惑模式切换的影响</td>
+<td>HUD 显式提示"仅调整判定，世界不变"（§8.4）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="122-s6">12.2 与 S6 协同待办（回传主理人）</h3>
+<ol>
+<li><strong>S6 落地时消费本规格 §9.5 的 <code>SimEvent</code> 分级契约</strong>（正面/中性/警告/紧急 + 时间戳 + 来源 + templateId）。</li>
+<li><strong>编年史呈现契约（§5.4）</strong> 待 S6 内容生成对接。</li>
+<li>AX-2 音频冗余通道（第三通道）仍由 audio-director（阮和鸣）补，本规格仅做视觉冗余（art-bible §7.1 / accessibility-grade §3.10）。</li>
+</ol>
+<h3 id="123-p0">12.3 新 P0 风险判定</h3>
+<blockquote>
+<p><strong>未发现阻断核心循环的新 P0 风险。</strong> 本规格落地的 AX-2 设计侧（§9）正是 art-bible / accessibility-grade 已标注的<strong>已知协同开放项</strong>（非新风险），本文件将其闭合为可执行的预警触发/时长/信号分层规范。唯一需注意：<strong>S6 未实现</strong>使 §5/§9 的"内容生成"暂时悬空——但这属排期依赖，非设计阻断，已标注"待 S6 落地对接"。</p>
+</blockquote>
+<hr />
+<h2 id="13-ux-phase-4-playtest">13. 验证标准（UX 侧，Phase 4 预制作后 playtest）</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>假设</th>
+<th>方法</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UV1</td>
+<td>不下场也能感到 agency</td>
+<td>Playtest：干预后是否主动观察目标区 ≥2 月、能否归因远端后果</td>
+<td>≥70% 玩家干预后主动观察；≥50% 正确归因（S1 V1/V3）</td>
+</tr>
+<tr>
+<td>UV2</td>
+<td>异步延迟可理解</td>
+<td>Playtest：施放后能否读懂"待生效→渐变→后果"</td>
+<td>≥70% 玩家在 2 月内注意到变化</td>
+</tr>
+<tr>
+<td>UV3</td>
+<td>预警窗口足够</td>
+<td>Playtest：应力区预警后能否在相变前行动</td>
+<td>≥60% 应力预警被响应挽回（S2 V3）</td>
+</tr>
+<tr>
+<td>UV4</td>
+<td>全键盘可玩</td>
+<td>无障碍测试：纯键盘完成核心循环</td>
+<td>100% 核心循环可纯键盘</td>
+</tr>
+<tr>
+<td>UV5</td>
+<td>无认知过载</td>
+<td>眼动/问卷：核心层信息是否过载</td>
+<td>主观负荷 ≤ 中；面板默认收起率 ≥80%</td>
+</tr>
+<tr>
+<td>UV6</td>
+<td>GoalMode 切换无误读</td>
+<td>提问：切换模式是否误认改变世界</td>
+<td>≥80% 理解"仅改判定"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="14">14. 评审检查清单</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UX-C1</td>
+<td>信息架构</td>
+<td>5 面板 + 导航层级 + 关注焦点，默认收起不遮挡</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C2</td>
+<td>交互模型</td>
+<td>间接干预光标流程 + 异步延迟四层反馈 + 反噬软引导 + 地图标记选取</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C3</td>
+<td>HUD 布局</td>
+<td>主屏示意 + 时间尺度联动 LOD 矩阵 + 高速预警强化</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C4</td>
+<td>事件/编年史</td>
+<td>不瞬时消失 + 持久日志 + AX-2 分级 + AX-1 脉冲 + 可检索</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C5</td>
+<td>控制映射</td>
+<td>基础键位 + 全键盘 + 重绑定 UI + 预设</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C6</td>
+<td>Onboarding</td>
+<td>沙盒默认 + 8 步渐进 + 不阻断</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C7</td>
+<td>GoalMode UI</td>
+<td>New Game ⑤项 + 运行期三模式呈现 + 切换不改性</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C8</td>
+<td>AX-2 设计侧</td>
+<td>触发时机 + 前兆时长 + 信号三级分层 + S2/S6 协同接口</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C9</td>
+<td>跨文档一致</td>
+<td>与 S1/S2/S4/art-bible/accessibility 一致；路径不一致已标注</td>
+<td>⚠ 路径待拍板</td>
+</tr>
+<tr>
+<td>UX-C10</td>
+<td>红线遵守</td>
+<td>无认知过载/无支柱漂移/无主导策略/不下场</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>UX-C11</td>
+<td>范围分层</td>
+<td>MVP/核心层/延展层各有边界</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>文策渊注（UX 规格 v1.0.0）</strong>：本规格是 S8 UI/HUD 的前置 UX 输入，也是 art-bible / accessibility-grade 标注的"AX-2 设计侧"协同项的闭合交付。核心赌注与 S1 R1 一致——<strong>不下场的 agency 来自可见的因果影响力</strong>，故 §3 用"印记+待生效+渐变+远端回指"四层反馈把"我影响了世界"讲清楚；§9 把 R3 安全阀从数据层（S2 稳态区间）翻译成玩家可读的"前兆→警告→危机"信号分层。两处需主理人拍板：① UX 规格路径引用不一致（§0）；② S6 未实现使 §5/§9 内容生成悬空，已标注待对接。未发现新 P0 阻断风险。</p>
+</blockquote>
+</div>
+</body>
+</html>

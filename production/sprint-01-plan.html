@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 4 预制作 · 首个冲刺计划（Sprint 01）</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --table-stripe: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding: 48px 28px 96px; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+  }
+  h1 { font-size: 28px; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 18px; }
+  h4 { font-size: 16px; color: var(--muted); }
+  p { margin: 0.8em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--table-stripe); font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  blockquote {
+    margin: 1em 0;
+    padding: 0.4em 1em;
+    border-left: 4px solid var(--accent);
+    background: #f6f8fa;
+    color: var(--muted);
+  }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 1.5em 0;
+  }
+  #toc ul { list-style: none; padding-left: 1.1em; }
+  #toc > ul { padding-left: 0.4em; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">生成自 sprint-01-plan.md · WorldSim 设计文档</div>
+<div class="toc">
+<ul>
+<li><a href="#phase-4-sprint-01">Phase 4 预制作 · 首个冲刺计划（Sprint 01）</a><ul>
+<li><a href="#1-why">1. 目标（Why）</a></li>
+<li><a href="#2-in-out">2. 范围边界（In / Out）</a></li>
+<li><a href="#3-story-productionepicsworldsim-epicsmd-epic-0">3. Story 清单（来自 production/epics/worldsim-epics.md Epic 0）</a></li>
+<li><a href="#4-phase-4-b2b3b4b8">4. Phase 4 入口条件（B2/B3/B4/B8）排期</a></li>
+<li><a href="#5-definition-of-done">5. 验收标准（Definition of Done）</a></li>
+<li><a href="#6">6. 已知风险与缓解</a></li>
+<li><a href="#7">7. 下游依赖与协同</a></li>
+<li><a href="#8-phase-4-phase-5">8. 阶段门（Phase 4 → Phase 5）</a></li>
+<li><a href="#9">9. 下一步动作</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1 id="phase-4-sprint-01">Phase 4 预制作 · 首个冲刺计划（Sprint 01）</h1>
+<h2 id="1-why">1. 目标（Why）</h2>
+<p>Sprint 01 是 WorldSim 的<strong>确定性 Gate-0 垂直切片</strong>：在不碰完整 S1/S2/S3 业务逻辑的前提下，先把"引擎无关的确定性模拟核心 + Unity 胶水层"跑通，让四路 Replay（1×/20×/变速/存读档）在 ≥120 游戏月内逐月哈希一致。<strong>Gate-0 门禁全绿 = 解锁 Epic 1–7（系统实现）的通行证</strong>。</p>
+<blockquote>
+<p>这与架构 ADR-001 方案 C、ADR-002 选项 2、ADR-003 选项 A、ADR-004 选项 1 直接对应。</p>
+</blockquote>
+<h2 id="2-in-out">2. 范围边界（In / Out）</h2>
+<table>
+<thead>
+<tr>
+<th>In（本次 Sprint 必须完成）</th>
+<th>Out（本次 Sprint 不做）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模拟核心 <code>WorldSim.Simulation.*</code> asmdef 与 UnityEngine 边界</td>
+<td>S1 完整干预业务逻辑</td>
+</tr>
+<tr>
+<td><code>SimOrchestrator</code> + S4 双频混合结算（整数序号派生边界）</td>
+<td>S2 完整生态业务逻辑</td>
+</tr>
+<tr>
+<td>确定性数学基座（Quantize / Fix / FNV-1a-64 / xoshiro256** 256-bit 分流）</td>
+<td>S3 完整文明业务逻辑</td>
+</tr>
+<tr>
+<td>序列化往返（二进制快照 + 命令日志 + LOD 分块 + delta）</td>
+<td>完整 UI/HUD 美术实现</td>
+</tr>
+<tr>
+<td>Gate-0 四路 Replay 测试台 + CI 自动门禁</td>
+<td>S6 涌现叙事内容生成</td>
+</tr>
+<tr>
+<td>真实地球 MVP 区域精算（消费 <code>region-presets.json</code>）</td>
+<td>全球真实数据完整管线</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-story-productionepicsworldsim-epicsmd-epic-0">3. Story 清单（来自 <code>production/epics/worldsim-epics.md</code> Epic 0）</h2>
+<table>
+<thead>
+<tr>
+<th>Story</th>
+<th>简述</th>
+<th>验收标准</th>
+<th>关联</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>V0-1</strong></td>
+<td>模拟核心 asmdef 边界</td>
+<td>编译通过；<code>WorldSim.Simulation</code> 不引用 <code>UnityEngine.CoreModule</code></td>
+<td>ADR-001 C</td>
+</tr>
+<tr>
+<td><strong>V0-2</strong></td>
+<td>确定性数学基座</td>
+<td><code>Quantize</code>/<code>Fix</code>/<code>DeterminismHash</code>/<code>RngRegistry</code> 单元测试通过；RNG 256-bit 全量序列化</td>
+<td>ADR-002 / R-N3</td>
+</tr>
+<tr>
+<td><strong>V0-3</strong></td>
+<td><code>SimOrchestrator</code> + 双频结算</td>
+<td>边界由整数月/周序号派生；稳定 ID 排序；week 先于同刻 month；1×/20× 边界序列一致</td>
+<td>ADR-001 / R-N1</td>
+</tr>
+<tr>
+<td><strong>V0-4</strong></td>
+<td>序列化往返</td>
+<td>快照+命令日志可完整往返；Replay 路径④通过</td>
+<td>ADR-004</td>
+</tr>
+<tr>
+<td><strong>V0-5</strong></td>
+<td>Gate-0 四路 Replay 测试台</td>
+<td>同 seed+同干预，1×/20×/变速/存读档，≥120 游戏月，关键指标哈希逐月一致，断言无分叉</td>
+<td>B3</td>
+</tr>
+<tr>
+<td><strong>V0-6</strong></td>
+<td>真实地球 MVP 区域精算</td>
+<td>能正确加载 <code>region-presets.json</code> 6 个预设并生成最小地图基底</td>
+<td>B4</td>
+</tr>
+<tr>
+<td><strong>V0-8</strong></td>
+<td>CI 固定版本锁</td>
+<td>CI env 固定 Unity 6000.0.81f1；<code>assert-burst-pinned</code> 步骤入 CI</td>
+<td>B2 / B8</td>
+</tr>
+<tr>
+<td><strong>V0-9</strong></td>
+<td>Gate-0 CI 自动门禁</td>
+<td><code>.github/workflows/gate0.yml</code> 跑通 V0-5；红即阻塞合并</td>
+<td>B3 / ADR-003 A</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>V0-7（三级回退钩子）= Could，可在 Gate-0 通过后顺延。</p>
+</blockquote>
+<h2 id="4-phase-4-b2b3b4b8">4. Phase 4 入口条件（B2/B3/B4/B8）排期</h2>
+<p>这些来自 <code>docs/architecture/control-checklist.md</code>，必须在 Sprint 01 闭环：</p>
+<ul>
+<li><strong>B2</strong>：CI 锁同 Unity/Burst 版本 → V0-8</li>
+<li><strong>B3</strong>：Quantize + 确定性指标哈希 + Gate-0 四路 Replay 入 CI → V0-2 / V0-3 / V0-5 / V0-9</li>
+<li><strong>B4</strong>：真实地球数据管线 + <code>region-presets.json</code> 消费 → V0-6</li>
+<li><strong>B8</strong>：<code>com.unity.burst</code> 固定版本入 manifest + CI <code>assert-burst-pinned</code> → V0-8</li>
+</ul>
+<h2 id="5-definition-of-done">5. 验收标准（Definition of Done）</h2>
+<ol>
+<li><code>Tests/Gate0/Gate0Determinism</code> 四路 Replay 在本地与 CI 均绿。</li>
+<li><code>Tests/Unit/Determinism</code> 下 Quantize / RNG / 边界 / 稳定 ID / 序列化往返全部绿。</li>
+<li><code>Packages/manifest.json</code> 含固定版本 <code>com.unity.burst</code>；CI 中 <code>assert-burst-pinned</code> 通过。</li>
+<li><code>region-presets.json</code> 6 个预设可在最小地图场景中被加载、序列化往返后一致。</li>
+<li>代码审查通过：无 <code>UnityEngine</code> 进入 <code>WorldSim.Simulation</code>；无 <code>float</code> 边界减法；无 <code>string.GetHashCode</code>。</li>
+</ol>
+<h2 id="6">6. 已知风险与缓解</h2>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>严重度</th>
+<th>来源</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R-N1 浮点累加器边界漂移</td>
+<td><strong>P0</strong></td>
+<td>engineering-lead 发现</td>
+<td>已修：边界改由整数月/周序号派生；V0-3 验收标准强制。</td>
+</tr>
+<tr>
+<td>R-N2 Burst 未入 manifest</td>
+<td><strong>P0</strong></td>
+<td>engineering-lead 发现</td>
+<td>V0-8 固定版本入 manifest + CI <code>assert-burst-pinned</code>。</td>
+</tr>
+<tr>
+<td>R-N3 RNG 只存 128-bit 破坏序列</td>
+<td><strong>P0</strong></td>
+<td>engineering-lead 发现</td>
+<td>已修：xoshiro256** 256-bit 全量入档；V0-2 验收标准强制。</td>
+</tr>
+<tr>
+<td>真实地球数据获取延迟</td>
+<td>P1</td>
+<td>B4</td>
+<td>V0-6 仅做 MVP 区域精算；完整全球管线排 Sprint 4。</td>
+</tr>
+<tr>
+<td>AX-2 音频冗余未补</td>
+<td>P1</td>
+<td>art-director</td>
+<td>视觉/文字冗余已占位；Sprint 02 排 audio-director。</td>
+</tr>
+<tr>
+<td>S6 涌现叙事未实现</td>
+<td>P1</td>
+<td>design-strategist</td>
+<td>事件/编年史内容生成排 Sprint 03+；UX 已预留接口。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7">7. 下游依赖与协同</h2>
+<ul>
+<li><strong>UX 规格</strong> <code>design/ux/ux-spec.md</code> v1.0.0：指导 Sprint 02 表现层开发，尤其是干预光标、GoalMode UI、AX-2 灾害预警冗余。</li>
+<li><strong>资产规格</strong> <code>design/art/asset-spec.md</code> v1.0.0：MVP 190 条资产，VS-1~VS-12 优先，AS-2（P0）不可后补。</li>
+<li><strong>美术圣经</strong> <code>design/art/art-bible.md</code> v1.0.1：AS-2 世界层灾害图标双极兜底已升格 P0。</li>
+<li><strong>可访问性</strong> <code>docs/art/accessibility-grade.md</code> v1.1.0：MVP=Basic / 核心=Standard 目标不变。</li>
+</ul>
+<h2 id="8-phase-4-phase-5">8. 阶段门（Phase 4 → Phase 5）</h2>
+<p><strong>出口条件</strong>（全部满足方可进入 Phase 5 制作）：
+1. Gate-0 门禁全绿（Sprint 01 完成）。
+2. Epic 1–7 Story 拆分完成且与 ADR/B 项映射清晰。
+3. MVP 资产清单锁定（asset-spec）且 VS-1~VS-6 已排入 Sprint 02。
+4. B2/B3/B4/B8 全部闭环。
+5. 无新增 P0 文档/工程不一致。</p>
+<h2 id="9">9. 下一步动作</h2>
+<p>批准本冲刺计划后，程基岩（engineering-lead）即可启动 V0-1（asmdef 边界）→ V0-2（数学基座）→ V0-3（双频结算）流水线。其余成员（design-strategist / art-director / audio-director）待 Gate-0 通过后再进入系统实现与资产生产。</p>
+</div>
+</body>
+</html>

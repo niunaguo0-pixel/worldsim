@@ -1,0 +1,17 @@
+{
+  "name": "WorldSim.Presentation",
+  "rootNamespace": "WorldSim.Presentation",
+  "references": [
+    "WorldSim.Simulation.Core",
+    "WorldSim.Simulation.Time"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
