@@ -7,6 +7,7 @@ namespace WorldSim.Simulation.Core.Serialization
     using WorldSim.Simulation.Core.Math;
     using WorldSim.Simulation.Core.Random;
     using WorldSim.Simulation.Core.Slice;
+    using WorldSim.Simulation.Core.Ecology;
 
     /// <summary>
     /// WorldState 全量二进制快照 (ADR-004 选项 1 / V0-4).
@@ -15,7 +16,7 @@ namespace WorldSim.Simulation.Core.Serialization
     /// </summary>
     public static class WorldStateSerializer
     {
-        public const int SchemaVersion = 3; // P1: 月哈希对齐契约 + EraGate v1.4.4 字段
+        public const int SchemaVersion = 4; // Epic 2: 正式 EcologyState
         public const int Magic = 0x57534D31; // 'WSM1'
 
         public static byte[] Save(WorldState world)
@@ -35,7 +36,7 @@ namespace WorldSim.Simulation.Core.Serialization
             if (magic != Magic)
                 throw new InvalidDataException($"Bad WorldState magic: 0x{magic:X8}");
             int ver = r.ReadInt32();
-            if (ver != SchemaVersion)
+            if (ver != 3 && ver != SchemaVersion)
                 throw new InvalidDataException($"Unsupported schemaVersion {ver}, expected {SchemaVersion}");
 
             ulong seed = r.ReadUInt64();
@@ -67,6 +68,8 @@ namespace WorldSim.Simulation.Core.Serialization
             world.Species = ReadSpecies(r);
             world.Polities = ReadPolities(r);
             world.Resources = ReadResources(r);
+            if (ver >= 4)
+                world.Ecology = ReadEcology(r);
 
             int eventCount = r.ReadInt32();
             world.Events = new List<SimEvent>(eventCount);
@@ -158,6 +161,8 @@ namespace WorldSim.Simulation.Core.Serialization
                 w.WriteDouble(DeterminismMath.Quantize(res.currentAmount, 3));
             }
 
+            WriteEcologyHash(w, world.Ecology);
+
             w.WriteInt32(world.Time.monthIndex);
             w.WriteInt32(world.EraIndex);
 
@@ -193,6 +198,7 @@ namespace WorldSim.Simulation.Core.Serialization
             WriteSpecies(w, SortedCopy(world.Species, s => s.stableId));
             WritePolities(w, SortedCopy(world.Polities, p => p.stableId));
             WriteResources(w, SortedCopy(world.Resources, r => r.stableId));
+            WriteEcology(w, world.Ecology);
 
             var events = new List<SimEvent>(world.Events);
             events.Sort(CompareEvents);
@@ -212,6 +218,7 @@ namespace WorldSim.Simulation.Core.Serialization
             for (int i = 0; i < active.Count; i++) w.WriteInt32(active[i]);
 
             w.WriteInt32(world.InterventionLog.Count);
+            // 命令日志保序（ADR-004）：按追加序写，不为哈希重排因果
             for (int i = 0; i < world.InterventionLog.Count; i++)
             {
                 var iv = world.InterventionLog[i];
@@ -374,6 +381,62 @@ namespace WorldSim.Simulation.Core.Serialization
                 });
             }
             return list;
+        }
+
+        private static void WriteEcology(DeterministicBinaryWriter w, EcologyState eco)
+        {
+            eco = eco ?? new EcologyState();
+            w.WriteByte((byte)eco.CurrentSeason);
+            w.WriteInt32(eco.LastSettledMonth);
+            WriteRegions(w, SortedCopy(eco.Regions, x => x.stableId));
+            WriteEcoSpecies(w, SortedCopy(eco.Species, x => x.stableId));
+            WriteLinks(w, SortedCopy(eco.FoodChain, x => x.stableId));
+            WriteEcoResources(w, SortedCopy(eco.Resources, x => x.stableId));
+            WriteIndicators(w, SortedCopy(eco.Indicators, x => x.stableId));
+        }
+
+        private static EcologyState ReadEcology(DeterministicBinaryReader r)
+        {
+            var e = new EcologyState { CurrentSeason = (Season)r.ReadByte(), LastSettledMonth = r.ReadInt32() };
+            e.Regions = ReadRegions(r); e.Species = ReadEcoSpecies(r); e.FoodChain = ReadLinks(r);
+            e.Resources = ReadEcoResources(r); e.Indicators = ReadIndicators(r);
+            return e;
+        }
+
+        private static void WriteRegions(DeterministicBinaryWriter w, List<EcologyRegionState> xs)
+        {
+            w.WriteInt32(xs.Count); foreach (var x in xs) { w.WriteInt32(x.stableId); w.WriteInt32(x.worldTileId); w.WriteDouble(x.baseRainfall); w.WriteDouble(x.baseTemperature); w.WriteDouble(x.rainfallModifier); w.WriteDouble(x.temperatureModifier); w.WriteDouble(x.terrainEvolution); w.WriteByte((byte)x.terrainPhase); }
+        }
+        private static List<EcologyRegionState> ReadRegions(DeterministicBinaryReader r)
+        {
+            int n = r.ReadInt32(); var xs = new List<EcologyRegionState>(n); for (int i = 0; i < n; i++) xs.Add(new EcologyRegionState { stableId = r.ReadInt32(), worldTileId = r.ReadInt32(), baseRainfall = r.ReadDouble(), baseTemperature = r.ReadDouble(), rainfallModifier = r.ReadDouble(), temperatureModifier = r.ReadDouble(), terrainEvolution = r.ReadDouble(), terrainPhase = (PhaseState)r.ReadByte() }); return xs;
+        }
+        private static void WriteZone(DeterministicBinaryWriter w, HomeostasisZone z)
+        {
+            w.WriteDouble(z.StableLower); w.WriteDouble(z.StableUpper); w.WriteDouble(z.CriticalLower); w.WriteDouble(z.CriticalUpper); w.WriteDouble(z.EquilibriumPoint); w.WriteDouble(z.SelfRepairRate); w.WriteDouble(z.StressDecayFactor); w.WriteInt32(z.StressDurationLimit);
+        }
+        private static HomeostasisZone ReadZone(DeterministicBinaryReader r) => new HomeostasisZone { StableLower = r.ReadDouble(), StableUpper = r.ReadDouble(), CriticalLower = r.ReadDouble(), CriticalUpper = r.ReadDouble(), EquilibriumPoint = r.ReadDouble(), SelfRepairRate = r.ReadDouble(), StressDecayFactor = r.ReadDouble(), StressDurationLimit = r.ReadInt32() };
+        private static void WriteEcoSpecies(DeterministicBinaryWriter w, List<EcologySpeciesState> xs)
+        {
+            w.WriteInt32(xs.Count); foreach (var x in xs) { w.WriteInt32(x.stableId); w.WriteInt32(x.regionId); w.WriteString(x.name); w.WriteByte((byte)x.trophicLevel); w.WriteDouble(x.population); w.WriteDouble(x.birthRate); w.WriteDouble(x.deathRate); w.WriteDouble(x.carryingCapacity); w.WriteDouble(x.climateSensitivity); WriteZone(w, x.homeostasis); w.WriteByte((byte)x.zone); w.WriteInt32(x.stressMonths); w.WriteByte((byte)x.phase); }
+        }
+        private static List<EcologySpeciesState> ReadEcoSpecies(DeterministicBinaryReader r)
+        {
+            int n = r.ReadInt32(); var xs = new List<EcologySpeciesState>(n); for (int i = 0; i < n; i++) xs.Add(new EcologySpeciesState { stableId = r.ReadInt32(), regionId = r.ReadInt32(), name = r.ReadString(), trophicLevel = (SpeciesTrophicLevel)r.ReadByte(), population = r.ReadDouble(), birthRate = r.ReadDouble(), deathRate = r.ReadDouble(), carryingCapacity = r.ReadDouble(), climateSensitivity = r.ReadDouble(), homeostasis = ReadZone(r), zone = (EcologyZone)r.ReadByte(), stressMonths = r.ReadInt32(), phase = (PhaseState)r.ReadByte() }); return xs;
+        }
+        private static void WriteLinks(DeterministicBinaryWriter w, List<FoodChainLink> xs) { w.WriteInt32(xs.Count); foreach (var x in xs) { w.WriteInt32(x.stableId); w.WriteInt32(x.predatorId); w.WriteInt32(x.preyId); w.WriteDouble(x.predationRate); w.WriteDouble(x.dependencyRatio); } }
+        private static List<FoodChainLink> ReadLinks(DeterministicBinaryReader r) { int n = r.ReadInt32(); var xs = new List<FoodChainLink>(n); for (int i = 0; i < n; i++) xs.Add(new FoodChainLink { stableId = r.ReadInt32(), predatorId = r.ReadInt32(), preyId = r.ReadInt32(), predationRate = r.ReadDouble(), dependencyRatio = r.ReadDouble() }); return xs; }
+        private static void WriteEcoResources(DeterministicBinaryWriter w, List<RenewableResourceState> xs) { w.WriteInt32(xs.Count); foreach (var x in xs) { w.WriteInt32(x.stableId); w.WriteInt32(x.regionId); w.WriteByte((byte)x.kind); w.WriteDouble(x.currentAmount); w.WriteDouble(x.maxAmount); w.WriteDouble(x.regenRate); w.WriteDouble(x.harvestRate); WriteZone(w, x.homeostasis); w.WriteByte((byte)x.zone); w.WriteInt32(x.stressMonths); w.WriteByte((byte)x.phase); } }
+        private static List<RenewableResourceState> ReadEcoResources(DeterministicBinaryReader r) { int n = r.ReadInt32(); var xs = new List<RenewableResourceState>(n); for (int i = 0; i < n; i++) xs.Add(new RenewableResourceState { stableId = r.ReadInt32(), regionId = r.ReadInt32(), kind = (ResourceKind)r.ReadByte(), currentAmount = r.ReadDouble(), maxAmount = r.ReadDouble(), regenRate = r.ReadDouble(), harvestRate = r.ReadDouble(), homeostasis = ReadZone(r), zone = (EcologyZone)r.ReadByte(), stressMonths = r.ReadInt32(), phase = (PhaseState)r.ReadByte() }); return xs; }
+        private static void WriteIndicators(DeterministicBinaryWriter w, List<EcologicalIndicatorState> xs) { w.WriteInt32(xs.Count); foreach (var x in xs) { w.WriteInt32(x.stableId); w.WriteInt32(x.regionId); w.WriteString(x.code); w.WriteDouble(x.currentValue); w.WriteDouble(x.previousValue); w.WriteByte((byte)x.zone); w.WriteInt32(x.stressMonths); w.WriteString(x.warningCode); } }
+        private static List<EcologicalIndicatorState> ReadIndicators(DeterministicBinaryReader r) { int n = r.ReadInt32(); var xs = new List<EcologicalIndicatorState>(n); for (int i = 0; i < n; i++) xs.Add(new EcologicalIndicatorState { stableId = r.ReadInt32(), regionId = r.ReadInt32(), code = r.ReadString(), currentValue = r.ReadDouble(), previousValue = r.ReadDouble(), zone = (EcologyZone)r.ReadByte(), stressMonths = r.ReadInt32(), warningCode = r.ReadString() }); return xs; }
+        private static void WriteEcologyHash(DeterministicBinaryWriter w, EcologyState eco)
+        {
+            eco = eco ?? new EcologyState();
+            w.WriteByte((byte)eco.CurrentSeason); w.WriteInt32(eco.LastSettledMonth);
+            foreach (var s in SortedCopy(eco.Species, x => x.stableId)) { w.WriteInt32(s.stableId); w.WriteDouble(DeterminismMath.Quantize(s.population, 3)); w.WriteByte((byte)s.zone); w.WriteInt32(s.stressMonths); w.WriteByte((byte)s.phase); }
+            foreach (var r in SortedCopy(eco.Resources, x => x.stableId)) { w.WriteInt32(r.stableId); w.WriteDouble(DeterminismMath.Quantize(r.currentAmount, 3)); w.WriteByte((byte)r.zone); w.WriteInt32(r.stressMonths); w.WriteByte((byte)r.phase); }
+            foreach (var i in SortedCopy(eco.Indicators, x => x.stableId)) { w.WriteInt32(i.stableId); w.WriteDouble(DeterminismMath.Quantize(i.currentValue, 3)); w.WriteByte((byte)i.zone); w.WriteInt32(i.stressMonths); }
         }
 
         private static List<T> SortedCopy<T>(List<T> src, Func<T, int> idOf)

@@ -164,6 +164,13 @@ namespace WorldSim.Simulation.Time
 
         private void StepEcology(int month)
         {
+            // 双轨接入：默认沿用 Gate-0 V0 桩；正式 S2 由 Ecology 挂钩接管。
+            if (_world.ModuleToggles.TryGetValue("ecology.v2", out bool enabled) &&
+                enabled && _world.EcologySettler != null)
+            {
+                _world.EcologySettler.SettleMonth(_world, month);
+                return;
+            }
             var rng = _world.Rng.GetStream("ecology"); // class 引用, NextU64 就地推进
             foreach (var sp in SortedByStableId(_world.Species))
             {

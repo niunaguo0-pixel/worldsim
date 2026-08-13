@@ -10,7 +10,7 @@ namespace WorldSim.Simulation.Intervention
     /// Epic 1 干预系统 (S1-1~S1-4):
     /// 参数注册红线、pending 延迟、持续衰减、紧急干预 24 月冷却、因果链事件.
     /// </summary>
-    public sealed class InterventionSystem : IInterventionTarget, IMonthlyInterventionSettler
+    public sealed class InterventionSystem : IInterventionTarget, IMonthlyInterventionSettler, IInterventionParameterSource
     {
         public const int EmergencyCooldownMonths = 24;
         public const int DefaultDevBiasDurationMonths = 4; // 3–5 月衰减区间中值
@@ -134,6 +134,11 @@ namespace WorldSim.Simulation.Intervention
             if (!_values.TryGetValue(key, out double v))
                 throw new KeyNotFoundException("未注册参数: " + key);
             return v;
+        }
+
+        public bool TryGetParameterValue(string key, out double value)
+        {
+            return _values.TryGetValue(key, out value);
         }
 
         public int GetEmergencyCooldownRemaining(EmergencyType type) =>

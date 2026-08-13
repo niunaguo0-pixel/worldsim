@@ -94,14 +94,14 @@ namespace WorldSim.Tests.Unit
         }
 
         [Test]
-        public void Fallback_RoundTripsInSnapshot_Schema3()
+        public void Fallback_RoundTripsInSnapshot_Schema4()
         {
             var world = WorldState.CreateMinimalSlice(11);
             world.Fallback.SetLevel(DeterminismFallbackLevel.SerialFix);
             byte[] bytes = WorldStateSerializer.Save(world);
             var loaded = WorldStateSerializer.Load(bytes);
             Assert.AreEqual(DeterminismFallbackLevel.SerialFix, loaded.Fallback.Level);
-            Assert.AreEqual(3, WorldStateSerializer.SchemaVersion);
+            Assert.AreEqual(4, WorldStateSerializer.SchemaVersion);
         }
 
         [Test]

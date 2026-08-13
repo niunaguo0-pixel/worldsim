@@ -6,6 +6,7 @@
     "WorldSim.Simulation.Time",
     "WorldSim.Simulation.WorldMap",
     "WorldSim.Simulation.Intervention",
+    "WorldSim.Simulation.Ecology",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],
