@@ -204,7 +204,7 @@ void Update(float dtReal) {
 ### 4.3 Replay 框架（命令日志 + 月边界快照 + 指标哈希）
 - **输入**：`worldSeed` + `moduleToggles` + `InterventionLog`（按**游戏月时间戳**记录的干预序列，非现实时间）。
 - **四路对跑**（Gate-0 规范）：①全程 1× ②全程 20× ③中途变速(1×→20×→1×，含多次暂停) ④中途存档→退出→读档续跑。
-- **指标哈希**：每月级大账结束，对关键指标（各 `Polity.population`/总产出/总军力/稳定度、各物种 `population`、资源 `currentAmount`、科技层级、`RngRegistry` 全状态）先**量化到固定精度**再计算稳定哈希（FNV-1a / xxHash over 确定性字节流）。
+- **指标哈希**：每月级大账结束，对关键指标（各 `Polity.population`/总产出/总军力/稳定度、各物种 `population`、资源 `currentAmount`、科技层级、EraGate 观测字段、`RngRegistry` 全状态）先**量化到固定精度**再计算稳定哈希（**FNV-1a-64** over 确定性字节流；xxHash 未实现）。
 - **比对**：逐月比对四路哈希序列，任一月分叉即失败，并输出首个分叉月用于定位。
 
 ### 4.4 Gate-0 落地路径（P0 首道里程碑门）
@@ -364,16 +364,17 @@ PROJ="C:/Users/guowang/Desktop/11/WorldSim"
   -executeMethod WorldSim.Editor.BuildScript.BuildWin64 \
   -logFile build.log -quit
 
-# 运行 Gate-0 确定性测试（EditMode，headless）
+# 运行 Gate-0 确定性测试（EditMode，headless；推荐全量 WorldSim.Tests）
 "$UNITY" -batchmode -nographics -projectPath "$PROJ" \
-  -runTests -testPlatform EditMode -testFilter Gate0Determinism \
+  -runTests -testPlatform EditMode -assemblyNames WorldSim.Tests \
   -testResults gate0.xml -logFile gate0.log -quit
 ```
-- `BuildScript.cs`（`WorldSim.Editor`）暴露 `[InitializeOnLoad]` 静态 `BuildWin64()`，读取 `ProjectSettings` 出包到 `Builds/Win64/`。
+- `BuildScript.cs`（`WorldSim.Editor`）暴露静态入口 `BuildWin64()`（`-executeMethod WorldSim.Editor.BuildScript.BuildWin64`），读取启用场景出包到仓库根 `Builds/Win64/`。
 
 ### 8.4 CI 管线（已采纳 ADR-003 选项 A：本地 CLI 脚本 + GitHub Actions 自动门禁；Gate-0 确定性门禁）
-- 本地 CLI 脚本 + GitHub Actions 工作流（headless Unity）：`build` → `runTests(Gate0Determinism)` → **哈希分叉则 CI 红**，阻断合入（四路 Replay 自动门禁）。
+- 本地 CLI 脚本 + GitHub Actions：`pin-versions`（Burst/asmdef/presets）→ self-hosted Windows 全量 `WorldSim.Tests` EditMode → **哈希分叉则 CI 红**，阻断合入。
 - Gate-0 门禁项见 `control-checklist.md`；CI 即把该清单自动化；完全 headless，符合用户"走 CLI 不碰 Hub"。
+- 自托管 job 使用 `shell: powershell`（Windows PowerShell 5.1）；勿依赖本机未装的 `pwsh`。
 
 ### 8.5 CLI 约束
 - 禁止依赖 Hub GUI 的任何交互（如 Package Manager 弹窗）；包版本锁定于 `Packages/manifest.json`（已确认：URP 17.0.4 / AI Navigation 2.0.0 / Input System 1.8.1 / Timeline 1.8.6 / uGUI 2.0.0）。

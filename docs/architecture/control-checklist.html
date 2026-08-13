@@ -128,49 +128,49 @@
 <td>G0-1</td>
 <td>固定步长唯一时间源</td>
 <td>代码审计：模拟核心零 <code>Time.deltaTime</code>/墙钟/帧计数引用</td>
-<td>☐ 待做</td>
+<td>✅ Sprint 1 / Epic 0</td>
 </tr>
 <tr>
 <td>G0-2</td>
 <td>双频 pass 按边界时间戳升序合并</td>
 <td><code>Update</code> 用 §3.3 修正伪代码（week 先 month 后，同刻确定）</td>
-<td>☐ 待做</td>
+<td>✅ Sprint 1 / Epic 0</td>
 </tr>
 <tr>
 <td>G0-3</td>
 <td>稳定 ID 排序遍历</td>
 <td><code>activeEntities</code> 及所有聚落/政体/物种集合遍历前 <code>SortedByStableId</code></td>
-<td>☐ 待做</td>
+<td>✅ Sprint 1 / Epic 0</td>
 </tr>
 <tr>
 <td>G0-4</td>
 <td>RNG 分流入档</td>
 <td><code>RngRegistry</code> 每子系统独立流（xoshiro256<strong>，非 <code>System.Random</code>，内部状态 256-bit = 4×uint64）；</strong>全部 4 个 uint64 随 <code>WorldState</code> 序列化**（R-N3：仅存 128-bit 会破坏序列致 Gate-0 路径④分叉）</td>
-<td>☐ 待做</td>
+<td>✅ Sprint 1 / Epic 0</td>
 </tr>
 <tr>
 <td>G0-5</td>
 <td>禁不确定并发与浮点漂移</td>
 <td>并行仅叶子、固定块序归约、禁 fast-math；关键量 <code>Quantize</code></td>
-<td>☐ 待做（Gate-0 串行期可暂缓并行）</td>
+<td>✅ 切片期（Gate-0 串行；Quantize 写回）</td>
 </tr>
 <tr>
 <td>G0-6</td>
 <td>四路 Replay 哈希一致</td>
 <td>同 seed + 同干预序列：①1× ②20× ③变速(含暂停) ④存读档；≥120 游戏月；每月指标哈希（人口/资源/物种/科技/稳定度/RNG 状态）逐月完全一致</td>
-<td>☐ 待做</td>
+<td>✅ Sprint 1 / Epic 0</td>
 </tr>
 <tr>
 <td>G0-7</td>
 <td>哈希函数确定</td>
-<td>用 FNV-1a/xxHash over 确定性字节流；禁 <code>string.GetHashCode</code></td>
-<td>☐ 待做</td>
+<td>用 <strong>FNV-1a-64</strong> over 确定性字节流（xxHash 未实现）；禁 <code>string.GetHashCode</code></td>
+<td>✅ Sprint 1 / Epic 0</td>
 </tr>
 <tr>
 <td>G0-8</td>
 <td>三级回退可用</td>
 <td>实现降速度档 / 串行化定点化 / lockstep 三档切换钩子（未触发不强制启用）</td>
-<td>☐ 待做</td>
+<td>✅ Sprint 1 / Epic 0</td>
 </tr>
 </tbody>
 </table>
@@ -295,7 +295,7 @@
 </tbody>
 </table>
 <blockquote>
-<p>判定：架构评审判定（<code>architecture-review.md</code>）维持 <strong>CONCERNS</strong>；但 ADR-001~004 已锁定，原 CONCERNS 收敛为 <strong>B2–B4 执行项</strong>。B1 已随 ADR-002 选项 2 采纳而清零；<strong>B2–B4 保持为 Phase 4 预制作入口条件，须 Phase 4 启动时排期</strong>（详见 §D）。B6/B7 为建议项，有既定缓解杠杆，不阻断。<strong>B8（R-N2）为新增 Phase 4 入口/验收项：Burst 依赖须固定版本锁入 manifest 并由 CI 断言 pinned，因 Gate-0 确定性依赖"同 Burst 设置"（B2）；manifest 实际修改属 Sprint 1 代码工程动作，本清单仅标注入口/验收条件，不在本文修改 manifest。</strong></p>
+<p>判定：架构评审原 CONCERNS 已收敛。B1 ✅；B2/B3/B8 ✅（V0-8/V0-9）；B4 ⏳ MVP 消费已做、完整 Natural Earth/DEM → Epic 5。权威状态见 <code>control-checklist.md</code> v1.0.4。</p>
 </blockquote>
 <hr />
 <h2 id="d-phase-4">D. Phase 4 预制作入口条件</h2>
@@ -308,7 +308,7 @@
 6. ✅ New Game 装配 + <code>region-presets.json</code> 导入器可用（落实 B4）。
 7. ✅ 模块化开关框架（S7）配置结构就位（MVP 默认关科技/政治/宗教/文化/法律/军事/族群）。
 8. ✅ 视觉：NPR 微缩沙盘渲染原型（低多边形+手绘纹理+URP）由林绘澄美术圣经驱动，不与确定性冲突（表现层插值不回写逻辑态）。
-9. ☐ <code>com.unity.burst</code> 以固定版本加入 <code>Packages/manifest.json</code>（R-N2 / V0-8 验收项），且 CI 加入 <code>assert-burst-pinned</code> 静态检查，断言 Burst 版本锁定（落实 B2"同 Burst 设置"）。注：manifest 实际修改属 Sprint 1 代码工程动作，本清单仅将其标注为 Phase 4 入口/验收项，不在本文修改 manifest（R-N2 仅文档标注）。</p>
+9. ✅ <code>com.unity.burst@1.8.30</code> 直依 + <code>assert-burst-pinned</code>（B2/B8 已闭环）。</p>
 <blockquote>
 <p>环境核对笔记 <code>docs/unity-setup-complete.md</code>（Unity 6000.0.81f1 / CLI v1.0.0-beta.3 已确认）为 ADR-003 的事实基础，本文不重写。</p>
 </blockquote>

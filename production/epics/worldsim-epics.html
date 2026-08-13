@@ -178,11 +178,11 @@
 </ul>
 </div>
 
-<h1 id="worldsim-phase-4-epic-story">WorldSim — Phase 4 预制作 Epic / Story 拆分</h1>
+<p><em>部分字段已与 md 同步（P1/P2 文档修复）；权威源仍为 worldsim-epics.md</em></p><h1 id="worldsim-phase-4-epic-story">WorldSim — Phase 4 预制作 Epic / Story 拆分</h1>
 <blockquote>
 <p>本文是工程视角的 Phase 4 实装拆解：<strong>确定性垂直切片优先</strong>（Gate-0 首道门），再按系统铺开。
 <strong>不写设计 / 美术 / UX 规格</strong>——所有 Story 均为工程实现项，验收标准对齐 GDD 需求 ID 与架构/ADR 契约。
-测试框架脚手架见 <code>tests/</code>（含 <code>tests/contracts/determinism-contract.md</code>、<code>tests/gate0/</code>、<code>tests/unit/</code>、CI 见 <code>.github/workflows/gate0.yml</code>）。</p>
+测试框架脚手架见 <code>tests/</code>（含 <code>tests/contracts/determinism-contract.md</code>、<code>WorldSim/Assets/Scripts/Tests/Gate0/</code>、<code>WorldSim/Assets/Scripts/Tests/Unit/</code>、CI 见 <code>.github/workflows/gate0.yml</code>）。</p>
 </blockquote>
 <hr />
 <h2 id="0">0. 阅读说明</h2>
@@ -332,13 +332,13 @@
 <h3 id="story-v0-2-quantize-fix-rng">Story V0-2 — 确定性数学基座（Quantize / Fix / 确定性哈希 / RNG 分流）</h3>
 <ul>
 <li><strong>优先级</strong>：Must ｜ <strong>映射</strong>：B3 / G0-4 / G0-5 / G0-7 / ADR-002（选项 2）</li>
-<li><strong>需求追溯</strong>：架构 §4.2（RNG 分流 xoshiro256**）/ §4.5（Quantize + Fix 兜底）/ §4.3（确定性哈希 FNV-1a/xxHash）/ S4 §7.3 铁律 4、5</li>
+<li><strong>需求追溯</strong>：架构 §4.2（RNG 分流 xoshiro256**）/ §4.5（Quantize + Fix 兜底）/ §4.3（确定性哈希 FNV-1a-64）/ S4 §7.3 铁律 4、5</li>
 <li><strong>验收标准</strong>：</li>
 <li><code>Quantize(double/decimal, int decimals)</code> 与 <code>Fix</code>（Q 格式 32.32）落于 <code>WorldSim.Simulation.Core.Math</code>；关键累加量写回前经 <code>Quantize</code>。</li>
-<li><code>RngRegistry</code>：每子系统独立流 <code>streamId = Hash(worldSeed, systemTag)</code>；PRNG 用 <strong>xoshiro256</strong>（<strong>禁用 <code>System.Random</code></strong>）；每条流 128-bit 状态可（反）序列化。</li>
+<li><code>RngRegistry</code>：每子系统独立流 <code>streamId = Hash(worldSeed, systemTag)</code>；PRNG 用 <strong>xoshiro256</strong>（<strong>禁用 <code>System.Random</code></strong>）；每条流 256-bit 全状态可（反）序列化。</li>
 <li><code>DeterminismHash</code>：FNV-1a-64 / xxHash over <strong>确定性字节流</strong>（显式小端、固定字段顺序、集合先排序后写）；<strong>禁用 <code>string.GetHashCode</code></strong>。</li>
 <li><code>DeterminismHash</code> 与 <code>Quantize</code> 输出在 PC x64 同 Unity/Burst 下逐位一致（单测覆盖）。</li>
-<li><strong>测试证据</strong>：<code>tests/unit/QuantizeTests.cs</code>、<code>tests/unit/RngStreamTests.cs</code>、<code>tests/contracts/determinism-contract.md</code>。</li>
+<li><strong>测试证据</strong>：<code>WorldSim/Assets/Scripts/Tests/Unit/QuantizeTests.cs</code>、<code>WorldSim/Assets/Scripts/Tests/Unit/RngStreamTests.cs</code>、<code>tests/contracts/determinism-contract.md</code>。</li>
 </ul>
 <h3 id="story-v0-3-simorchestrator-s4">Story V0-3 — SimOrchestrator + S4 双频混合结算时间驱动</h3>
 <ul>
@@ -350,7 +350,7 @@
 <li><code>activeEntities</code> 及所有聚落/政体/物种集合遍历前 <code>SortedByStableId</code>（铁律 3）；<code>HashSet</code> 迭代序不得直接进逻辑。</li>
 <li><code>SimOrchestrator</code> 月级大账顺序对齐 S3 §4.3（16 步）+ S2（11 步）+ S1（干预结算）；末步重算 <code>activeEntities</code>。</li>
 <li>切片内最小 S2/S3 桩：1 聚落 + 少量物种 + 月/周事件产出，足以在 ≥120 月内触发 ≥1 时代过渡、≥1 战事、≥1 灾害（覆盖周级通道）。</li>
-<li><strong>测试证据</strong>：<code>tests/unit/SimOrchestratorBoundaryTests.cs</code>（1× 与 20× 产出<strong>完全一致</strong>的边界/事件序列）、<code>tests/unit/StableIdOrderingTests.cs</code>。</li>
+<li><strong>测试证据</strong>：<code>WorldSim/Assets/Scripts/Tests/Unit/SimOrchestratorBoundaryTests.cs</code>（1× 与 20× 产出<strong>完全一致</strong>的边界/事件序列）、<code>WorldSim/Assets/Scripts/Tests/Unit/StableIdOrderingTests.cs</code>。</li>
 </ul>
 <h3 id="story-v0-4-adr-004">Story V0-4 — 序列化往返（ADR-004 全量快照 + 命令日志）</h3>
 <ul>
@@ -361,7 +361,7 @@
 <li>序列化含：<code>WorldState</code> 全量 + <code>RngRegistry</code> 全状态 + <code>gameClock</code>/累加器 + <code>moduleToggles</code> + <code>InterventionLog</code>。</li>
 <li>读档恢复<strong>逐位一致</strong>状态；续跑演化与无存档路逐月哈希一致（Gate-0 路径④成立）。</li>
 <li><code>InterventionLog</code>（按游戏月时间戳）随档保存，作为 Replay 输入。</li>
-<li><strong>测试证据</strong>：<code>tests/unit/SerializationRoundTripTests.cs</code>（往返后 <code>DeterminismHash</code> 不变；四路之一用存读档）。</li>
+<li><strong>测试证据</strong>：<code>WorldSim/Assets/Scripts/Tests/Unit/SerializationRoundTripTests.cs</code>（往返后 <code>DeterminismHash</code> 不变；四路之一用存读档）。</li>
 </ul>
 <h3 id="story-v0-5-gate-0-replay">Story V0-5 — Gate-0 四路 Replay 测试台</h3>
 <ul>
@@ -372,8 +372,8 @@
 <li>时长 <strong>≥120 游戏月</strong>，含 ≥1 时代过渡 + ≥1 战事 + ≥1 灾害。</li>
 <li>每月级大账结束对关键指标（各 <code>Polity.population</code>/总产出/总军力/稳定度、各 <code>Species.population</code>、<code>Resource.currentAmount</code>、科技层级、<code>RngRegistry</code> 全状态）<strong>先 Quantize 再 DeterminismHash</strong>，逐月比对四路序列。</li>
 <li>任一月分叉即失败，并输出<strong>首个分叉月</strong>用于定位；断言无分叉。</li>
-<li>测试以 EditMode headless 运行，CI 过滤器 <code>-testFilter Gate0Determinism</code>。</li>
-<li><strong>测试证据</strong>：<code>tests/gate0/Gate0DeterminismTest.cs</code>（四类 SpeedProfile + 统一哈希比对器）。</li>
+<li>测试以 EditMode headless 运行，CI 过滤器 <code>-assemblyNames WorldSim.Tests（全量 EditMode）</code>。</li>
+<li><strong>测试证据</strong>：<code>WorldSim/Assets/Scripts/Tests/Gate0/Gate0DeterminismTest.cs</code>（四类 SpeedProfile + 统一哈希比对器）。</li>
 </ul>
 <h3 id="story-v0-6-mvp-region-presetsjson">Story V0-6 — 真实地球 MVP 区域精算：消费 <code>region-presets.json</code></h3>
 <ul>
@@ -384,7 +384,7 @@
 <li>预设 → <code>WorldInitConfig</code>：<code>center/radiusDeg</code> → <code>startRegionCenter/Radius</code>；<code>ethnicSeed</code> → <code>RealEthnicDistribution</code>（地缘模式空间映射）；<code>legalFamilyDefault</code> → <code>legalTraditionSeed</code> <strong>偏置（绝不指定单国家族）</strong>。</li>
 <li><strong>MVP 区域精算</strong>：按 (lat,lon,radius) 在真实地球网格上初始化 High 精度起始区域（切片内可用简化真实数据：1:50m 海岸线 + 低精度高程 + 简化气候，S5 §5.1）。</li>
 <li><strong>红线落地</strong>：空间映射只给「偏置/种子」，不得为任一国家/聚落指定具体 <code>lawFamily</code>/<code>ethnicGroup</code>（B5 红线前置校验，单测覆盖）。</li>
-<li><strong>测试证据</strong>：<code>tests/unit/RegionPresetConsumptionTests.cs</code>（消费契约 + 红线断言；归入 <code>tests/unit/</code> 后续补）。</li>
+<li><strong>测试证据</strong>：<code>WorldSim/Assets/Scripts/Tests/Unit/RegionPresetConsumptionTests.cs</code>（消费契约 + 红线断言；归入 <code>WorldSim/Assets/Scripts/Tests/Unit/</code> 后续补）。</li>
 </ul>
 <h3 id="story-v0-7">Story V0-7 — 三级回退钩子（不强制启用）</h3>
 <ul>
@@ -401,7 +401,7 @@
 <li><strong>需求追溯</strong>：控制清单 B2 / 架构 §8.4 / <code>docs/unity-setup-complete.md</code>（Unity 6000.0.81f1）</li>
 <li><strong>验收标准</strong>：</li>
 <li>CI 锁定 <strong>Unity 6000.0.81f1</strong>（编辑器官方版本号 env 固定，非 <code>latest</code>）。</li>
-<li><strong>Burst 版本锁</strong>：由于当前 <code>Packages/manifest.json</code> <strong>未含 <code>com.unity.burst</code></strong>（见 §7 R-N2），本 Story 负责将其以<strong>固定版本</strong>加入 manifest，并在 CI 增加「manifest 必须声明 <code>com.unity.burst@&lt;pin&gt;</code>」断言步骤——B2 的「同 Burst 设置」在启用 Job/Burst（回退2）前必须先闭环。</li>
+<li><strong>Burst 版本锁</strong>：由于当前 <code>Packages/manifest.json</code> <strong>已含 <code>com.unity.burst@1.8.30</code></strong>（见 §7 R-N2），本 Story 负责将其以<strong>固定版本</strong>加入 manifest，并在 CI 增加「manifest 必须声明 <code>com.unity.burst@&lt;pin&gt;</code>」断言步骤——B2 的「同 Burst 设置」在启用 Job/Burst（回退2）前必须先闭环。</li>
 <li>编辑器版本与 manifest 声明一致，CI 首次配置可复现。</li>
 <li><strong>测试证据</strong>：<code>.github/workflows/gate0.yml</code> 的 <code>pin-versions</code> 步骤 + manifest 断言。</li>
 </ul>
@@ -410,7 +410,7 @@
 <li><strong>优先级</strong>：Must ｜ <strong>映射</strong>：B3 / ADR-003（选项 A）</li>
 <li><strong>需求追溯</strong>：控制清单 G0 全项 / 架构 §8.4（headless 跑 Gate0Determinism，分叉即红）</li>
 <li><strong>验收标准</strong>：</li>
-<li><code>.github/workflows/gate0.yml</code>：build → <code>-runTests -testFilter Gate0Determinism</code> → <strong>哈希分叉则 CI 红、阻断合入</strong>。</li>
+<li><code>.github/workflows/gate0.yml</code>：build → <code>-runTests -assemblyNames WorldSim.Tests（全量 EditMode）</code> → <strong>哈希分叉则 CI 红、阻断合入</strong>。</li>
 <li>门禁项 G0-1~G0-8 全部由 V0-1~V0-5 的测试覆盖并接入 CI。</li>
 <li>gate0.xml 作为 artifact 上传；首个分叉月信息进入日志。</li>
 <li><strong>测试证据</strong>：<code>.github/workflows/gate0.yml</code>（见交付物 3）。</li>
@@ -427,7 +427,7 @@
 <ul>
 <li><strong>优先级</strong>：Must ｜ <strong>映射</strong>：ADR-001 / S1 §4.1 / 架构 §9.3</li>
 <li><strong>验收标准</strong>：S2 注册 <code>rainfall_/temperature_/birthRate_/population_/regenRate_</code>；S3 注册 <code>devBias_{agriculture|hunt|defense|trade|faith|military|ethnicity|culture}_{sid}</code> + <code>foodReserveCoeff_/techUnlockBoost_/happinessMod_*</code>；<code>RegisterInterventionParameter(key,def,min,max)</code> / <code>ApplyIntervention(key,delta,durationMonths)</code> / <code>GetParameterValue(key)</code> 实现；不可干预派生状态（Era/legitimacy/LawStage/GovernanceType/EthnicComposition/LawFamily/InstitutionProfile）<strong>拒绝注册</strong>（断言）。</li>
-<li><strong>测试证据</strong>：<code>tests/unit/InterventionParameterTests.cs</code>（注册/范围钳制/红线拒绝）。</li>
+<li><strong>测试证据</strong>：<code>WorldSim/Assets/Scripts/Tests/Unit/InterventionParameterTests.cs</code>（注册/范围钳制/红线拒绝）。</li>
 </ul>
 <h3 id="story-s1-2-pending-interventionlog">Story S1-2 — 异步延迟 pending 队列 + InterventionLog</h3>
 <ul>
@@ -583,7 +583,7 @@
 <h2 id="10-epic-8">10. Epic 8 — 测试基础设施（持续）</h2>
 <ul>
 <li><strong>T1</strong>（Must）：维护 Gate-0 四路 Replay 作为常驻 CI 门禁（V0-5/V0-9 已建，持续演进指标集）。</li>
-<li><strong>T2</strong>（Should）：单元回归随各 Epic 增长（<code>tests/unit/</code> 按子系统分组）。</li>
+<li><strong>T2</strong>（Should）：单元回归随各 Epic 增长（<code>WorldSim/Assets/Scripts/Tests/Unit/</code> 按子系统分组）。</li>
 <li><strong>T3</strong>（Should）：性能回归——核心层全开月级 pass 预算 &lt;50ms（B6，需 profiler 实测，回退2 杠杆）。</li>
 <li><strong>T4</strong>（Could）：跨平台 Replay（Mac/ARM）触发 <code>Fix</code> 全局切换的回归（ADR-002 兜底）。</li>
 </ul>
@@ -637,7 +637,7 @@
 <ul>
 <li><strong>负责 Story</strong>：<strong>V0-8（Must）</strong> + V0-9（CI 门禁载体）。</li>
 <li><strong>依赖</strong>：无前置；但依赖 <code>docs/unity-setup-complete.md</code> 已确认的 Unity 6000.0.81f1。</li>
-<li><strong>关键阻塞（见 §7 R-N2）</strong>：当前 <code>Packages/manifest.json</code> <strong>不含 <code>com.unity.burst</code></strong>。B2 的「同 Burst 设置」要求 Burst 必须固定版本入 manifest，并在 CI 断言。V0-8 负责补 <code>com.unity.burst@&lt;pin&gt;</code> 与 manifest 断言步骤。</li>
+<li><strong>关键阻塞（见 §7 R-N2）</strong>：当前 <code>Packages/manifest.json</code> <strong>已含 <code>com.unity.burst@1.8.30</code></strong>。B2 的「同 Burst 设置」要求 Burst 必须固定版本入 manifest，并在 CI 断言。V0-8 负责补 <code>com.unity.burst@&lt;pin&gt;</code> 与 manifest 断言步骤。</li>
 <li><strong>验收标准</strong>：CI env 固定 <code>UNITY_VERSION=6000.0.81f1</code>；<code>manifest.json</code> 声明 <code>com.unity.burst@&lt;pin&gt;</code>；CI 步骤 <code>assert-burst-pinned</code> 通过；Gate-0 在同版本下复现。</li>
 <li><strong>排期</strong>：Sprint 1 第 1 周（与 V0-9 同批进 CI）。</li>
 </ul>
@@ -645,7 +645,7 @@
 <ul>
 <li><strong>负责 Story</strong>：<strong>V0-2（Quantize/Fix/哈希/RNG）</strong> + <strong>V0-4（序列化，RNG 状态入档）</strong> + <strong>V0-5（四路 Replay 测试台）</strong> + <strong>V0-9（CI 门禁）</strong>。</li>
 <li><strong>依赖</strong>：V0-2 → V0-4 → V0-5 → V0-9（流水线顺序）。</li>
-<li><strong>验收标准</strong>：<code>Quantize</code> + <code>DeterminismHash</code>（FNV-1a/xxHash，禁 <code>string.GetHashCode</code>）落地并被 V0-5 调用；四路 Replay ≥120 月逐月哈希一致；G0-1~G0-8 全部由测试覆盖并接入 CI；分叉即红、阻断合入。</li>
+<li><strong>验收标准</strong>：<code>Quantize</code> + <code>DeterminismHash</code>（FNV-1a-64，禁 <code>string.GetHashCode</code>）落地并被 V0-5 调用；四路 Replay ≥120 月逐月哈希一致；G0-1~G0-8 全部由测试覆盖并接入 CI；分叉即红、阻断合入。</li>
 <li><strong>排期</strong>：Sprint 1 第 1–2 周（数学基座 V0-2 先就位，再串 V0-4/5/9）。</li>
 </ul>
 <h3 id="b4-region-presets">B4 — 真实地球数据获取/导入管线 + region-presets 消费</h3>
@@ -669,7 +669,7 @@
 <h2 id="14">14. 假设与待主理人确认项</h2>
 <ol>
 <li><strong>切片内的「最小 S2/S3 桩」粒度</strong>：本文假设切片用 1 聚落 + 少量物种 + 可编排战事/灾害即可满足「≥1 时代过渡 + ≥1 战事 + ≥1 灾害」触发周级通道；若需更真实触发条件，Epic 2/3 的 Must Story 可能需前移——请主理人确认切片桩范围。</li>
-<li><strong>Burst 版本</strong>：manifest 当前缺 Burst（R-N2）；V0-8 将选定一个固定版本（建议 1.8.x，与 Unity 6000.0.81f1 兼容）。如需特定版本请指示。</li>
+<li><strong>Burst 版本</strong>：Burst 已钉死 1.8.30（R-N2）；V0-8 将选定一个固定版本（建议 1.8.x，与 Unity 6000.0.81f1 兼容）。如需特定版本请指示。</li>
 <li><strong>量化精度（Quantize decimals）</strong>：各指标的具体小数位需在 V0-2 实现时由 playtest 校准（过粗丢信息、过细仍漂移）；初值建议人口/军力/产出 Quantize 到整数或 1 位、稳定度/资源到 3 位——以 <code>determinism-contract.md</code> 为可调中心。</li>
 <li><strong>CI Runner 形态</strong>：<code>.github/workflows/gate0.yml</code> 按「自带 Unity 许可证 + 预装/安装 6000.0.81f1 的 runner」撰写；若改用 Unity Cloud Build（ADR-003 选项 C 延展）需另行调整。</li>
 </ol>
