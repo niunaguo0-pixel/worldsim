@@ -2,6 +2,10 @@ namespace WorldSim.Simulation.WorldMap
 {
     using System;
     using System.Collections.Generic;
+    using WorldSim.Simulation.Core.Civilization;
+
+    public enum StartEra : byte { Primordial = 0, EarlyModern = 1, Modern = 2 }
+    public enum StartMode : byte { PrimordialSandbox = 0, ModernGeopolitics = 1 }
 
     /// <summary>法系偏置枚举 (仅作 legalTraditionSeed, 绝不绑定单国家族 — B5).</summary>
     public enum LegalFamilyBias
@@ -49,6 +53,18 @@ namespace WorldSim.Simulation.WorldMap
     public sealed class LegalTraditionSeed
     {
         public LegalFamilyBias Bias;
+
+        public LawFamily ToLawFamily()
+        {
+            switch (Bias)
+            {
+                case LegalFamilyBias.CivilLaw: return LawFamily.CivilLaw;
+                case LegalFamilyBias.CommonLaw: return LawFamily.CommonLaw;
+                case LegalFamilyBias.SocialistLaw: return LawFamily.SocialistLaw;
+                case LegalFamilyBias.CustomaryLaw: return LawFamily.CustomaryLaw;
+                default: throw new ArgumentOutOfRangeException(nameof(Bias), Bias, "Unsupported legal family bias");
+            }
+        }
     }
 
     /// <summary>
@@ -58,6 +74,11 @@ namespace WorldSim.Simulation.WorldMap
     public sealed class WorldInitConfig
     {
         public string PresetKey;
+        public StartEra StartEra = StartEra.Modern;
+        public StartMode StartMode = StartMode.ModernGeopolitics;
+        public int BorderYear = 2026;
+        public bool UseRealBorders = true;
+        public string GeoDataBuild = "";
         public double StartRegionCenterLat;
         public double StartRegionCenterLon;
         public double StartRegionRadiusDeg;
@@ -65,6 +86,20 @@ namespace WorldSim.Simulation.WorldMap
         public LegalTraditionSeed LegalTraditionSeed;
         /// <summary>MVP 区域网格分辨率 (度/格); High 精度切片默认 0.5°.</summary>
         public double DegPerTile = 0.5;
+
+        public void NormalizeDerivedMode()
+        {
+            UseRealBorders = StartEra != global::WorldSim.Simulation.WorldMap.StartEra.Primordial;
+            StartMode = UseRealBorders
+                ? global::WorldSim.Simulation.WorldMap.StartMode.ModernGeopolitics
+                : global::WorldSim.Simulation.WorldMap.StartMode.PrimordialSandbox;
+            if (!UseRealBorders) BorderYear = 0;
+            if (StartMode == global::WorldSim.Simulation.WorldMap.StartMode.PrimordialSandbox)
+            {
+                EthnicDistribution = null;
+                LegalTraditionSeed = null;
+            }
+        }
     }
 
     /// <summary>简化 WorldTile (V0-6 MVP High 区; 完整 S5 管线后续扩展).</summary>

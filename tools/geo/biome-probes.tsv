@@ -1,0 +1,26 @@
+# id	lat	lon	expectedBiome	evidence
+amazon	-4	-62	TropicalRainforest	Koppen-Geiger tropical wet fixed sample
+congo	0	23	TropicalRainforest	Koppen-Geiger tropical wet fixed sample
+borneo	1	113	TropicalRainforest	Koppen-Geiger tropical wet fixed sample
+sahara	24	15	Desert	Koppen-Geiger hot desert fixed sample
+arabia	24	48	Desert	Koppen-Geiger hot desert fixed sample
+gobi	42	102	Desert	Koppen-Geiger cold desert fixed sample
+central_australia	-25	134	Desert	Koppen-Geiger desert fixed sample
+atacama	-23	-70	Desert	Koppen-Geiger desert fixed sample
+greenland	75	-42	Ice	Koppen-Geiger ice cap fixed sample
+antarctica	-80	20	Ice	Koppen-Geiger ice cap fixed sample
+siberia	64	100	BorealForest	Koppen-Geiger subarctic fixed sample
+canada	62	-105	BorealForest	Koppen-Geiger subarctic fixed sample
+britain	52	-2	TemperateForest	Koppen-Geiger oceanic fixed sample
+france	47	2	TemperateForest	Koppen-Geiger temperate fixed sample
+china_plain	34	112	TemperateForest	Koppen-Geiger temperate fixed sample
+east_africa	-2	35	Savanna	Koppen-Geiger tropical savanna fixed sample
+sahel	13	2	Savanna	Koppen-Geiger tropical savanna fixed sample
+india	22	78	Savanna	Koppen-Geiger tropical seasonal fixed sample
+himalaya	28	86	Alpine	ETOPO 2022 high elevation fixed sample
+andes	-20	-70	Alpine	ETOPO 2022 high elevation fixed sample
+rockies	45	-110	Alpine	ETOPO 2022 high elevation fixed sample
+pacific	0	-150	Ocean	Natural Earth ocean fixed sample
+atlantic	20	-35	Ocean	Natural Earth ocean fixed sample
+indian_ocean	-20	80	Ocean	Natural Earth ocean fixed sample
+mediterranean	35	20	Ocean	Natural Earth sea fixed sample

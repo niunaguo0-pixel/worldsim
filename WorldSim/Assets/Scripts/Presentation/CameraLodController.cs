@@ -103,7 +103,8 @@ namespace WorldSim.Presentation
 
         private bool TryInitialize()
         {
-            if (_initialized) return true;
+            if (_initialized && _camera != null) return true;
+            if (_camera == null) _initialized = false;
             if (_camera == null) _camera = Camera.main;
             if (_camera == null) return false;
 

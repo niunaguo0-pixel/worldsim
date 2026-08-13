@@ -9,6 +9,7 @@ namespace WorldSim.Simulation.Core.Serialization
     using WorldSim.Simulation.Core.Slice;
     using WorldSim.Simulation.Core.Ecology;
     using WorldSim.Simulation.Core.Civilization;
+    using WorldSim.Simulation.Core.WorldGeography;
 
     /// <summary>
     /// WorldState 全量二进制快照 (ADR-004 选项 1 / V0-4).
@@ -17,14 +18,25 @@ namespace WorldSim.Simulation.Core.Serialization
     /// </summary>
     public static class WorldStateSerializer
     {
-        public const int SchemaVersion = 5; // Epic 3: 正式 CivilizationState
+        public const int SchemaVersion = 6; // Epic 5: 地图配置/静态 bundle 引用/动态覆盖
         public const int Magic = 0x57534D31; // 'WSM1'
 
         public static byte[] Save(WorldState world)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             using var w = new DeterministicBinaryWriter();
-            WriteAll(w, world);
+            WriteAll(w, world, SchemaVersion);
+            return w.ToArray();
+        }
+
+        /// <summary>迁移/回归工具：导出 3/4/5 格式，验证 Schema 6 的向后读取路径。</summary>
+        public static byte[] SaveLegacy(WorldState world, int targetSchemaVersion)
+        {
+            if (world == null) throw new ArgumentNullException(nameof(world));
+            if (targetSchemaVersion < 3 || targetSchemaVersion > 5)
+                throw new ArgumentOutOfRangeException(nameof(targetSchemaVersion));
+            using var w = new DeterministicBinaryWriter();
+            WriteAll(w, world, targetSchemaVersion);
             return w.ToArray();
         }
 
@@ -37,7 +49,7 @@ namespace WorldSim.Simulation.Core.Serialization
             if (magic != Magic)
                 throw new InvalidDataException($"Bad WorldState magic: 0x{magic:X8}");
             int ver = r.ReadInt32();
-            if (ver != 3 && ver != 4 && ver != SchemaVersion)
+            if (ver != 3 && ver != 4 && ver != 5 && ver != SchemaVersion)
                 throw new InvalidDataException($"Unsupported schemaVersion {ver}, expected {SchemaVersion}");
 
             ulong seed = r.ReadUInt64();
@@ -73,6 +85,8 @@ namespace WorldSim.Simulation.Core.Serialization
                 world.Ecology = ReadEcology(r);
             if (ver >= 5)
                 world.Civilization = ReadCivilization(r);
+            if (ver >= 6)
+                world.Map = ReadWorldMapState(r);
 
             int eventCount = r.ReadInt32();
             world.Events = new List<SimEvent>(eventCount);
@@ -166,6 +180,7 @@ namespace WorldSim.Simulation.Core.Serialization
 
             WriteEcologyHash(w, world.Ecology);
             WriteCivilizationHash(w, world.Civilization);
+            WriteWorldMapHash(w, world.Map);
 
             w.WriteInt32(world.Time.monthIndex);
             w.WriteInt32(world.EraIndex);
@@ -173,10 +188,10 @@ namespace WorldSim.Simulation.Core.Serialization
             return DeterminismMath.DeterminismHash(w.ToArray());
         }
 
-        private static void WriteAll(DeterministicBinaryWriter w, WorldState world)
+        private static void WriteAll(DeterministicBinaryWriter w, WorldState world, int schemaVersion)
         {
             w.WriteInt32(Magic);
-            w.WriteInt32(SchemaVersion);
+            w.WriteInt32(schemaVersion);
             w.WriteUInt64(world.worldSeed);
 
             w.WriteDouble(world.Time.gameClock);
@@ -202,8 +217,9 @@ namespace WorldSim.Simulation.Core.Serialization
             WriteSpecies(w, SortedCopy(world.Species, s => s.stableId));
             WritePolities(w, SortedCopy(world.Polities, p => p.stableId));
             WriteResources(w, SortedCopy(world.Resources, r => r.stableId));
-            WriteEcology(w, world.Ecology);
-            WriteCivilization(w, world.Civilization);
+            if (schemaVersion >= 4) WriteEcology(w, world.Ecology);
+            if (schemaVersion >= 5) WriteCivilization(w, world.Civilization);
+            if (schemaVersion >= 6) WriteWorldMapState(w, world.Map);
 
             var events = new List<SimEvent>(world.Events);
             events.Sort(CompareEvents);
@@ -471,6 +487,104 @@ namespace WorldSim.Simulation.Core.Serialization
             c=c??new CivilizationState(); w.WriteInt32(c.LastSettledMonth); w.WriteDouble(DeterminismMath.Quantize(c.EcoImpactCoefficient,3));
             foreach(var s in SortedCopy(c.Settlements,x=>x.stableId)){w.WriteInt32(s.stableId);w.WriteDouble(DeterminismMath.Quantize(s.population,0));w.WriteByte((byte)s.tier);w.WriteDouble(DeterminismMath.Quantize(s.prosperity,3));}
             foreach(var p in SortedCopy(c.Polities,x=>x.stableId)){w.WriteInt32(p.stableId);w.WriteDouble(DeterminismMath.Quantize(p.population,0));w.WriteDouble(DeterminismMath.Quantize(p.output,3));w.WriteDouble(DeterminismMath.Quantize(p.stability,3));w.WriteInt32(p.techTier);w.WriteInt32(p.lawStage);w.WriteByte((byte)p.governance);}
+        }
+
+        private static void WriteWorldMapState(DeterministicBinaryWriter w, WorldMapState map)
+        {
+            map = map ?? new WorldMapState();
+            w.WriteString(map.GeoDataBuild ?? "");
+            w.WriteString(map.ConfigKey ?? "");
+            w.WriteString(map.ManifestChecksum ?? "");
+            var config = map.Config ?? new WorldMapConfigSnapshot();
+            w.WriteInt32(config.StartEra);
+            w.WriteInt32(config.StartMode);
+            w.WriteInt32(config.BorderYear);
+            w.WriteBool(config.UseRealBorders);
+            w.WriteDouble(config.StartRegionCenterLat);
+            w.WriteDouble(config.StartRegionCenterLon);
+            w.WriteDouble(config.StartRegionRadiusDeg);
+            var chunks = new List<WorldMapChunkRef>(map.StaticChunks ?? new List<WorldMapChunkRef>());
+            chunks.Sort((a, b) => string.CompareOrdinal(a.ChunkId, b.ChunkId));
+            w.WriteInt32(chunks.Count);
+            foreach (var chunk in chunks)
+            {
+                w.WriteString(chunk.ChunkId ?? "");
+                w.WriteByte((byte)chunk.Lod);
+                w.WriteString(chunk.RelativePath ?? "");
+                w.WriteString(chunk.Checksum ?? "");
+            }
+            var changes = new List<WorldTileOverride>(map.DynamicOverrides ?? new List<WorldTileOverride>());
+            changes.Sort((a, b) => a.TileId.CompareTo(b.TileId));
+            w.WriteInt32(changes.Count);
+            foreach (var item in changes)
+            {
+                w.WriteInt32(item.TileId);
+                w.WriteBool(item.HasElevation);
+                w.WriteDouble(item.ElevationMeters);
+                w.WriteBool(item.HasBiome);
+                w.WriteByte((byte)item.Biome);
+            }
+        }
+
+        private static WorldMapState ReadWorldMapState(DeterministicBinaryReader r)
+        {
+            var map = new WorldMapState
+            {
+                GeoDataBuild = r.ReadString(),
+                ConfigKey = r.ReadString(),
+                ManifestChecksum = r.ReadString(),
+                Config = new WorldMapConfigSnapshot
+                {
+                    StartEra = r.ReadInt32(),
+                    StartMode = r.ReadInt32(),
+                    BorderYear = r.ReadInt32(),
+                    UseRealBorders = r.ReadBool(),
+                    StartRegionCenterLat = r.ReadDouble(),
+                    StartRegionCenterLon = r.ReadDouble(),
+                    StartRegionRadiusDeg = r.ReadDouble()
+                }
+            };
+            int count = r.ReadInt32();
+            for (int i = 0; i < count; i++)
+                map.StaticChunks.Add(new WorldMapChunkRef
+                {
+                    ChunkId = r.ReadString(), Lod = (MapLodLevel)r.ReadByte(),
+                    RelativePath = r.ReadString(), Checksum = r.ReadString()
+                });
+            count = r.ReadInt32();
+            for (int i = 0; i < count; i++)
+                map.DynamicOverrides.Add(new WorldTileOverride
+                {
+                    TileId = r.ReadInt32(), HasElevation = r.ReadBool(),
+                    ElevationMeters = r.ReadDouble(), HasBiome = r.ReadBool(),
+                    Biome = (BiomeType)r.ReadByte()
+                });
+            return map;
+        }
+
+        private static void WriteWorldMapHash(DeterministicBinaryWriter w, WorldMapState map)
+        {
+            map = map ?? new WorldMapState();
+            w.WriteString(map.GeoDataBuild ?? "");
+            w.WriteString(map.ManifestChecksum ?? "");
+            var config = map.Config ?? new WorldMapConfigSnapshot();
+            w.WriteInt32(config.StartEra);
+            w.WriteInt32(config.StartMode);
+            w.WriteInt32(config.BorderYear);
+            w.WriteBool(config.UseRealBorders);
+            w.WriteDouble(DeterminismMath.Quantize(config.StartRegionCenterLat, 4));
+            w.WriteDouble(DeterminismMath.Quantize(config.StartRegionCenterLon, 4));
+            w.WriteDouble(DeterminismMath.Quantize(config.StartRegionRadiusDeg, 4));
+            var changes = new List<WorldTileOverride>(map.DynamicOverrides ?? new List<WorldTileOverride>());
+            changes.Sort((a, b) => a.TileId.CompareTo(b.TileId));
+            foreach (var item in changes)
+            {
+                w.WriteInt32(item.TileId);
+                w.WriteBool(item.HasElevation);
+                w.WriteDouble(DeterminismMath.Quantize(item.ElevationMeters, 1));
+                w.WriteBool(item.HasBiome);
+                w.WriteByte((byte)item.Biome);
+            }
         }
 
         private static List<T> SortedCopy<T>(List<T> src, Func<T, int> idOf)

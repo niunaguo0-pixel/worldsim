@@ -4,7 +4,7 @@ namespace WorldSim.Simulation.Core.Civilization
 
     public enum SettlementTier : byte { Village, Town, City, Metro }
     public enum GovernanceType : byte { CustomaryCouncil, Chiefdom, CityState, Kingdom }
-    public enum LawFamily : byte { CustomaryLaw, CivilLaw, CommonLaw, ReligiousLaw }
+    public enum LawFamily : byte { CustomaryLaw, CivilLaw, CommonLaw, ReligiousLaw, SocialistLaw }
     public enum TitleTier : byte { None, Chief, King, Emperor }
     public enum ScaleTier : byte { Local, Regional, Continental, Global }
     public enum DominionMode : byte { None, Direct, Tributary, Federal }

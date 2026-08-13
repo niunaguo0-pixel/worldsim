@@ -6,6 +6,7 @@ namespace WorldSim.Simulation.Core
     using WorldSim.Simulation.Core.Civilization;
     using WorldSim.Simulation.Core.Random;
     using WorldSim.Simulation.Core.Slice;
+    using WorldSim.Simulation.Core.WorldGeography;
 
     /// <summary>
     /// WorldState 聚合根 — 确定性状态唯一真相源 (架构 §2.1 / §9.6).
@@ -33,6 +34,10 @@ namespace WorldSim.Simulation.Core
         public Dictionary<string, bool> ModuleToggles;
         /// <summary>G0-8 三级回退钩子; 默认 None, 不自动触发.</summary>
         public DeterminismFallback Fallback;
+        /// <summary>可持久地图态：仅配置、静态 bundle 引用与动态覆盖。</summary>
+        public WorldMapState Map;
+        /// <summary>运行时只读地理服务；transient，不直接序列化。</summary>
+        public IWorldGeography Geography;
         /// <summary>可选 S1 月结算器 (可玩月循环 / InterventionSystem).</summary>
         public IMonthlyInterventionSettler InterventionSettler;
         public IMonthlyEcologySettler EcologySettler;
@@ -56,6 +61,8 @@ namespace WorldSim.Simulation.Core
             ModuleToggles = new Dictionary<string, bool>();
             ModuleToggles["generation.inheritance"] = false;
             Fallback = new DeterminismFallback(DeterminismFallbackLevel.None);
+            Map = new WorldMapState();
+            Geography = null;
             InterventionSettler = null;
             EcologySettler = null;
             CivilizationSettler = null;

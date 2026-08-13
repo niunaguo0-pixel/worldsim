@@ -1,0 +1,11 @@
+# WorldSim geo-v1 offline derivative
+schemaVersion=1
+buildId=geo-v1-simplified-real-samples-20260813
+fidelity=simplified-real-earth-fixed-samples-not-full-source
+manifestChecksum=ada287b2529fbb7f01e8964b0569b9bee453aaee53701ca602e1d8636ab66a0a
+chunk=low-global|Low|low-global.wgeo.gz|ac4616b1502ec25124d233380549076e721ea373c6d906d0ed8c74fdf148e07e
+chunk=mid-global|Mid|mid-global.wgeo.gz|3f422777b926f8ba5b84db299eaf314ee6a09c9e452287831f1d6055806616d0
+chunk=high-global|High|high-global.wgeo.gz|70c5b5f1e5beff33396dae7ab2fb205f2b323080df2294bbc5be0034c50d081c
+asset=political-2026.tsv|d8f205abda8ffaeb368c0cb3d8cfc7061dbfafb40f3e0f8d0ddd732b4cdbb123
+asset=biome-probes.tsv|dcb357e45ad3b3221553d0993f38ee16f29561c08ec929f0ccb6872489b48360
+asset=NOTICE.md|204cd6c994c6c2f0d3d9c6f122af44f3780940c9c6be135469058558dbf8a255

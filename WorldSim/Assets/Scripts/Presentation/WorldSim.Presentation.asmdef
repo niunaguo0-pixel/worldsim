@@ -5,6 +5,7 @@
     "WorldSim.Simulation.Core",
     "WorldSim.Simulation.Time",
     "WorldSim.Simulation.Intervention",
+    "WorldSim.Simulation.WorldMap",
     "Unity.InputSystem"
   ],
   "includePlatforms": [],

@@ -6,6 +6,7 @@ namespace WorldSim.Simulation.Civilization
     using WorldSim.Simulation.Core.Civilization;
     using WorldSim.Simulation.Core.Ecology;
     using WorldSim.Simulation.Core.Math;
+    using WorldSim.Simulation.Core.WorldGeography;
 
     /// <summary>S3 固定十六步文明月结；关闭 civilization.v2 时完全不参与 Gate-0 桩路径。</summary>
     public sealed class CivilizationSimEngine : IMonthlyCivilizationSettler
@@ -14,7 +15,7 @@ namespace WorldSim.Simulation.Civilization
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (world.Civilization == null || world.Civilization.Settlements.Count == 0)
-                world.Civilization = CreateMinimalState();
+                world.Civilization = CreateMinimalState(world.Geography);
             world.ModuleToggles["civilization.v2"] = true;
             var engine = new CivilizationSimEngine();
             world.CivilizationSettler = engine;
@@ -30,7 +31,7 @@ namespace WorldSim.Simulation.Civilization
             ApplyEcologyModifiers(world, civ);        // 2
             StepIndividuals(world, civ, month);       // 3
             StepEconomy(civ);                         // 4
-            StepSettlements(civ);                     // 5
+            StepSettlements(world, civ);              // 5
             StepTechnology(civ);                      // 6
             StepSociety(civ);                         // 7
             StepReligion(civ);                        // 8
@@ -125,13 +126,19 @@ namespace WorldSim.Simulation.Civilization
             }
         }
 
-        private static void StepSettlements(CivilizationState civ)
+        private static void StepSettlements(WorldState world, CivilizationState civ)
         {
             foreach (var s in Sorted(civ.Settlements, x => x.stableId))
             {
                 var e = EconomyFor(civ, s.stableId);
                 double cc = CarryingCapacity(s);
                 double growth = e != null && e.foodSurplus > 0 ? 0.015 : -0.01;
+                if (world.Geography != null)
+                {
+                    var tile = world.Geography.GetTile(s.worldTileId);
+                    if (!tile.IsLand || tile.Slope > 20) growth -= 0.05;
+                    else if (world.Geography.HasWaterNearby(s.worldTileId)) growth += 0.003;
+                }
                 if (s.population > cc) growth -= 0.04;
                 s.population = Q(Math.Max(0, s.population * (1 + growth)));
                 s.prosperity = Q(Math.Max(0, Math.Min(1, s.prosperity + growth)));
@@ -161,7 +168,7 @@ namespace WorldSim.Simulation.Civilization
         private static void StepEthnicity(CivilizationState civ) { } // MVP 单主导族群
         private static void StepLaw(CivilizationState civ)
         {
-            foreach (var p in civ.Polities) { p.lawStage = Math.Min(5, p.lawStage + 1); p.lawFamily = LawFamily.CustomaryLaw; }
+            foreach (var p in civ.Polities) p.lawStage = Math.Min(5, p.lawStage + 1);
         }
         private static void StepPolitics(CivilizationState civ)
         {
@@ -233,15 +240,32 @@ namespace WorldSim.Simulation.Civilization
         private static List<T> Sorted<T>(List<T> xs, Func<T, int> id) { var a = new List<T>(xs); a.Sort((x, y) => id(x).CompareTo(id(y))); return a; }
         private static double Q(double x) => DeterminismMath.Quantize(x, 3);
 
-        public static CivilizationState CreateMinimalState()
+        public static CivilizationState CreateMinimalState(IWorldGeography geography = null)
         {
             var c = new CivilizationState();
-            c.Settlements.Add(new CivilizationSettlementState { stableId = 1, worldTileId = 200, polityId = 100, population = 100, housingCapacity = 300, foodCapacity = 250, spaceCapacity = 500, prosperity = .5 });
+            int tileId = ResolveDefaultTile(geography);
+            c.Settlements.Add(new CivilizationSettlementState { stableId = 1, worldTileId = tileId, polityId = 100, population = 100, housingCapacity = 300, foodCapacity = 250, spaceCapacity = 500, prosperity = .5 });
             c.Polities.Add(new CivilizationPolityState { stableId = 100, techTier = 1, stability = .5, legitimacy = .4, militaryPower = 1 });
             c.Economies.Add(new CivilizationEconomyState { stableId = 1, settlementId = 1, food = 30, wood = 10 });
             c.Tech.Add(new TechProgressState { stableId = 1, polityId = 100 });
             c.Individuals.Add(new IndividualState { stableId = 1, settlementId = 1, alive = true, health = 1 });
             return c;
+        }
+
+        private static int ResolveDefaultTile(IWorldGeography geography)
+        {
+            if (geography == null) return 0;
+            var candidates = new[]
+            {
+                new GeoCoordinate(33, 44), new GeoCoordinate(34, 110),
+                new GeoCoordinate(26, 31), new GeoCoordinate(25, 78)
+            };
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                var tile = geography.GetTile(candidates[i], MapLodLevel.High);
+                if (tile.IsLand && tile.Biome != BiomeType.Ice && tile.Slope < 20) return tile.TileId;
+            }
+            return geography.GetTile(candidates[0], MapLodLevel.Low).TileId;
         }
     }
 }

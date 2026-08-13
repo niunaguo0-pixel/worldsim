@@ -6,6 +6,7 @@ namespace WorldSim.Simulation.Ecology
     using WorldSim.Simulation.Core.Ecology;
     using WorldSim.Simulation.Core.Math;
     using WorldSim.Simulation.Core.Slice;
+    using WorldSim.Simulation.Core.WorldGeography;
 
     /// <summary>
     /// S2 十一步确定性生态月结。所有集合以 stableId 排序；
@@ -19,7 +20,7 @@ namespace WorldSim.Simulation.Ecology
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (world.Ecology == null || world.Ecology.Species.Count == 0)
-                world.Ecology = CreateMinimalState();
+                world.Ecology = CreateMinimalState(world.Geography);
             world.ModuleToggles["ecology.v2"] = true;
             var engine = new EcologySimEngine();
             world.EcologySettler = engine;
@@ -242,7 +243,7 @@ namespace WorldSim.Simulation.Ecology
         private static double SafeRatio(double a, double b) => b <= Epsilon ? 0.0 : a / b;
         private static double Q(double value) => DeterminismMath.Quantize(value, 3);
 
-        public static EcologyState CreateMinimalState()
+        public static EcologyState CreateMinimalState(IWorldGeography geography = null)
         {
             var z = new HomeostasisZone
             {
@@ -251,8 +252,10 @@ namespace WorldSim.Simulation.Ecology
                 StressDecayFactor = 0.4, StressDurationLimit = 6
             };
             var state = new EcologyState();
-            // MVP 区域映射 Food 资源 stableId=200，S1 rainfall_/temperature_ 参数可直接落点。
-            state.Regions.Add(new EcologyRegionState { stableId = 1, worldTileId = 200, baseRainfall = 1, baseTemperature = 20 });
+            int worldTileId = ResolveDefaultTile(geography);
+            double rain = geography == null ? 1 : geography.GetTile(worldTileId).BaseRainfallMm;
+            double temp = geography == null ? 20 : geography.GetTile(worldTileId).BaseTemperatureC;
+            state.Regions.Add(new EcologyRegionState { stableId = 1, worldTileId = worldTileId, baseRainfall = rain, baseTemperature = temp });
             state.Species.Add(new EcologySpeciesState { stableId = 10, regionId = 1, name = "Plant", trophicLevel = SpeciesTrophicLevel.Plant, population = 600, birthRate = .2, deathRate = .05, carryingCapacity = 1000, climateSensitivity = .5, homeostasis = z });
             state.Species.Add(new EcologySpeciesState { stableId = 11, regionId = 1, name = "Herbivore", trophicLevel = SpeciesTrophicLevel.Herbivore, population = 150, birthRate = .12, deathRate = .04, carryingCapacity = 400, climateSensitivity = .6, homeostasis = z });
             state.Species.Add(new EcologySpeciesState { stableId = 12, regionId = 1, name = "Carnivore", trophicLevel = SpeciesTrophicLevel.Carnivore, population = 30, birthRate = .08, deathRate = .03, carryingCapacity = 100, climateSensitivity = .4, homeostasis = z });
@@ -262,6 +265,13 @@ namespace WorldSim.Simulation.Ecology
             state.Resources.Add(new RenewableResourceState { stableId = 201, regionId = 1, kind = ResourceKind.Fishery, currentAmount = 65, maxAmount = 100, regenRate = 2, homeostasis = z });
             state.Indicators.Add(new EcologicalIndicatorState { stableId = 300, regionId = 1, code = "food-chain-health", currentValue = 1 });
             return state;
+        }
+
+        private static int ResolveDefaultTile(IWorldGeography geography)
+        {
+            if (geography == null) return 0;
+            var tile = geography.GetTile(new GeoCoordinate(33, 44), MapLodLevel.High);
+            return tile.TileId;
         }
     }
 }

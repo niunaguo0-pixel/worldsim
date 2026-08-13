@@ -19,7 +19,7 @@ env:
   BURST_VERSION_PIN: "1.8.30"
   PROJECT_PATH: "WorldSim"
   # 至少应覆�?Gate0Determinism 四路 + 单元确定性套件（本地基线�?34�?2�?
-  GATE0_MIN_TESTS: "42"
+  GATE0_MIN_TESTS: "110"
 jobs:
   pin-versions:
     name: V0-8 �?Pins + G0-1 asmdef
@@ -50,6 +50,10 @@ jobs:
       - name: P1 �?region-presets design↔StreamingAssets sync
         shell: pwsh
         run: ./tests/ci/assert-region-presets-synced.ps1
+
+      - name: S5 geo bundle buildId and checksums
+        shell: pwsh
+        run: ./tests/ci/assert-geo-bundle.ps1
 
   gate0:
     name: V0-9 �?EditMode Gate-0 suite

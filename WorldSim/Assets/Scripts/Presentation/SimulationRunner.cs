@@ -1,9 +1,12 @@
 namespace WorldSim.Presentation
 {
+    using System;
+    using System.IO;
     using UnityEngine;
     using WorldSim.Simulation.Core;
     using WorldSim.Simulation.Intervention;
     using WorldSim.Simulation.Time;
+    using WorldSim.Simulation.WorldMap;
 
     /// <summary>
     /// Unity 胶水 (P1 / 可玩月循环): Update 只传 dtReal; 挂载干预系统 + HUD + 可见沙盘.
@@ -31,6 +34,27 @@ namespace WorldSim.Presentation
         private void Awake()
         {
             _world = WorldState.CreateMinimalSlice(worldSeed, speedMultiplier: 1);
+            WorldMapViewSnapshot mapSnapshot;
+            try
+            {
+                var mapConfig = new WorldInitConfig
+                {
+                    PresetKey = "fertile_crescent",
+                    StartEra = StartEra.Modern,
+                    StartRegionCenterLat = 33,
+                    StartRegionCenterLon = 44,
+                    StartRegionRadiusDeg = 8
+                };
+                string geoRoot = Path.Combine(Application.streamingAssetsPath, "Geo", "v1");
+                WorldMapFactory.Build(geoRoot, mapConfig, _world);
+                mapSnapshot = WorldMapViewSnapshot.Capture(_world.Geography, _world.Map.GeoDataBuild);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("WorldSim geo bundle load failed: " + ex);
+                mapSnapshot = new WorldMapViewSnapshot
+                    { BundleAvailable = false, Error = ex.Message };
+            }
             _orchestrator = new SimOrchestrator(_world);
 
             if (attachInterventionSystem)
@@ -46,7 +70,7 @@ namespace WorldSim.Presentation
                 fx.Bind(_interventions);
             }
 
-            SandboxBindings sandbox = EnsureVisibleSandbox();
+            SandboxBindings sandbox = EnsureVisibleSandbox(mapSnapshot);
             _cameraLod = gameObject.GetComponent<CameraLodController>();
             if (_cameraLod == null) _cameraLod = gameObject.AddComponent<CameraLodController>();
             _cameraLod.Bind(
@@ -113,27 +137,19 @@ namespace WorldSim.Presentation
             _timeSnapshot = _timePresentation.Capture(_world, pendingCount);
         }
 
-        /// <summary>地面 + 聚落色块，避免「只有天空太阳」空场景。</summary>
-        private static SandboxBindings EnsureVisibleSandbox()
+        /// <summary>真实地球低模 mesh + 聚落；仅 bundle 缺失时出现明确错误占位。</summary>
+        private static SandboxBindings EnsureVisibleSandbox(WorldMapViewSnapshot mapSnapshot)
         {
             GameObject root = GameObject.Find("WorldSim_Sandbox");
             if (root == null)
                 root = new GameObject("WorldSim_Sandbox");
 
-            GameObject ground = GameObject.Find("WorldSim_Ground");
+            GameObject ground = GameObject.Find("WorldSim_RealEarthMap")
+                ?? GameObject.Find("WorldSim_GeoBundleError");
             if (ground == null)
             {
-                ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-                ground.name = "WorldSim_Ground";
+                ground = new WorldMapPresenter().Build(mapSnapshot);
                 ground.transform.position = Vector3.zero;
-                ground.transform.localScale = new Vector3(2.5f, 1f, 2.5f);
-                var gr = ground.GetComponent<Renderer>();
-                if (gr != null)
-                {
-                    gr.material = new Material(Shader.Find("Universal Render Pipeline/Lit")
-                        ?? Shader.Find("Standard"));
-                    gr.material.color = new Color(0.35f, 0.55f, 0.28f);
-                }
             }
             ground.transform.SetParent(root.transform, true);
 
@@ -211,9 +227,9 @@ namespace WorldSim.Presentation
         private static void AutoBootstrapIfMissing()
         {
 #if UNITY_2023_1_OR_NEWER
-            if (Object.FindAnyObjectByType<SimulationRunner>() != null) return;
+            if (UnityEngine.Object.FindAnyObjectByType<SimulationRunner>() != null) return;
 #else
-            if (Object.FindObjectOfType<SimulationRunner>() != null) return;
+            if (UnityEngine.Object.FindObjectOfType<SimulationRunner>() != null) return;
 #endif
             var go = new GameObject("WorldSim_PlayableLoop");
             go.AddComponent<SimulationRunner>();
