@@ -1,0 +1,7 @@
+[project]
+name = "worldsim-geo-builder"
+version = "0.1.0"
+description = "Deterministic WorldSim geo-v1 fetch/build tooling"
+requires-python = ">=3.10"
+# Keep in sync with requirements.txt, which explains why numpy is the only pin.
+dependencies = ["numpy==2.3.2"]

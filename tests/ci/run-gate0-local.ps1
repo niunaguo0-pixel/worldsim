@@ -55,6 +55,11 @@ if (-not (Test-Path $out)) {
 $tr = $xml."test-run"
 Write-Host "result=$($tr.result) total=$($tr.total) passed=$($tr.passed) failed=$($tr.failed)"
 $failed = [int]$tr.failed + [int]$tr.errors
-$min = 110
+# Task 6: 新增 6 个真实数据探针 (WorldMapEpic5Tests) + 1 个 Task5 占位替换 (Task5DiscoveryTests)
+# + 1 个 buildId 断言 (WorldMapPresentationTests). 真实地理 (build/geo-task4-full) 在 CI 缺失时
+# 4 个 RealGeo 测试 Ignore, 故 CI 基线 = 本地 152 - 4 = 148。
+# (Task 6 评审修复: 删除与 RealData_KoppenProbesMeetEightyPercentThreshold 重复的
+#  FixedBiomeProbes_MeetEightyPercent, 本地 153 -> 152, CI 基线 149 -> 148。)
+$min = 148
 if ($failed -gt 0 -or [int]$tr.total -lt $min) { exit 1 }
 exit 0

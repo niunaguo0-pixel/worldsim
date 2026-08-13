@@ -101,6 +101,8 @@ namespace WorldSim.Simulation.Core.WorldGeography
         public int StartMode;
         public int BorderYear;
         public bool UseRealBorders;
+        /// <summary>BorderView 以整数持久化 (0=DeFactoControl, 1=SovereigntyClaims); Schema 7+.</summary>
+        public int BorderView;
         public double StartRegionCenterLat;
         public double StartRegionCenterLon;
         public double StartRegionRadiusDeg;

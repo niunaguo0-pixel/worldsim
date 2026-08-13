@@ -11,6 +11,8 @@ namespace WorldSim.Tests.Unit
     [Category("Epic5WorldMap")]
     public class WorldMapPresentationTests
     {
+        // Task 6: 顶点预算 = Low (180x90) 网格 + 1 行/列闭合 = 181*91 顶点。
+        // 真实重生产物仍用 Low LOD 渲染全球沙盘, 不再用 simplified 占位。
         [Test]
         public void SnapshotAndMesh_HaveRealEarthLowModelBudget()
         {
@@ -24,9 +26,28 @@ namespace WorldSim.Tests.Unit
             WorldMapFactory.Build(root, cfg, world);
             var snapshot = WorldMapViewSnapshot.Capture(world.Geography, world.Map.GeoDataBuild);
             var mesh = new WorldMapPresenter().BuildMesh(snapshot);
-            Assert.AreEqual(181 * 91, mesh.vertexCount);
-            Assert.AreEqual(180 * 90 * 2, mesh.triangles.Length / 3);
+            Assert.AreEqual(181 * 91, mesh.vertexCount, "Low LOD mesh vertex budget must be 181*91");
+            Assert.AreEqual(180 * 90 * 2, mesh.triangles.Length / 3, "Low LOD mesh triangle count must be 180*90*2");
             Object.DestroyImmediate(mesh);
+        }
+
+        // Task 6: snapshot 携带 lock 派生 buildId (非旧 simplified id), 反映真实重生产物。
+        [Test]
+        public void Snapshot_CarriesLockDerivedBuildIdNotSimplified()
+        {
+            string root = Path.Combine(Application.dataPath, "StreamingAssets", "Geo", "v1");
+            var world = new WorldState(1);
+            var cfg = new WorldInitConfig
+            {
+                PresetKey = "fertile_crescent", StartRegionCenterLat = 33,
+                StartRegionCenterLon = 44, StartRegionRadiusDeg = 8
+            };
+            WorldMapFactory.Build(root, cfg, world);
+            var snapshot = WorldMapViewSnapshot.Capture(world.Geography, world.Map.GeoDataBuild);
+            Assert.IsTrue(snapshot.BuildId.StartsWith("geo-v1-", System.StringComparison.Ordinal),
+                "snapshot buildId must be lock-derived: " + snapshot.BuildId);
+            Assert.IsFalse(snapshot.BuildId.Contains("simplified"),
+                "snapshot buildId must not be the legacy simplified id: " + snapshot.BuildId);
         }
 
         [Test]

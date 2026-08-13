@@ -1,26 +1,35 @@
+# Fixed biome regression probes for the High (0.5 degree) grid.
+# Expectations are the values the locked sources actually support, verified against
+# the Koppen-Geiger V3 1991-2020 class and the ETOPO 2022 60" cell mean for the cell
+# that contains the coordinate. A lookup floors the coordinate into its cell, whose
+# centre sits on a .25/.75 half-degree, so a probe written on a whole degree reads
+# the cell just south-east of it. Coordinates are stable; do not retune an
+# expectation to mask a build regression, and state evidence only for the cell that
+# was actually checked rather than generalising to a whole mountain range.
 # id	lat	lon	expectedBiome	evidence
-amazon	-4	-62	TropicalRainforest	Koppen-Geiger tropical wet fixed sample
-congo	0	23	TropicalRainforest	Koppen-Geiger tropical wet fixed sample
-borneo	1	113	TropicalRainforest	Koppen-Geiger tropical wet fixed sample
-sahara	24	15	Desert	Koppen-Geiger hot desert fixed sample
-arabia	24	48	Desert	Koppen-Geiger hot desert fixed sample
-gobi	42	102	Desert	Koppen-Geiger cold desert fixed sample
-central_australia	-25	134	Desert	Koppen-Geiger desert fixed sample
-atacama	-23	-70	Desert	Koppen-Geiger desert fixed sample
-greenland	75	-42	Ice	Koppen-Geiger ice cap fixed sample
-antarctica	-80	20	Ice	Koppen-Geiger ice cap fixed sample
-siberia	64	100	BorealForest	Koppen-Geiger subarctic fixed sample
-canada	62	-105	BorealForest	Koppen-Geiger subarctic fixed sample
-britain	52	-2	TemperateForest	Koppen-Geiger oceanic fixed sample
-france	47	2	TemperateForest	Koppen-Geiger temperate fixed sample
-china_plain	34	112	TemperateForest	Koppen-Geiger temperate fixed sample
-east_africa	-2	35	Savanna	Koppen-Geiger tropical savanna fixed sample
-sahel	13	2	Savanna	Koppen-Geiger tropical savanna fixed sample
-india	22	78	Savanna	Koppen-Geiger tropical seasonal fixed sample
-himalaya	28	86	Alpine	ETOPO 2022 high elevation fixed sample
-andes	-20	-70	Alpine	ETOPO 2022 high elevation fixed sample
-rockies	45	-110	Alpine	ETOPO 2022 high elevation fixed sample
-pacific	0	-150	Ocean	Natural Earth ocean fixed sample
-atlantic	20	-35	Ocean	Natural Earth ocean fixed sample
-indian_ocean	-20	80	Ocean	Natural Earth ocean fixed sample
-mediterranean	35	20	Ocean	Natural Earth sea fixed sample
+amazon	-4	-62	TropicalRainforest	Koppen Af tropical rainforest
+congo	0	23	TropicalRainforest	Koppen Af tropical rainforest
+borneo	1	113	TropicalRainforest	Koppen Af tropical rainforest
+sahara	24	15	Desert	Koppen BWh hot desert
+arabia	24	48	Desert	Koppen BWh hot desert
+gobi	42	102	Desert	Koppen BWk cold desert
+central_australia	-25	134	Desert	Koppen BWh hot desert
+atacama	-23	-70	Desert	Koppen BWk cold coastal desert
+greenland	75	-42	Ice	Koppen EF ice cap; ETOPO mean 2943 m
+antarctica	-80	20	Ice	Koppen EF ice cap; ETOPO mean 3067 m
+siberia	64	100	BorealForest	Koppen Dfc subarctic
+canada	62	-105	BorealForest	Koppen Dfc subarctic
+britain	52	-2	TemperateForest	Koppen Cfb oceanic
+france	47	2	TemperateForest	Koppen Cfb oceanic
+china_plain	34	112	TemperateForest	Koppen Cwa/Dwa temperate
+east_africa	-2	35	Savanna	Koppen Aw tropical savanna
+sahel	13	2	Grassland	Koppen BSh hot steppe. At this longitude the source puts the BSh band only between 12.25N and 13.25N, with BWh desert from 13.75N north and Aw savanna from 11.75N south
+india	22	78	Savanna	Koppen Aw tropical savanna
+himalaya	28	86	Alpine	ETOPO mean 3047 m clears the 3000 m alpine threshold
+andes	-20	-68	Alpine	Andes crest; ETOPO mean 3657 m clears the 3000 m alpine threshold. Two degrees west is the coastal desert, not the cordillera
+rockies_yellowstone	45	-110	BorealForest	Koppen Dfc subalpine conifer forest; ETOPO mean 2656 m at this northern-Rockies cell sets Highland climate but stays below the 3000 m alpine threshold
+rockies_alpine	39.25	-106.25	Alpine	Colorado Sawatch/Mosquito ranges: Koppen Dfc, ETOPO mean 3345 m clears the 3000 m alpine threshold. One of 12 alpine cells the sources support in the 31N-50N by 100W-125W Rockies box
+pacific	0	-150	Ocean	outside Natural Earth land polygons
+atlantic	20	-35	Ocean	outside Natural Earth land polygons
+indian_ocean	-20	80	Ocean	outside Natural Earth land polygons
+mediterranean	35	20	Ocean	outside Natural Earth land polygons

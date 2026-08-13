@@ -4,6 +4,7 @@ namespace WorldSim.Presentation
     using System.IO;
     using UnityEngine;
     using WorldSim.Simulation.Core;
+    using WorldSim.Simulation.Core.Serialization;
     using WorldSim.Simulation.Intervention;
     using WorldSim.Simulation.Time;
     using WorldSim.Simulation.WorldMap;
@@ -127,6 +128,37 @@ namespace WorldSim.Presentation
         {
             if (_interventions == null || _world == null) return;
             _interventions.ApplyEmergency(type, _world, delayMonths);
+            RefreshTimeSnapshot();
+        }
+
+        /// <summary>
+        /// 生产存读档路径 (Task 4 Important 2): 反序列化快照后 Geography 为 null (transient),
+        /// 必须显式重建才能让依赖系统 (如 CivilizationSimEngine 水邻增长) 正常工作。
+        /// 此方法把 Load + WorldMapFactory.RebuildGeography 接线成一步, 供端到端存读档调用。
+        /// 重建后重新挂载 SimOrchestrator 与 InterventionSystem, 保证运行时 settler 接回。
+        /// Task 5 修复: 新 InterventionSystem 实例必须重新 Bind 给 InterventionFxBridge,
+        /// 否则 PlayMode 存读档后 FX bridge 仍指向旧实例, 干预不再触发落点/渐变提示。
+        /// </summary>
+        public void LoadFromSnapshot(byte[] snapshot)
+        {
+            if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
+            _world = WorldStateSerializer.Load(snapshot);
+            string geoRoot = Path.Combine(Application.streamingAssetsPath, "Geo", "v1");
+            // Important 2: RebuildGeography 从已持久化的 StaticChunks + Config 重读 Low 全量与
+            // 起始区域 High, 重建只读 Geography, 防止依赖系统 NRE 或静默回退 (水邻增长被跳过)。
+            if (_world.Map != null && _world.Map.StaticChunks != null && _world.Map.StaticChunks.Count > 0)
+                WorldMapFactory.RebuildGeography(_world, geoRoot);
+            _orchestrator = new SimOrchestrator(_world);
+            if (attachInterventionSystem)
+                _interventions = InterventionSystem.AttachToSlice(_world);
+            // Task 5: 把 FX bridge 重新绑定到新 InterventionSystem 实例, 否则存读档后
+            // _fx._sys 仍指向旧对象, CausalChain 增长不再被消费, 干预无视觉反馈。
+            if (attachInterventionSystem)
+            {
+                var fx = gameObject.GetComponent<InterventionFxBridge>();
+                if (fx == null) fx = gameObject.AddComponent<InterventionFxBridge>();
+                fx.Bind(_interventions);
+            }
             RefreshTimeSnapshot();
         }
 

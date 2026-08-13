@@ -25,7 +25,21 @@ namespace WorldSim.Simulation.WorldMap
     public sealed class GeoPoliticalInit
     {
         public int BorderYear;
+        public BorderView BorderView = BorderView.DeFactoControl;
         public readonly List<CountryInit> Countries = new List<CountryInit>();
+        /// <summary>争议区标记 (claimant admin/sovereign + 源 TYPE/NOTE), 不编造裁决.</summary>
+        public readonly List<DisputedMarker> DisputedAreas = new List<DisputedMarker>();
+    }
+
+    public sealed class DisputedMarker
+    {
+        public string Name = "";
+        public string AdminClaimant = "";
+        public string SovereignClaimant = "";
+        public string Type = "";
+        public string NoteAdm0 = "";
+        public string NoteBrk = "";
+        public double MinLat, MinLon, MaxLat, MaxLon;
     }
 
     public sealed class WorldStartResult
@@ -52,7 +66,7 @@ namespace WorldSim.Simulation.WorldMap
                 return new WorldStartResult { World = world, Config = config, GeoPolitical = null };
             }
 
-            var political = ReadGeoPolitical(Path.Combine(geoRoot, "political-2026.tsv"), config.BorderYear);
+            var political = ReadGeoPolitical(geoRoot, config.BorderYear, config.BorderView);
             InitializeModern(world, config, political);
             return new WorldStartResult { World = world, Config = config, GeoPolitical = political };
         }
@@ -134,7 +148,147 @@ namespace WorldSim.Simulation.WorldMap
             return geography.GetTile(center, MapLodLevel.Low).TileId;
         }
 
-        public static GeoPoliticalInit ReadGeoPolitical(string path, int borderYear)
+        /// <summary>
+        /// 优先读取 WSP1 二进制政治资产 (political-2026.wgeo.gz); 缺失时回退到旧
+        /// political-2026.tsv (StreamingAssets 在 Task 5 重生前仍是旧 TSV)。
+        /// 按 BorderView 选择国家视图 (de-facto 258 / sovereignty 209), 保留争议区标记。
+        /// </summary>
+        public static GeoPoliticalInit ReadGeoPolitical(string geoRoot, int borderYear, BorderView borderView)
+        {
+            if (borderYear != 2026)
+                throw new NotSupportedException(
+                    "Committed geo-v1 contains only the explicitly labelled 2026 border snapshot.");
+            string wsp1Path = Path.Combine(geoRoot, "political-2026.wgeo.gz");
+            if (File.Exists(wsp1Path))
+                return ReadGeoPoliticalFromAsset(wsp1Path, borderYear, borderView);
+            return ReadGeoPoliticalFromTsv(Path.Combine(geoRoot, "political-2026.tsv"), borderYear);
+        }
+
+        /// <summary>从 WSP1 资产聚合 GeoPoliticalInit: 按 BorderView 选国家, 保留争议标记, 过滤主要城市.</summary>
+        public static GeoPoliticalInit ReadGeoPoliticalFromAsset(string path, int borderYear, BorderView borderView)
+        {
+            if (borderYear != 2026)
+                throw new NotSupportedException(
+                    "Committed geo-v1 contains only the explicitly labelled 2026 border snapshot.");
+            var asset = PoliticalAssetReader.Read(path);
+            var result = new GeoPoliticalInit { BorderYear = borderYear, BorderView = borderView };
+
+            // 国家视图: WSP1 记录已按 (stableId, name) 排序; 直接消费, 不重排以保持确定性
+            foreach (var rec in asset.CountriesByView(borderView))
+            {
+                var country = new CountryInit
+                {
+                    Name = rec.Name,
+                    MinLat = double.PositiveInfinity, MinLon = double.PositiveInfinity,
+                    MaxLat = double.NegativeInfinity, MaxLon = double.NegativeInfinity
+                };
+                foreach (var ring in rec.Rings)
+                    foreach (var pt in ring.Points)
+                    {
+                        if (pt.Latitude < country.MinLat) country.MinLat = pt.Latitude;
+                        if (pt.Latitude > country.MaxLat) country.MaxLat = pt.Latitude;
+                        if (pt.Longitude < country.MinLon) country.MinLon = pt.Longitude;
+                        if (pt.Longitude > country.MaxLon) country.MaxLon = pt.Longitude;
+                    }
+                if (double.IsInfinity(country.MinLat)) { country.MinLat = 0; country.MinLon = 0; country.MaxLat = 0; country.MaxLon = 0; }
+                result.Countries.Add(country);
+            }
+
+            // 争议区标记: 按源 TYPE/NOTE_ADM0/NOTE_BRK + claimant 原样保留, 不编造裁决
+            foreach (var d in asset.DisputedAreas)
+            {
+                var marker = new DisputedMarker
+                {
+                    Name = d.Name,
+                    AdminClaimant = d.AdminName,
+                    SovereignClaimant = d.SovereignName,
+                    Type = d.Type,
+                    NoteAdm0 = d.NoteAdm0,
+                    NoteBrk = d.NoteBrk,
+                    MinLat = double.PositiveInfinity, MinLon = double.PositiveInfinity,
+                    MaxLat = double.NegativeInfinity, MaxLon = double.NegativeInfinity
+                };
+                foreach (var ring in d.Rings)
+                    foreach (var pt in ring.Points)
+                    {
+                        if (pt.Latitude < marker.MinLat) marker.MinLat = pt.Latitude;
+                        if (pt.Latitude > marker.MaxLat) marker.MaxLat = pt.Latitude;
+                        if (pt.Longitude < marker.MinLon) marker.MinLon = pt.Longitude;
+                        if (pt.Longitude > marker.MaxLon) marker.MaxLon = pt.Longitude;
+                    }
+                if (double.IsInfinity(marker.MinLat)) { marker.MinLat = 0; marker.MinLon = 0; marker.MaxLat = 0; marker.MaxLon = 0; }
+                result.DisputedAreas.Add(marker);
+            }
+
+            // 主要城市: 首都 + 世界城市 + 巨型城市 (Task 3 concern 3: 7342 全量按需过滤)
+            // 城市的 adminId 指向 de-facto 单元; de-facto 视图直接匹配, sovereignty 视图
+            // 通过 de-facto 记录的 sovereignId 聚合到主权。
+            var citiesByAdmin = new Dictionary<string, List<PoliticalCityRecord>>(StringComparer.Ordinal);
+            foreach (var c in asset.Cities)
+            {
+                if (c.IsCapital == 0 && c.IsWorldCity == 0 && c.IsMegaCity == 0) continue;
+                if (!citiesByAdmin.TryGetValue(c.AdminId, out var list))
+                {
+                    list = new List<PoliticalCityRecord>();
+                    citiesByAdmin[c.AdminId] = list;
+                }
+                list.Add(c);
+            }
+            var viewRecords = asset.CountriesByView(borderView);
+            if (borderView == BorderView.DeFactoControl)
+            {
+                for (int i = 0; i < viewRecords.Count; i++)
+                {
+                    if (citiesByAdmin.TryGetValue(viewRecords[i].AdminId, out var list))
+                        AddCities(result.Countries[i], list);
+                }
+            }
+            else // SovereigntyClaims: 收集所有 de-facto 单元 (sovereignId == 该主权 stableId) 的城市
+            {
+                var adminsBySovereign = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                foreach (var d in asset.DeFactoCountries)
+                {
+                    if (!adminsBySovereign.TryGetValue(d.SovereignId, out var admins))
+                    {
+                        admins = new List<string>();
+                        adminsBySovereign[d.SovereignId] = admins;
+                    }
+                    admins.Add(d.AdminId);
+                }
+                for (int i = 0; i < viewRecords.Count; i++)
+                {
+                    if (!adminsBySovereign.TryGetValue(viewRecords[i].StableId, out var admins)) continue;
+                    // admins 已是 de-facto 记录按 (stableId, name) 排序后的 adminId 序; 稳定
+                    foreach (var adminId in admins)
+                        if (citiesByAdmin.TryGetValue(adminId, out var list))
+                            AddCities(result.Countries[i], list);
+                }
+            }
+
+            return result;
+        }
+
+        private static void AddCities(CountryInit country, List<PoliticalCityRecord> list)
+        {
+            // 同一国家内城市按 (name, stableId) 稳定序
+            var sorted = new List<PoliticalCityRecord>(list);
+            sorted.Sort((a, b) =>
+            {
+                int c = string.CompareOrdinal(a.Name, b.Name);
+                if (c != 0) return c;
+                return a.StableId.CompareTo(b.StableId);
+            });
+            foreach (var c in sorted)
+                country.Cities.Add(new CityInit
+                {
+                    Name = c.Name,
+                    Location = new GeoCoordinate(c.Latitude, c.Longitude),
+                    Population = c.PopMax > 0 ? (int)Math.Min(int.MaxValue, c.PopMax) : 1000
+                });
+        }
+
+        /// <summary>旧 TSV 回退路径 (StreamingAssets 在 Task 5 重生前仍是旧 TSV).</summary>
+        public static GeoPoliticalInit ReadGeoPoliticalFromTsv(string path, int borderYear)
         {
             if (borderYear != 2026)
                 throw new NotSupportedException("Committed geo-v1 contains only the explicitly labelled coarse 2026 border snapshot.");
@@ -164,6 +318,10 @@ namespace WorldSim.Simulation.WorldMap
             result.Countries.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
             return result;
         }
+
+        /// <summary>旧签名保留: 仅 TSV 回退, 不支持 BorderView 切换.</summary>
+        public static GeoPoliticalInit ReadGeoPolitical(string path, int borderYear)
+            => ReadGeoPoliticalFromTsv(path, borderYear);
 
         private static double D(string text) => double.Parse(text, CultureInfo.InvariantCulture);
     }

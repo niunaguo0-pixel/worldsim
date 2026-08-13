@@ -83,6 +83,7 @@ byte[] BuildDeterministicBuffer(WorldState ws):
 - `monthIndex` / `EraIndex` 以整数参与哈希（由边界序号派生，见 §3），避免 float 累加器 drift 污染哈希。
 - `InterventionLog` 是**命令日志保序序列**（ADR-004），入快照时按追加序写，**不**为哈希排序打乱因果；月哈希不包含干预日志全文（已由 RNG/态间接覆盖）。
 - Schema 5 起，`CivilizationState` 以稳定 ID 序参与月哈希：聚落人口/尺度/繁荣度，以及政体人口、产出、稳定度、科技、法律与治理字段；经济、技术、个体全态入档。正式文明必须通过 1×、20×、变速暂停、存读档四路 Replay。
+- **Schema 7（Epic 5 Task 4/6）真实地理参与月哈希**：`WorldMapState` 进入 `WriteWorldMapHash`，含 `GeoDataBuild`（lock 派生 buildId，即静态源版本）、`ManifestChecksum`、`WorldMapConfigSnapshot`（`StartEra`/`StartMode`/`BorderYear`/`UseRealBorders`/`BorderView`/起始区域中心与半径，量化 4 位）以及 `DynamicOverrides`（按 `TileId` 升序，量化后入哈希）。`BorderView`（DeFactoControl/SovereigntyClaims）进入稳定月哈希，故双视图切换改变哈希。表现层 `WorldMapChunkCache` 不进哈希（测试断言）。真实地理（水邻增长 ±0.003 / slope / IsLand）通过 `CivilizationSimEngine.StepSettlements` 进入月哈希；存读档后必须 `WorldMapFactory.RebuildGeography` 重建 transient `WorldGeography`，否则 Geography=null 时水邻增长被静默跳过、哈希分叉（反证测试 `Replay_SaveLoad_RebuildGeography_KeepsHashAlignedAndGeographyMatters`）。
 
 ### 2.4 哈希算法
 - **FNV-1a-64** over 上述字节流（Epic 0 / Gate-0 唯一算法）。
@@ -141,7 +142,7 @@ nextWeekBoundary  = (weekIndex + 1) * WEEK_SECONDS
 | G0-3 稳定 ID 排序遍历 | `StableIdOrderingTests`：排序后序与插入序无关 | `unit/StableIdOrderingTests.cs` |
 | G0-4 RNG 分流入档 | `RngStreamTests`（确定性 + 状态往返）+ `SerializationRoundTripTests`（状态入档） | `unit/RngStreamTests.cs`, `unit/SerializationRoundTripTests.cs` |
 | G0-5 禁不确定并发与浮点漂移 | `QuantizeTests` + 并行仅叶子约束（CI 静态/Doc） | `unit/QuantizeTests.cs` |
-| G0-6 四路 Replay 哈希一致 | `Gate0DeterminismTest` | `WorldSim/Assets/Scripts/Tests/Gate0/Gate0DeterminismTest.cs` |
+| G0-6 四路 Replay 哈希一致 | `Gate0DeterminismTest` + `Replay_FourWay_RealGeography_HashStable` + `Replay_SaveLoad_RebuildGeography_KeepsHashAlignedAndGeographyMatters` | `WorldSim/Assets/Scripts/Tests/Gate0/Gate0DeterminismTest.cs`, `unit/WorldMapTask4Tests_RealGeo.cs` |
 | G0-7 哈希函数确定 | `DeterminismHash` 单测（禁 `string.GetHashCode`） | `WorldSim/Assets/Scripts/Tests/Unit/QuantizeTests.cs` / 契约 §2.4 |
 | G0-8 三级回退可用 | 回退钩子存在性（`Fix` 全局切换 / 速度档收窄 / lockstep） | Epic 0 V0-7 |
 
@@ -150,7 +151,7 @@ nextWeekBoundary  = (weekIndex + 1) * WEEK_SECONDS
 |------|-----------|--------------|
 | **B2** CI 锁同 Unity + 同 Burst | V0-8 ✅ | `gate0.yml` job `pin-versions` + `tests/ci/assert-burst-pinned.ps1`；`version-pins.json` + manifest `com.unity.burst: 1.8.30` |
 | **B3** Quantize+确定性哈希+Gate-0 入 CI | V0-2 / V0-4 / V0-5 / V0-9 ✅ | `gate0.yml` job `gate0` 跑全量 `WorldSim.Tests` EditMode，分叉即红，上传 artifact |
-| **B4** 真实地球管线 + region-presets 消费 | V0-6 / S5-1（MVP）；完整 DEM → Epic 5 | `RegionPresetConsumptionTests` + `assert-region-presets-synced.ps1`；MVP 高程为公式，非真实 DEM |
+| **B4** 真实地球管线 + region-presets 消费 | V0-6 / S5-1（MVP）；完整 DEM → Epic 5；真实地理入哈希 → Task 4/6 | `RegionPresetConsumptionTests` + `assert-region-presets-synced.ps1`；MVP 高程为公式，非真实 DEM；真实地理探针 `RealData_*` + 双视图 + 重建 + 四路 Replay 见 `unit/WorldMapEpic5Tests.cs` / `unit/WorldMapTask4Tests_RealGeo.cs` |
 
 ---
 

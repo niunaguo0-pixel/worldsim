@@ -7,6 +7,13 @@ namespace WorldSim.Simulation.WorldMap
     public enum StartEra : byte { Primordial = 0, EarlyModern = 1, Modern = 2 }
     public enum StartMode : byte { PrimordialSandbox = 0, ModernGeopolitics = 1 }
 
+    /// <summary>
+    /// 国界视图选择 (Task 4): DeFactoControl 用 NE admin-0 countries (258 单元),
+    /// SovereigntyClaims 用 NE admin-0 sovereignty (209 主权). 争议区按源标记保留,
+    /// 不编造裁决。默认 DeFactoControl。
+    /// </summary>
+    public enum BorderView : byte { DeFactoControl = 0, SovereigntyClaims = 1 }
+
     /// <summary>法系偏置枚举 (仅作 legalTraditionSeed, 绝不绑定单国家族 — B5).</summary>
     public enum LegalFamilyBias
     {
@@ -78,6 +85,8 @@ namespace WorldSim.Simulation.WorldMap
         public StartMode StartMode = StartMode.ModernGeopolitics;
         public int BorderYear = 2026;
         public bool UseRealBorders = true;
+        /// <summary>国界视图 (Task 4): 默认 DeFactoControl, 可切到 SovereigntyClaims.</summary>
+        public BorderView BorderView = BorderView.DeFactoControl;
         public string GeoDataBuild = "";
         public double StartRegionCenterLat;
         public double StartRegionCenterLon;
