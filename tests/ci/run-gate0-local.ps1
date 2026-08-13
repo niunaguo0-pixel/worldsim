@@ -52,6 +52,6 @@ if (-not (Test-Path $out)) {
 $tr = $xml."test-run"
 Write-Host "result=$($tr.result) total=$($tr.total) passed=$($tr.passed) failed=$($tr.failed)"
 $failed = [int]$tr.failed + [int]$tr.errors
-$min = 42
+$min = 93
 if ($failed -gt 0 -or [int]$tr.total -lt $min) { exit 1 }
 exit 0

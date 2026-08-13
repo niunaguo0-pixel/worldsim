@@ -8,7 +8,8 @@ namespace WorldSim.Presentation
     /// <summary>
     /// Unity 胶水 (P1 / 可玩月循环): Update 只传 dtReal; 挂载干预系统 + HUD + 可见沙盘.
     /// </summary>
-    public sealed class SimulationRunner : MonoBehaviour
+    public sealed class SimulationRunner : MonoBehaviour, ITimePresentationSource, ITimeControlSink,
+        IPlayableInterventionSink
     {
         [SerializeField] private ulong worldSeed = 42;
         [SerializeField] private bool enablePlayableHud = true;
@@ -17,10 +18,15 @@ namespace WorldSim.Presentation
         private WorldState _world;
         private SimOrchestrator _orchestrator;
         private InterventionSystem _interventions;
+        private readonly TimePresentationModel _timePresentation = new TimePresentationModel();
+        private TimeViewSnapshot _timeSnapshot;
+        private CameraLodController _cameraLod;
 
         public WorldState World => _world;
         public SimOrchestrator Orchestrator => _orchestrator;
         public InterventionSystem Interventions => _interventions;
+        public TimeViewSnapshot TimeSnapshot => _timeSnapshot;
+        public CameraLodController CameraLod => _cameraLod;
 
         private void Awake()
         {
@@ -30,36 +36,94 @@ namespace WorldSim.Presentation
             if (attachInterventionSystem)
                 _interventions = InterventionSystem.AttachToSlice(_world);
 
+            RefreshTimeSnapshot();
+
+            InterventionFxBridge fx = null;
             if (attachInterventionSystem)
             {
-                var fx = gameObject.GetComponent<InterventionFxBridge>();
+                fx = gameObject.GetComponent<InterventionFxBridge>();
                 if (fx == null) fx = gameObject.AddComponent<InterventionFxBridge>();
                 fx.Bind(_interventions);
             }
+
+            SandboxBindings sandbox = EnsureVisibleSandbox();
+            _cameraLod = gameObject.GetComponent<CameraLodController>();
+            if (_cameraLod == null) _cameraLod = gameObject.AddComponent<CameraLodController>();
+            _cameraLod.Bind(
+                Camera.main,
+                sandbox.Root.transform,
+                sandbox.Settlement.GetComponent<Renderer>(),
+                sandbox.SettlementLabel,
+                sandbox.AggregateStatistics);
 
             if (enablePlayableHud)
             {
                 var hud = gameObject.GetComponent<PlayableMonthLoopHud>();
                 if (hud == null) hud = gameObject.AddComponent<PlayableMonthLoopHud>();
-                hud.Bind(this, _interventions);
+                hud.Bind(this, this, this, fx, _cameraLod);
             }
-
-            EnsureVisibleSandbox();
-            FrameCamera();
         }
 
         private void Update()
         {
             if (_orchestrator == null) return;
             _orchestrator.Update(Time.deltaTime);
+            RefreshTimeSnapshot();
+        }
+
+        public void SetPaused(bool paused)
+        {
+            if (_orchestrator == null) return;
+            _orchestrator.SetPaused(paused);
+            RefreshTimeSnapshot();
+        }
+
+        public void SetSpeedMultiplier(int speedMultiplier)
+        {
+            if (_orchestrator == null) return;
+            _orchestrator.SetSpeedMultiplier(speedMultiplier);
+            RefreshTimeSnapshot();
+        }
+
+        public int GetEmergencyCooldownRemaining(EmergencyType type)
+        {
+            return _interventions != null
+                ? _interventions.GetEmergencyCooldownRemaining(type)
+                : 0;
+        }
+
+        public void ApplyIntervention(string key, double delta, int durationMonths, int delayMonths)
+        {
+            if (_interventions == null || _world == null) return;
+            _interventions.ApplyIntervention(key, delta, durationMonths, delayMonths, _world);
+            RefreshTimeSnapshot();
+        }
+
+        public void ApplyEmergency(EmergencyType type, int delayMonths)
+        {
+            if (_interventions == null || _world == null) return;
+            _interventions.ApplyEmergency(type, _world, delayMonths);
+            RefreshTimeSnapshot();
+        }
+
+        private void RefreshTimeSnapshot()
+        {
+            if (_world == null) return;
+            int pendingCount = _interventions != null ? _interventions.PendingCount : 0;
+            _timeSnapshot = _timePresentation.Capture(_world, pendingCount);
         }
 
         /// <summary>地面 + 聚落色块，避免「只有天空太阳」空场景。</summary>
-        private static void EnsureVisibleSandbox()
+        private static SandboxBindings EnsureVisibleSandbox()
         {
-            if (GameObject.Find("WorldSim_Ground") == null)
+            GameObject root = GameObject.Find("WorldSim_Sandbox");
+            if (root == null)
+                root = new GameObject("WorldSim_Sandbox");
+
+            GameObject ground = GameObject.Find("WorldSim_Ground");
+            if (ground == null)
             {
-                var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 ground.name = "WorldSim_Ground";
                 ground.transform.position = Vector3.zero;
                 ground.transform.localScale = new Vector3(2.5f, 1f, 2.5f);
@@ -71,14 +135,16 @@ namespace WorldSim.Presentation
                     gr.material.color = new Color(0.35f, 0.55f, 0.28f);
                 }
             }
+            ground.transform.SetParent(root.transform, true);
 
-            if (GameObject.Find("Settlement_Alpha") == null)
+            GameObject settlement = GameObject.Find("Settlement_Alpha");
+            if (settlement == null)
             {
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = "Settlement_Alpha";
-                go.transform.position = new Vector3(0f, 0.75f, 0f);
-                go.transform.localScale = new Vector3(1.6f, 1.5f, 1.6f);
-                var r = go.GetComponent<Renderer>();
+                settlement = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                settlement.name = "Settlement_Alpha";
+                settlement.transform.position = new Vector3(0f, 0.75f, 0f);
+                settlement.transform.localScale = new Vector3(1.6f, 1.5f, 1.6f);
+                var r = settlement.GetComponent<Renderer>();
                 if (r != null)
                 {
                     r.material = new Material(Shader.Find("Universal Render Pipeline/Lit")
@@ -86,12 +152,14 @@ namespace WorldSim.Presentation
                     r.material.color = new Color(0.85f, 0.55f, 0.22f);
                 }
             }
+            settlement.transform.SetParent(root.transform, true);
 
-            if (GameObject.Find("Settlement_Alpha_Label") == null)
+            GameObject settlementLabel = GameObject.Find("Settlement_Alpha_Label");
+            if (settlementLabel == null)
             {
-                var label = new GameObject("Settlement_Alpha_Label");
-                label.transform.position = new Vector3(0f, 2.2f, 0f);
-                var tm = label.AddComponent<TextMesh>();
+                settlementLabel = new GameObject("Settlement_Alpha_Label");
+                settlementLabel.transform.position = new Vector3(0f, 2.2f, 0f);
+                var tm = settlementLabel.AddComponent<TextMesh>();
                 tm.text = "聚落 Alpha";
                 tm.fontSize = 32;
                 tm.characterSize = 0.08f;
@@ -99,15 +167,44 @@ namespace WorldSim.Presentation
                 tm.alignment = TextAlignment.Center;
                 tm.color = Color.white;
             }
+            settlementLabel.transform.SetParent(root.transform, true);
+
+            GameObject aggregateStatistics = GameObject.Find("WorldSim_AggregateStatistics");
+            if (aggregateStatistics == null)
+            {
+                aggregateStatistics = new GameObject("WorldSim_AggregateStatistics");
+                aggregateStatistics.transform.position = new Vector3(0f, 3.2f, 0f);
+                var tm = aggregateStatistics.AddComponent<TextMesh>();
+                tm.text = "文明聚合统计";
+                tm.fontSize = 32;
+                tm.characterSize = 0.12f;
+                tm.anchor = TextAnchor.MiddleCenter;
+                tm.alignment = TextAlignment.Center;
+                tm.color = new Color(0.85f, 0.95f, 1f);
+            }
+            aggregateStatistics.transform.SetParent(root.transform, true);
+
+            return new SandboxBindings(root, settlement, settlementLabel, aggregateStatistics);
         }
 
-        private static void FrameCamera()
+        private sealed class SandboxBindings
         {
-            var cam = Camera.main;
-            if (cam == null) return;
-            cam.transform.position = new Vector3(7f, 5.5f, -7f);
-            cam.transform.LookAt(new Vector3(0f, 0.5f, 0f));
-            cam.clearFlags = CameraClearFlags.Skybox;
+            public SandboxBindings(
+                GameObject root,
+                GameObject settlement,
+                GameObject settlementLabel,
+                GameObject aggregateStatistics)
+            {
+                Root = root;
+                Settlement = settlement;
+                SettlementLabel = settlementLabel;
+                AggregateStatistics = aggregateStatistics;
+            }
+
+            public GameObject Root { get; }
+            public GameObject Settlement { get; }
+            public GameObject SettlementLabel { get; }
+            public GameObject AggregateStatistics { get; }
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

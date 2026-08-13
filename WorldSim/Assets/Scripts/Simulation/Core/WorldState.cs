@@ -54,6 +54,7 @@ namespace WorldSim.Simulation.Core
             InterventionLog = new List<InterventionRecord>();
             EraIndex = 0;
             ModuleToggles = new Dictionary<string, bool>();
+            ModuleToggles["generation.inheritance"] = false;
             Fallback = new DeterminismFallback(DeterminismFallbackLevel.None);
             InterventionSettler = null;
             EcologySettler = null;

@@ -28,7 +28,7 @@ namespace WorldSim.Simulation.Civilization
             // 1-16 顺序为确定性契约；各关闭模块保留稳定空步骤。
             ApplyInterventionBias(world, civ);        // 1
             ApplyEcologyModifiers(world, civ);        // 2
-            StepIndividuals(civ);                     // 3
+            StepIndividuals(world, civ, month);       // 3
             StepEconomy(civ);                         // 4
             StepSettlements(civ);                     // 5
             StepTechnology(civ);                      // 6
@@ -69,10 +69,48 @@ namespace WorldSim.Simulation.Civilization
                 e.food = Q(Math.Max(0, e.food * (0.5 + health * 0.5)));
         }
 
-        private static void StepIndividuals(CivilizationState civ)
+        private static void StepIndividuals(WorldState world, CivilizationState civ, int month)
         {
-            foreach (var i in Sorted(civ.Individuals, x => x.stableId))
-                if (i.alive) { i.ageMonths++; i.health = Q(Math.Max(0, i.health - 0.001)); if (i.health <= 0) i.alive = false; }
+            bool inheritanceEnabled = IsModuleEnabled(world, "generation.inheritance");
+            int nextStableId = inheritanceEnabled ? NextIndividualStableId(civ) : 0;
+            foreach (var individual in Sorted(civ.Individuals, x => x.stableId))
+            {
+                if (!individual.alive) continue;
+                individual.ageMonths++;
+                individual.health = Q(Math.Max(0, individual.health - 0.001));
+                if (individual.health > 0) continue;
+                individual.alive = false;
+                world.Events.Add(new SimEvent(
+                    month,
+                    SimEventCategory.Civ,
+                    individual.stableId,
+                    "civ.individual.death",
+                    individual.ageMonths));
+                if (!inheritanceEnabled) continue;
+                var heir = new IndividualState
+                {
+                    stableId = nextStableId++,
+                    settlementId = individual.settlementId,
+                    ageMonths = 0,
+                    health = 1,
+                    occupation = individual.occupation,
+                    alive = true
+                };
+                int generation = GenerationOf(world, individual.stableId) + 1;
+                civ.Individuals.Add(heir);
+                world.Events.Add(new SimEvent(
+                    month,
+                    SimEventCategory.Civ,
+                    heir.stableId,
+                    "civ.individual.inheritance",
+                    individual.stableId));
+                world.Events.Add(new SimEvent(
+                    month,
+                    SimEventCategory.Chronicle,
+                    heir.stableId,
+                    "civ.generation.milestone",
+                    generation));
+            }
         }
 
         private static void StepEconomy(CivilizationState civ)
@@ -173,6 +211,25 @@ namespace WorldSim.Simulation.Civilization
         private static CivilizationEconomyState EconomyFor(CivilizationState c, int id) { foreach (var x in c.Economies) if (x.settlementId == id) return x; return null; }
         private static CivilizationPolityState PolityFor(CivilizationState c, int id) { foreach (var x in c.Polities) if (x.stableId == id) return x; return null; }
         private static CivilizationSettlementState SettlementFor(CivilizationState c, int id) { foreach (var x in c.Settlements) if (x.stableId == id) return x; return null; }
+        private static bool IsModuleEnabled(WorldState world, string key) => world.ModuleToggles.TryGetValue(key, out bool enabled) && enabled;
+        private static int GenerationOf(WorldState world, int individualId)
+        {
+            int generation = 0;
+            foreach (var simEvent in world.Events)
+                if (simEvent.sourceId == individualId
+                    && simEvent.templateId == "civ.generation.milestone"
+                    && simEvent.magnitude > generation)
+                    generation = (int)simEvent.magnitude;
+            return generation;
+        }
+        private static int NextIndividualStableId(CivilizationState c)
+        {
+            int max = 0;
+            foreach (var individual in c.Individuals)
+                if (individual.stableId > max) max = individual.stableId;
+            if (max == int.MaxValue) throw new InvalidOperationException("Individual stable ID space exhausted.");
+            return max + 1;
+        }
         private static List<T> Sorted<T>(List<T> xs, Func<T, int> id) { var a = new List<T>(xs); a.Sort((x, y) => id(x).CompareTo(id(y))); return a; }
         private static double Q(double x) => DeterminismMath.Quantize(x, 3);
 
