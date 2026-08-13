@@ -3,6 +3,7 @@ namespace WorldSim.Presentation
     using System.Collections.Generic;
     using System.Text;
     using UnityEngine;
+    using UnityEngine.InputSystem;
     using WorldSim.Simulation.Core;
     using WorldSim.Simulation.Intervention;
 
@@ -56,16 +57,19 @@ namespace WorldSim.Presentation
             var snapshot = _timeSource.TimeSnapshot;
             ConsumeIncrementalEvents(snapshot.Events);
 
-            if (Input.GetKeyDown(KeyCode.Space))
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+
+            if (keyboard.spaceKey.wasPressedThisFrame)
                 SetPaused(!snapshot.IsPaused);
-            else if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+            else if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
                 SetSpeed(1);
-            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+            else if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame)
                 SetSpeed(2);
-            else if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5))
+            else if (keyboard.digit5Key.wasPressedThisFrame || keyboard.numpad5Key.wasPressedThisFrame)
                 SetSpeed(5);
-            else if (Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0) ||
-                     Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4))
+            else if (keyboard.digit0Key.wasPressedThisFrame || keyboard.numpad0Key.wasPressedThisFrame ||
+                     keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
                 SetSpeed(20);
         }
 

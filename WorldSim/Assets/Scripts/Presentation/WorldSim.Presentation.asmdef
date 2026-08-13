@@ -4,7 +4,8 @@
   "references": [
     "WorldSim.Simulation.Core",
     "WorldSim.Simulation.Time",
-    "WorldSim.Simulation.Intervention"
+    "WorldSim.Simulation.Intervention",
+    "Unity.InputSystem"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
