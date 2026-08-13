@@ -36,35 +36,53 @@
 > 量化规则：`Quantize(x, d) = Truncate(x * 10^d) / 10^d`（**向零截断**，全工程统一；此前草稿写作 `Round`，现与 production 对齐为向零，避免 banker's 跨平台不一致，ADR-002 选项 2）。量化在「写回指标哈希」与「跨月持久化累加量」两处执行（ADR-002 选项 2）。
 
 ### 2.3 字节流构造（确定性写入，ADR-004 约束）
+
+> 与 `WorldStateSerializer.ComputeMonthlyHash`（SchemaVersion≥3）字段集对齐。实现为单一真相源；改哈希字段须先改本表并过四路 Replay。
+
 ```
 byte[] BuildDeterministicBuffer(WorldState ws):
     buf = []
     // 1) RNG 全状态（先写，最敏感）
     for stream in ws.RngRegistry.streams.OrderBy(s => s.streamId):   // 稳定 ID 序
-        buf += stream.streamId                     // 定长字符串/哈希
+        buf += stream.streamId                     // ulong streamId
         buf += stream.state256                     // 32 字节 (4×uint64) 原样, R-N3 必须全 256-bit
-    // 2) 政体（稳定 ID 升序）
+    // 2) 政体（稳定 ID 升序）— 含 EraGate v1.4.4 观测字段；人口入哈希作观测，不作时代钥匙
     for p in ws.Polities.OrderBy(p => p.stableId):
+        buf += p.stableId
         buf += Quantize(p.population, 0)
         buf += Quantize(p.aggregateOutput, 0)
         buf += Quantize(p.aggregateMilitaryPower, 0)
         buf += Quantize(p.aggregateStability, 3)
+        buf += p.techTier                          // int
+        buf += p.sustainedSurplusMonths            // int
+        buf += Quantize(p.capacityUtilization, 3)
+        buf += p.divisionDepth                     // int
+        buf += p.lawStage                          // int
+        buf += p.hasWriting                        // bool
     // 3) 聚落（稳定 ID 升序）
     for s in ws.Settlements.OrderBy(s => s.stableId):
+        buf += s.stableId
         buf += Quantize(s.population, 0)
         buf += Quantize(s.growthRate, 3)
+        buf += s.isAtWar / s.underDisaster / s.constructionActive  // bool×3
     // 4) 物种（稳定 ID 升序）
     for sp in ws.Species.OrderBy(sp => sp.stableId):
+        buf += sp.stableId
         buf += Quantize(sp.population, 0)
+        buf += sp.stressMonths                     // int
     // 5) 资源（稳定 ID 升序）
     for r in ws.Resources.OrderBy(r => r.stableId):
+        buf += r.stableId
         buf += Quantize(r.currentAmount, 3)
-    // 6) 时钟/累加器（定点化整数游戏月）
-    buf += ws.TimeDriver.gameClockMonthsInt        // 整数月，非 float
+    // 6) 时钟 + 时代索引（整数月，非 float）
+    buf += ws.Time.monthIndex
+    buf += ws.EraIndex
     return buf
 ```
 - 所有数值**显式小端、固定字段顺序、固定宽度**；集合**先排序后写**（禁止字典遍历序）。
-- `gameClock` 以**整数游戏月**参与哈希（由边界序号派生，见 §3），避免 float 累加器 drift 污染哈希。
+- `monthIndex` / `EraIndex` 以整数参与哈希（由边界序号派生，见 §3），避免 float 累加器 drift 污染哈希。
+- `InterventionLog` 是**命令日志保序序列**（ADR-004），入快照时按追加序写，**不**为哈希排序打乱因果；月哈希不包含干预日志全文（已由 RNG/态间接覆盖）。
+- Schema 5 起，`CivilizationState` 以稳定 ID 序参与月哈希：聚落人口/尺度/繁荣度，以及政体人口、产出、稳定度、科技、法律与治理字段；经济、技术、个体全态入档。正式文明必须通过 1×、20×、变速暂停、存读档四路 Replay。
 
 ### 2.4 哈希算法
 - **FNV-1a-64** over 上述字节流（Epic 0 / Gate-0 唯一算法）。

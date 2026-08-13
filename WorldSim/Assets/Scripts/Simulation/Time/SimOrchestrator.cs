@@ -221,6 +221,12 @@ namespace WorldSim.Simulation.Time
 
         private void StepCivilization(int month)
         {
+            if (_world.ModuleToggles.TryGetValue("civilization.v2", out bool enabled) &&
+                enabled && _world.CivilizationSettler != null)
+            {
+                _world.CivilizationSettler.SettleMonth(_world, month);
+                return;
+            }
             var warRng = _world.Rng.GetStream("war");
             var civRng = _world.Rng.GetStream("civ");
 

@@ -8,6 +8,7 @@ namespace WorldSim.Simulation.Core.Serialization
     using WorldSim.Simulation.Core.Random;
     using WorldSim.Simulation.Core.Slice;
     using WorldSim.Simulation.Core.Ecology;
+    using WorldSim.Simulation.Core.Civilization;
 
     /// <summary>
     /// WorldState 全量二进制快照 (ADR-004 选项 1 / V0-4).
@@ -16,7 +17,7 @@ namespace WorldSim.Simulation.Core.Serialization
     /// </summary>
     public static class WorldStateSerializer
     {
-        public const int SchemaVersion = 4; // Epic 2: 正式 EcologyState
+        public const int SchemaVersion = 5; // Epic 3: 正式 CivilizationState
         public const int Magic = 0x57534D31; // 'WSM1'
 
         public static byte[] Save(WorldState world)
@@ -36,7 +37,7 @@ namespace WorldSim.Simulation.Core.Serialization
             if (magic != Magic)
                 throw new InvalidDataException($"Bad WorldState magic: 0x{magic:X8}");
             int ver = r.ReadInt32();
-            if (ver != 3 && ver != SchemaVersion)
+            if (ver != 3 && ver != 4 && ver != SchemaVersion)
                 throw new InvalidDataException($"Unsupported schemaVersion {ver}, expected {SchemaVersion}");
 
             ulong seed = r.ReadUInt64();
@@ -70,6 +71,8 @@ namespace WorldSim.Simulation.Core.Serialization
             world.Resources = ReadResources(r);
             if (ver >= 4)
                 world.Ecology = ReadEcology(r);
+            if (ver >= 5)
+                world.Civilization = ReadCivilization(r);
 
             int eventCount = r.ReadInt32();
             world.Events = new List<SimEvent>(eventCount);
@@ -162,6 +165,7 @@ namespace WorldSim.Simulation.Core.Serialization
             }
 
             WriteEcologyHash(w, world.Ecology);
+            WriteCivilizationHash(w, world.Civilization);
 
             w.WriteInt32(world.Time.monthIndex);
             w.WriteInt32(world.EraIndex);
@@ -199,6 +203,7 @@ namespace WorldSim.Simulation.Core.Serialization
             WritePolities(w, SortedCopy(world.Polities, p => p.stableId));
             WriteResources(w, SortedCopy(world.Resources, r => r.stableId));
             WriteEcology(w, world.Ecology);
+            WriteCivilization(w, world.Civilization);
 
             var events = new List<SimEvent>(world.Events);
             events.Sort(CompareEvents);
@@ -437,6 +442,35 @@ namespace WorldSim.Simulation.Core.Serialization
             foreach (var s in SortedCopy(eco.Species, x => x.stableId)) { w.WriteInt32(s.stableId); w.WriteDouble(DeterminismMath.Quantize(s.population, 3)); w.WriteByte((byte)s.zone); w.WriteInt32(s.stressMonths); w.WriteByte((byte)s.phase); }
             foreach (var r in SortedCopy(eco.Resources, x => x.stableId)) { w.WriteInt32(r.stableId); w.WriteDouble(DeterminismMath.Quantize(r.currentAmount, 3)); w.WriteByte((byte)r.zone); w.WriteInt32(r.stressMonths); w.WriteByte((byte)r.phase); }
             foreach (var i in SortedCopy(eco.Indicators, x => x.stableId)) { w.WriteInt32(i.stableId); w.WriteDouble(DeterminismMath.Quantize(i.currentValue, 3)); w.WriteByte((byte)i.zone); w.WriteInt32(i.stressMonths); }
+        }
+
+        private static void WriteCivilization(DeterministicBinaryWriter w, CivilizationState c)
+        {
+            c = c ?? new CivilizationState(); w.WriteInt32(c.LastSettledMonth); w.WriteDouble(c.EcoImpactCoefficient);
+            var ss = SortedCopy(c.Settlements, x => x.stableId); w.WriteInt32(ss.Count);
+            foreach (var s in ss) { w.WriteInt32(s.stableId); w.WriteInt32(s.worldTileId); w.WriteInt32(s.polityId); w.WriteDouble(s.population); w.WriteDouble(s.housingCapacity); w.WriteDouble(s.foodCapacity); w.WriteDouble(s.spaceCapacity); w.WriteDouble(s.prosperity); w.WriteByte((byte)s.tier); w.WriteBool(s.agricultureZone); w.WriteBool(s.housingZone); w.WriteBool(s.storageZone); }
+            var ps = SortedCopy(c.Polities, x => x.stableId); w.WriteInt32(ps.Count);
+            foreach (var p in ps) { w.WriteInt32(p.stableId); w.WriteInt32(p.techTier); w.WriteInt32(p.sustainedSurplusMonths); w.WriteInt32(p.divisionDepth); w.WriteInt32(p.lawStage); w.WriteDouble(p.population); w.WriteDouble(p.output); w.WriteDouble(p.militaryPower); w.WriteDouble(p.stability); w.WriteDouble(p.legitimacy); w.WriteDouble(p.capacityUtilization); w.WriteBool(p.hasWriting); w.WriteByte((byte)p.governance); w.WriteByte((byte)p.lawFamily); w.WriteByte((byte)p.titleTier); w.WriteByte((byte)p.scaleTier); w.WriteByte((byte)p.dominionMode); w.WriteDouble(p.aggregationCost); }
+            var es = SortedCopy(c.Economies, x => x.stableId); w.WriteInt32(es.Count);
+            foreach (var e in es) { w.WriteInt32(e.stableId); w.WriteInt32(e.settlementId); w.WriteDouble(e.food); w.WriteDouble(e.wood); w.WriteDouble(e.stone); w.WriteDouble(e.goods); w.WriteDouble(e.energy); w.WriteDouble(e.foodSurplus); w.WriteDouble(e.divisionLevel); w.WriteByte(e.exchangeMode); }
+            var ts = SortedCopy(c.Tech, x => x.stableId); w.WriteInt32(ts.Count); foreach (var t in ts) { w.WriteInt32(t.stableId); w.WriteInt32(t.polityId); w.WriteDouble(t.agriculture); w.WriteDouble(t.hunt); w.WriteDouble(t.defense); w.WriteDouble(t.trade); w.WriteDouble(t.faith); w.WriteDouble(t.military); w.WriteDouble(t.culture); }
+            var ins = SortedCopy(c.Individuals, x => x.stableId); w.WriteInt32(ins.Count); foreach (var i in ins) { w.WriteInt32(i.stableId); w.WriteInt32(i.settlementId); w.WriteInt32(i.ageMonths); w.WriteDouble(i.health); w.WriteByte(i.occupation); w.WriteBool(i.alive); }
+        }
+        private static CivilizationState ReadCivilization(DeterministicBinaryReader r)
+        {
+            var c = new CivilizationState { LastSettledMonth = r.ReadInt32(), EcoImpactCoefficient = r.ReadDouble() }; int n = r.ReadInt32();
+            for (int i = 0; i < n; i++) c.Settlements.Add(new CivilizationSettlementState { stableId=r.ReadInt32(), worldTileId=r.ReadInt32(), polityId=r.ReadInt32(), population=r.ReadDouble(), housingCapacity=r.ReadDouble(), foodCapacity=r.ReadDouble(), spaceCapacity=r.ReadDouble(), prosperity=r.ReadDouble(), tier=(SettlementTier)r.ReadByte(), agricultureZone=r.ReadBool(), housingZone=r.ReadBool(), storageZone=r.ReadBool() });
+            n=r.ReadInt32(); for(int i=0;i<n;i++) c.Polities.Add(new CivilizationPolityState { stableId=r.ReadInt32(), techTier=r.ReadInt32(), sustainedSurplusMonths=r.ReadInt32(), divisionDepth=r.ReadInt32(), lawStage=r.ReadInt32(), population=r.ReadDouble(), output=r.ReadDouble(), militaryPower=r.ReadDouble(), stability=r.ReadDouble(), legitimacy=r.ReadDouble(), capacityUtilization=r.ReadDouble(), hasWriting=r.ReadBool(), governance=(GovernanceType)r.ReadByte(), lawFamily=(LawFamily)r.ReadByte(), titleTier=(TitleTier)r.ReadByte(), scaleTier=(ScaleTier)r.ReadByte(), dominionMode=(DominionMode)r.ReadByte(), aggregationCost=r.ReadDouble() });
+            n=r.ReadInt32(); for(int i=0;i<n;i++) c.Economies.Add(new CivilizationEconomyState { stableId=r.ReadInt32(), settlementId=r.ReadInt32(), food=r.ReadDouble(), wood=r.ReadDouble(), stone=r.ReadDouble(), goods=r.ReadDouble(), energy=r.ReadDouble(), foodSurplus=r.ReadDouble(), divisionLevel=r.ReadDouble(), exchangeMode=r.ReadByte() });
+            n=r.ReadInt32(); for(int i=0;i<n;i++) c.Tech.Add(new TechProgressState { stableId=r.ReadInt32(), polityId=r.ReadInt32(), agriculture=r.ReadDouble(), hunt=r.ReadDouble(), defense=r.ReadDouble(), trade=r.ReadDouble(), faith=r.ReadDouble(), military=r.ReadDouble(), culture=r.ReadDouble() });
+            n=r.ReadInt32(); for(int i=0;i<n;i++) c.Individuals.Add(new IndividualState { stableId=r.ReadInt32(), settlementId=r.ReadInt32(), ageMonths=r.ReadInt32(), health=r.ReadDouble(), occupation=r.ReadByte(), alive=r.ReadBool() });
+            return c;
+        }
+        private static void WriteCivilizationHash(DeterministicBinaryWriter w, CivilizationState c)
+        {
+            c=c??new CivilizationState(); w.WriteInt32(c.LastSettledMonth); w.WriteDouble(DeterminismMath.Quantize(c.EcoImpactCoefficient,3));
+            foreach(var s in SortedCopy(c.Settlements,x=>x.stableId)){w.WriteInt32(s.stableId);w.WriteDouble(DeterminismMath.Quantize(s.population,0));w.WriteByte((byte)s.tier);w.WriteDouble(DeterminismMath.Quantize(s.prosperity,3));}
+            foreach(var p in SortedCopy(c.Polities,x=>x.stableId)){w.WriteInt32(p.stableId);w.WriteDouble(DeterminismMath.Quantize(p.population,0));w.WriteDouble(DeterminismMath.Quantize(p.output,3));w.WriteDouble(DeterminismMath.Quantize(p.stability,3));w.WriteInt32(p.techTier);w.WriteInt32(p.lawStage);w.WriteByte((byte)p.governance);}
         }
 
         private static List<T> SortedCopy<T>(List<T> src, Func<T, int> idOf)

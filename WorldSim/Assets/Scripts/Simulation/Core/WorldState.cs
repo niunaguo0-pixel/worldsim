@@ -3,6 +3,7 @@ namespace WorldSim.Simulation.Core
     using System;
     using System.Collections.Generic;
     using WorldSim.Simulation.Core.Ecology;
+    using WorldSim.Simulation.Core.Civilization;
     using WorldSim.Simulation.Core.Random;
     using WorldSim.Simulation.Core.Slice;
 
@@ -22,6 +23,8 @@ namespace WorldSim.Simulation.Core
         public List<ResourceStub> Resources;
         /// <summary>S2 正式生态态；默认不开启以保持 Epic 0 Gate-0 基线。</summary>
         public EcologyState Ecology;
+        /// <summary>S3 正式文明态；默认关闭以冻结 Gate-0 切片路径。</summary>
+        public CivilizationState Civilization;
         public List<SimEvent> Events;
         public StableIdSet ActiveEntities;
         public List<InterventionRecord> InterventionLog;
@@ -33,6 +36,7 @@ namespace WorldSim.Simulation.Core
         /// <summary>可选 S1 月结算器 (可玩月循环 / InterventionSystem).</summary>
         public IMonthlyInterventionSettler InterventionSettler;
         public IMonthlyEcologySettler EcologySettler;
+        public IMonthlyCivilizationSettler CivilizationSettler;
 
         public WorldState(ulong worldSeed, int speedMultiplier = 1)
         {
@@ -44,6 +48,7 @@ namespace WorldSim.Simulation.Core
             Polities = new List<PolityStub>();
             Resources = new List<ResourceStub>();
             Ecology = new EcologyState();
+            Civilization = new CivilizationState();
             Events = new List<SimEvent>();
             ActiveEntities = new StableIdSet();
             InterventionLog = new List<InterventionRecord>();
@@ -52,6 +57,7 @@ namespace WorldSim.Simulation.Core
             Fallback = new DeterminismFallback(DeterminismFallbackLevel.None);
             InterventionSettler = null;
             EcologySettler = null;
+            CivilizationSettler = null;
         }
 
         /// <summary>
@@ -102,6 +108,7 @@ namespace WorldSim.Simulation.Core
                 currentAmount = 50.0
             });
             w.ModuleToggles["ecology.v2"] = false;
+            w.ModuleToggles["civilization.v2"] = false;
             return w;
         }
     }
