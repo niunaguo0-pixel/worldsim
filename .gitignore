@@ -56,3 +56,5 @@ gate0-local.log
 
 # Raw/upstream geography cache (only deterministic derivatives are committed)
 tools/geo/.geo-cache/
+**/__pycache__/
+*.py[cod]
