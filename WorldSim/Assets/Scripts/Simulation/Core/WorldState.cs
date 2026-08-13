@@ -27,6 +27,8 @@ namespace WorldSim.Simulation.Core
         public Dictionary<string, bool> ModuleToggles;
         /// <summary>G0-8 三级回退钩子; 默认 None, 不自动触发.</summary>
         public DeterminismFallback Fallback;
+        /// <summary>可选 S1 月结算器 (可玩月循环 / InterventionSystem).</summary>
+        public IMonthlyInterventionSettler InterventionSettler;
 
         public WorldState(ulong worldSeed, int speedMultiplier = 1)
         {
@@ -43,6 +45,7 @@ namespace WorldSim.Simulation.Core
             EraIndex = 0;
             ModuleToggles = new Dictionary<string, bool>();
             Fallback = new DeterminismFallback(DeterminismFallbackLevel.None);
+            InterventionSettler = null;
         }
 
         /// <summary>

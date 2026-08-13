@@ -2,6 +2,10 @@
   "name": "WorldSim.Editor",
   "rootNamespace": "WorldSim.Editor",
   "references": [
+    "WorldSim.Presentation",
+    "WorldSim.Simulation.Core",
+    "WorldSim.Simulation.Time",
+    "WorldSim.Simulation.Intervention",
     "UnityEditor.TestRunner",
     "UnityEngine.TestRunner"
   ],

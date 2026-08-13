@@ -34,6 +34,14 @@ namespace WorldSim.Simulation.Time
             AdvanceGameTime((double)dtReal * _world.Time.speedMultiplier);
         }
 
+        /// <summary>暂停/继续. UI 仅驱动此旗标, 不持有游戏态.</summary>
+        public void SetPaused(bool paused)
+        {
+            _world.Time.paused = paused;
+        }
+
+        public bool IsPaused => _world.Time.paused;
+
         /// <summary>设置速度档; 受回退1 收窄约束 (去 20×).</summary>
         public void SetSpeedMultiplier(int requested)
         {
@@ -145,15 +153,11 @@ namespace WorldSim.Simulation.Time
             if (s.constructionActive) { s.constructionMonths--; if (s.constructionMonths <= 0) s.constructionActive = false; }
         }
 
-        // ---------- S1 干预结算 (桩) ----------
+        // ---------- S1 干预结算 ----------
 
         private void ApplyDueInterventions(int month)
         {
-            // 延迟到期的干预生效 (真实写入在 Epic 1); 本批仅按游戏月时间戳定位.
-            for (int i = 0; i < _world.InterventionLog.Count; i++)
-            {
-                if (_world.InterventionLog[i].gameMonth == month) { /* 占位 */ }
-            }
+            _world.InterventionSettler?.SettleDue(_world, month);
         }
 
         // ---------- S2 生态月结 (桩) ----------
@@ -188,10 +192,19 @@ namespace WorldSim.Simulation.Time
                     {
                         sp.stressMonths = 0;
                         var target = _world.Settlements[0];
-                        target.underDisaster = true;
-                        target.disasterMonths = 4;
-                        _world.Events.Add(new SimEvent(month, SimEventCategory.Disaster, sp.stableId,
-                            "ecology.disaster", DeterminismMath.Quantize(sp.population, 0)));
+                        // S1-3 神佑护盾: 吸收本月灾害
+                        if (_world.InterventionSettler != null &&
+                            _world.InterventionSettler.TryAbsorbDisaster(_world, target.stableId, month))
+                        {
+                            // 事件由 settler 写入
+                        }
+                        else
+                        {
+                            target.underDisaster = true;
+                            target.disasterMonths = 4;
+                            _world.Events.Add(new SimEvent(month, SimEventCategory.Disaster, sp.stableId,
+                                "ecology.disaster", DeterminismMath.Quantize(sp.population, 0)));
+                        }
                     }
                 }
             }

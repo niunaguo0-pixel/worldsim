@@ -3,7 +3,8 @@
   "rootNamespace": "WorldSim.Presentation",
   "references": [
     "WorldSim.Simulation.Core",
-    "WorldSim.Simulation.Time"
+    "WorldSim.Simulation.Time",
+    "WorldSim.Simulation.Intervention"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

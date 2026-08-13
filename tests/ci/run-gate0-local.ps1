@@ -16,6 +16,9 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & (Join-Path $PSScriptRoot "check-sim-asmdef.ps1")
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+& (Join-Path $PSScriptRoot "assert-region-presets-synced.ps1") -RepoRoot $RepoRoot
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 $unity = & (Join-Path $PSScriptRoot "resolve-unity.ps1") -UnityVersion $UnityVersion -Quiet
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($unity)) {
     Write-Error "Unity resolve failed"
@@ -49,6 +52,6 @@ if (-not (Test-Path $out)) {
 $tr = $xml."test-run"
 Write-Host "result=$($tr.result) total=$($tr.total) passed=$($tr.passed) failed=$($tr.failed)"
 $failed = [int]$tr.failed + [int]$tr.errors
-$min = 30
+$min = 42
 if ($failed -gt 0 -or [int]$tr.total -lt $min) { exit 1 }
 exit 0

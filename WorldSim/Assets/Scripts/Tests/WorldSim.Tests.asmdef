@@ -5,6 +5,7 @@
     "WorldSim.Simulation.Core",
     "WorldSim.Simulation.Time",
     "WorldSim.Simulation.WorldMap",
+    "WorldSim.Simulation.Intervention",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],
