@@ -21,21 +21,30 @@ namespace WorldSim.Presentation
         public static Color ColorForTile(WorldTileData tile)
         {
             if (tile == null || !tile.IsLand)
-                return WaterBlue;
+            {
+                Color w = WaterBlue;
+                w.a = 0f; // 陆地 mask：水面 a=0，供 NPR shader 水路
+                return w;
+            }
+
+            Color land;
             switch (tile.Biome)
             {
-                case BiomeType.Ice: return new Color(0.86f, 0.90f, 0.92f);
-                case BiomeType.Tundra: return Mix(RockGray, SageGreen, 0.35f);
-                case BiomeType.BorealForest: return Mix(SageGreen, DeepBrown, 0.35f);
-                case BiomeType.TemperateForest: return SageGreen;
-                case BiomeType.Grassland: return Mix(SageGreen, EarthOchre, 0.45f);
-                case BiomeType.Desert: return EarthOchre;
-                case BiomeType.Savanna: return Mix(EarthOchre, Sienna, 0.4f);
-                case BiomeType.TropicalRainforest: return Mix(SageGreen, DeepBrown, 0.25f);
-                case BiomeType.Alpine: return Mix(RockGray, Sienna, 0.4f);
-                case BiomeType.Wetland: return Mix(WaterBlue, SageGreen, 0.55f);
-                default: return EarthOchre;
+                case BiomeType.Ice: land = new Color(0.86f, 0.90f, 0.92f); break;
+                case BiomeType.Tundra: land = Mix(RockGray, SageGreen, 0.35f); break;
+                case BiomeType.BorealForest: land = Mix(SageGreen, DeepBrown, 0.35f); break;
+                case BiomeType.TemperateForest: land = SageGreen; break;
+                case BiomeType.Grassland: land = Mix(SageGreen, EarthOchre, 0.45f); break;
+                case BiomeType.Desert: land = EarthOchre; break;
+                case BiomeType.Savanna: land = Mix(EarthOchre, Sienna, 0.4f); break;
+                case BiomeType.TropicalRainforest: land = Mix(SageGreen, DeepBrown, 0.25f); break;
+                case BiomeType.Alpine: land = Mix(RockGray, Sienna, 0.4f); break;
+                case BiomeType.Wetland: land = Mix(WaterBlue, SageGreen, 0.55f); break;
+                default: land = EarthOchre; break;
             }
+
+            land.a = 1f;
+            return land;
         }
 
         public static Color Mix(Color a, Color b, float t) => Color.Lerp(a, b, Mathf.Clamp01(t));
