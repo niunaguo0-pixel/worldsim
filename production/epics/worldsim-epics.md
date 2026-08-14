@@ -1,19 +1,21 @@
 ---
 项目名: WorldSim
 文档名: Phase 4 预制作 — Epic / Story 拆分（工程视角）
-版本: v0.1.0（Phase 4 入口，待评审）
-日期: 2026-08-12
+版本: v0.2.0
+日期: 2026-08-14
 作者: 程基岩 (Cheng Jiyan) — 工程负责人 / 主程序
-阶段: Phase 4 预制作（Epic/Story 拆分 + 测试框架脚手架，P0）
+阶段: Phase 4 预制作（进行中）
 输入文档:
   - docs/architecture/worldsim-architecture.md v1.0.0
   - docs/architecture/adr/ADR-001~004（已接受）
-  - docs/architecture/control-checklist.md（B2–B4 入口条件 / G0-1~8 门禁）
+  - docs/architecture/control-checklist.md v1.1.0（Phase 3 PASS / Phase 4 OPEN）
   - docs/architecture/architecture-review.md（CONCERNS 收敛为 B2–B4）
+  - production/phase4-gate.md v1.0.0
+  - production/sprint-02-plan.md v1.0.0
   - design/gdd/time-progression.md (S4) / civilization-system.md (S3) / world-map-generator.md (S5)
   - design/gdd/data/region-presets.json（schemaVersion 1.0）
-  - docs/unity-setup-complete.md（Unity 6000.0.81f1 / CLI v1.0.0-beta.3）
-状态: 草稿（待主理人游承峰评审后进入 Sprint 1 实装）
+  - docs/unity-setup-complete.md（Unity 6000.0.81f1 / CLI）
+状态: Phase 4 进行中 — Epic 0 Done；Sprint 02 = VS-8 可访问性 Standard
 ---
 
 # WorldSim — Phase 4 预制作 Epic / Story 拆分
@@ -21,6 +23,8 @@
 > 本文是工程视角的 Phase 4 实装拆解：**确定性垂直切片优先**（Gate-0 首道门），再按系统铺开。
 > **不写设计 / 美术 / UX 规格**——所有 Story 均为工程实现项，验收标准对齐 GDD 需求 ID 与架构/ADR 契约。
 > 测试：**可执行测试**在 `WorldSim/Assets/Scripts/Tests/`；契约与 CI 在 `tests/`（`tests/contracts/determinism-contract.md`、`tests/ci/`、`.github/workflows/gate0.yml`）。`tests/unit`/`tests/gate0` 仅占位说明，无双源 `.cs`。
+>
+> **2026-08-14 对账**：Epic 0 = **Done**。Epic 1/4/5/6 部分 Story 已在 Phase 3 尾声超前落地；**Sprint 02 不以重做这些项为主，而以 asset-spec VS-8 可访问性 Standard 收口**（见 `production/sprint-02-plan.md`）。
 
 ---
 
@@ -50,20 +54,20 @@
 
 ## 1. Epic 总览（建议实装顺序）
 
-| Epic | 名称 | 范围 | 关键依赖 | 建议 Sprint |
-|------|------|------|---------|------------|
-| **Epic 0** | **确定性垂直切片（Gate-0 门）** | SimOrchestrator + S4 双频混合结算 + 四路 Replay + region-presets 消费 + CI 门禁 | 无（地基） | **Sprint 1（Must）** |
-| Epic 1 | S1 干预系统 | IInterventionTarget 注册 / 异步 pending / InterventionLog / 紧急干预 | Epic 0（确定性核心） | Sprint 2 |
-| Epic 2 | S2 生态模拟引擎 | WorldTile 生态态 / 11 步月结 / 地貌季节 / 灾害预警 | Epic 0 | Sprint 3 |
-| Epic 3 | S3 文明发展 | 聚落成长+尺度层级 / 16 步月结 / 经济科技个体 / 国家聚合 | Epic 0, Epic 2 | Sprint 3–4 |
-| Epic 4 | S4 时间表现层 | 速度控件 / 时间轴 HUD / 尺度跃迁联动（时间核心已在 Epic 0） | Epic 0 | Sprint 2 |
-| Epic 5 | S5 世界地图（完整管线） | Natural Earth 导入 / 生物群系 / LOD 分块 / 双开局模式（region 消费在 Epic 0） | Epic 0 | Sprint 4 |
-| Epic 6 | 表现层（Runtime/Presentation/Camera） | SimulationRunner 胶水 / NPR 渲染 / 表现插值 / 相机 LOD | Epic 0 | Sprint 2–5 |
-| Epic 7 | 存档（S10，完整） | LOD 分块序列化 / delta 增量 / 异步延迟装载（快照往返已在 Epic 0） | Epic 0 | Sprint 4 |
-| Epic 8 | 测试基础设施（持续） | 单元/集成/性能回归；Gate-0 门禁维护；确定性契约演进 | 贯穿 | Sprint 1+ 持续 |
+| Epic | 名称 | 范围 | 关键依赖 | 建议 Sprint | 2026-08-14 注记 |
+|------|------|------|---------|------------|-----------------|
+| **Epic 0** | **确定性垂直切片（Gate-0 门）** | SimOrchestrator + S4 双频混合结算 + 四路 Replay + region-presets 消费 + CI 门禁 | 无（地基） | **Sprint 1（Must）** | **Done** — Sprint 01 结项 |
+| Epic 1 | S1 干预系统 | IInterventionTarget 注册 / 异步 pending / InterventionLog / 紧急干预 | Epic 0（确定性核心） | Sprint 2 | **代码已部分落地**；Sprint 02 主攻 VS-8，非重做干预 |
+| Epic 2 | S2 生态模拟引擎 | WorldTile 生态态 / 11 步月结 / 地貌季节 / 灾害预警 | Epic 0 | Sprint 3 | 待排 |
+| Epic 3 | S3 文明发展 | 聚落成长+尺度层级 / 16 步月结 / 经济科技个体 / 国家聚合 | Epic 0, Epic 2 | Sprint 3–4 | **代码已部分落地**（可玩切片） |
+| Epic 4 | S4 时间表现层 | 速度控件 / 时间轴 HUD / 尺度跃迁联动（时间核心已在 Epic 0） | Epic 0 | Sprint 2 | **代码已部分落地**（Formal HUD / 变速） |
+| Epic 5 | S5 世界地图（完整管线） | Natural Earth 导入 / 生物群系 / LOD 分块 / 双开局模式（region 消费在 Epic 0） | Epic 0 | Sprint 4 | **代码已部分落地**（geo-v1 + S5-4 双开局） |
+| Epic 6 | 表现层（Runtime/Presentation/Camera） | SimulationRunner 胶水 / NPR 渲染 / 表现插值 / 相机 LOD | Epic 0 | Sprint 2–5 | **代码已部分落地**（NPR/AS-2/减少动态壳）；Sprint 02 收 VS-8 |
+| Epic 7 | 存档（S10，完整） | LOD 分块序列化 / delta 增量 / 异步延迟装载（快照往返已在 Epic 0） | Epic 0 | Sprint 4 | 待排 |
+| Epic 8 | 测试基础设施（持续） | 单元/集成/性能回归；Gate-0 门禁维护；确定性契约演进 | 贯穿 | Sprint 1+ 持续 | 进行中 |
 
 > **说明**：Epic 0 内的 `序列化往返` 与 `真实地球 region 消费` 是 Gate-0 路径④与 B4 的最小兑现；Epic 7 / Epic 5 再补全「完整 LOD 分块 / 全分辨率数据管线」。
-
+> **Sprint 02**：以 `production/sprint-02-plan.md`（VS-8）为准，不按上表「Sprint 2 = Epic 1+4」原排期机械执行。
 ---
 
 ## 2. Epic 0 — 确定性垂直切片（Gate-0 门）【Sprint 1 · Must】
