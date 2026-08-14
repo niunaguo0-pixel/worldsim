@@ -100,6 +100,8 @@ namespace WorldSim.Presentation
             var sample = DioramaGradeMath.Compose(season, _droughtWeight);
             if (reduceMotion)
                 sample = DioramaGradeMath.ApplyReduceMotion(sample);
+            if (AccessibilitySettings.HighContrast)
+                sample = DioramaGradeMath.ApplyHighContrast(sample);
             Apply(sample);
         }
 

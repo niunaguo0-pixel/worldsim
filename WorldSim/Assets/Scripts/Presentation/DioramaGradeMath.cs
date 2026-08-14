@@ -133,5 +133,15 @@ namespace WorldSim.Presentation
             g.BloomIntensity *= 0.5f;
             return g;
         }
+
+        /// <summary>asset-spec §7.3：高对比主题（轻量对比 + 降饱和 + 关暗角 + Bloom×0.4）。</summary>
+        public static GradeSample ApplyHighContrast(GradeSample g)
+        {
+            g.Contrast = 12f;
+            g.Saturation = Math.Min(g.Saturation, -30f);
+            g.VignetteIntensity = 0f;
+            g.BloomIntensity *= 0.4f;
+            return g;
+        }
     }
 }

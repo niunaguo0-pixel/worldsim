@@ -25,7 +25,12 @@ namespace WorldSim.Tests.Unit
         {
             AccessibilitySettings.Load();
             Assert.IsFalse(AccessibilitySettings.ReduceMotion);
+            Assert.IsFalse(AccessibilitySettings.HighContrast);
+            Assert.IsFalse(AccessibilitySettings.CvdMode);
+            Assert.AreEqual(1f, AccessibilitySettings.FontScale, 0.001f);
             Assert.AreEqual(AccessibilitySettings.ParticleCapBalanced, AccessibilitySettings.EffectiveParticleCap);
+            Assert.AreEqual(1f, AccessibilitySettings.CrisisPulseAmplitude, 0.001f);
+            Assert.AreEqual(0f, AccessibilitySettings.LodCrossFadeSeconds, 0.001f);
         }
 
         [Test]
@@ -39,6 +44,35 @@ namespace WorldSim.Tests.Unit
             Assert.AreEqual(
                 AccessibilitySettings.ParticleCapReduceMotion,
                 AccessibilitySettings.EffectiveParticleCap);
+            Assert.AreEqual(0f, AccessibilitySettings.CrisisPulseAmplitude, 0.001f);
+            Assert.AreEqual(
+                AccessibilitySettings.LodCrossFadeReduceMotionSeconds,
+                AccessibilitySettings.LodCrossFadeSeconds,
+                0.001f);
+        }
+
+        [Test]
+        public void HighContrastAndCvdAndFontScale_Persist()
+        {
+            AccessibilitySettings.SetHighContrast(true);
+            AccessibilitySettings.SetCvdMode(true);
+            AccessibilitySettings.SetFontScale(1.25f);
+            AccessibilitySettings.Load();
+            Assert.IsTrue(AccessibilitySettings.HighContrast);
+            Assert.IsTrue(AccessibilitySettings.CvdMode);
+            Assert.AreEqual(1.25f, AccessibilitySettings.FontScale, 0.001f);
+            Assert.IsTrue(CvdPatternHook.IsActive);
+            Assert.IsTrue(CvdPatternHook.ShouldForceIconText);
+            Assert.AreEqual(0.18f, CvdPatternHook.PatternOverlayAlpha, 0.001f);
+        }
+
+        [Test]
+        public void FontScale_ClampsToRange()
+        {
+            AccessibilitySettings.SetFontScale(0.1f);
+            Assert.AreEqual(AccessibilitySettings.FontScaleMin, AccessibilitySettings.FontScale, 0.001f);
+            AccessibilitySettings.SetFontScale(9f);
+            Assert.AreEqual(AccessibilitySettings.FontScaleMax, AccessibilitySettings.FontScale, 0.001f);
         }
 
         [Test]
@@ -56,6 +90,17 @@ namespace WorldSim.Tests.Unit
             float expected = baseGrade.BloomIntensity * 0.5f;
             var reduced = DioramaGradeMath.ApplyReduceMotion(baseGrade);
             Assert.AreEqual(expected, reduced.BloomIntensity, 0.01f);
+        }
+
+        [Test]
+        public void ApplyHighContrast_SetsContrastSatVignetteAndBloom()
+        {
+            var baseGrade = DioramaGradeMath.SampleSeason(TimeSeason.Summer);
+            var hc = DioramaGradeMath.ApplyHighContrast(baseGrade);
+            Assert.AreEqual(12f, hc.Contrast, 0.01f);
+            Assert.AreEqual(-30f, hc.Saturation, 0.01f);
+            Assert.AreEqual(0f, hc.VignetteIntensity, 0.01f);
+            Assert.AreEqual(baseGrade.BloomIntensity * 0.4f, hc.BloomIntensity, 0.01f);
         }
 
         [Test]
