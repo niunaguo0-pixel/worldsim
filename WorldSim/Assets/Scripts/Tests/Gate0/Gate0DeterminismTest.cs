@@ -78,6 +78,9 @@ namespace WorldSim.Tests.Gate0
                 : Profile1x();
 
             var world = WorldState.CreateMinimalSlice(seed, profile[0].SpeedMultiplier);
+            if (world.Fallback.Level != DeterminismFallbackLevel.None)
+                throw new InvalidOperationException(
+                    "Gate0 Replay 必须在 Fallback=None 下跑，禁止静默降速: " + world.Fallback.Level);
             for (int i = 0; i < interventions.Count; i++)
                 world.InterventionLog.Add(interventions[i]);
 

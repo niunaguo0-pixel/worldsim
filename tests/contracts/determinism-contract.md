@@ -36,35 +36,58 @@
 > 量化规则：`Quantize(x, d) = Truncate(x * 10^d) / 10^d`（**向零截断**，全工程统一；此前草稿写作 `Round`，现与 production 对齐为向零，避免 banker's 跨平台不一致，ADR-002 选项 2）。量化在「写回指标哈希」与「跨月持久化累加量」两处执行（ADR-002 选项 2）。
 
 ### 2.3 字节流构造（确定性写入，ADR-004 约束）
+
+> 与 `WorldStateSerializer.ComputeMonthlyHash`（SchemaVersion≥3）字段集对齐。实现为单一真相源；改哈希字段须先改本表并过四路 Replay。
+
 ```
 byte[] BuildDeterministicBuffer(WorldState ws):
     buf = []
     // 1) RNG 全状态（先写，最敏感）
     for stream in ws.RngRegistry.streams.OrderBy(s => s.streamId):   // 稳定 ID 序
-        buf += stream.streamId                     // 定长字符串/哈希
+        buf += stream.streamId                     // ulong streamId
         buf += stream.state256                     // 32 字节 (4×uint64) 原样, R-N3 必须全 256-bit
-    // 2) 政体（稳定 ID 升序）
+    // 2) 政体（稳定 ID 升序）— 含 EraGate v1.4.4 观测字段；人口入哈希作观测，不作时代钥匙
     for p in ws.Polities.OrderBy(p => p.stableId):
+        buf += p.stableId
         buf += Quantize(p.population, 0)
         buf += Quantize(p.aggregateOutput, 0)
         buf += Quantize(p.aggregateMilitaryPower, 0)
         buf += Quantize(p.aggregateStability, 3)
+        buf += p.techTier                          // int
+        buf += p.sustainedSurplusMonths            // int
+        buf += Quantize(p.capacityUtilization, 3)
+        buf += p.divisionDepth                     // int
+        buf += p.lawStage                          // int
+        buf += p.hasWriting                        // bool
     // 3) 聚落（稳定 ID 升序）
     for s in ws.Settlements.OrderBy(s => s.stableId):
+        buf += s.stableId
         buf += Quantize(s.population, 0)
         buf += Quantize(s.growthRate, 3)
+        buf += s.isAtWar / s.underDisaster / s.constructionActive  // bool×3
     // 4) 物种（稳定 ID 升序）
     for sp in ws.Species.OrderBy(sp => sp.stableId):
+        buf += sp.stableId
         buf += Quantize(sp.population, 0)
+        buf += sp.stressMonths                     // int
     // 5) 资源（稳定 ID 升序）
     for r in ws.Resources.OrderBy(r => r.stableId):
+        buf += r.stableId
         buf += Quantize(r.currentAmount, 3)
-    // 6) 时钟/累加器（定点化整数游戏月）
-    buf += ws.TimeDriver.gameClockMonthsInt        // 整数月，非 float
+    // 6) 时钟 + 时代索引（整数月，非 float）
+    buf += ws.Time.monthIndex
+    buf += ws.EraIndex
     return buf
 ```
 - 所有数值**显式小端、固定字段顺序、固定宽度**；集合**先排序后写**（禁止字典遍历序）。
-- `gameClock` 以**整数游戏月**参与哈希（由边界序号派生，见 §3），避免 float 累加器 drift 污染哈希。
+- `monthIndex` / `EraIndex` 以整数参与哈希（由边界序号派生，见 §3），避免 float 累加器 drift 污染哈希。
+- `InterventionLog` 是**命令日志保序序列**（ADR-004），入快照时按追加序写，**不**为哈希排序打乱因果；月哈希不包含干预日志全文（已由 RNG/态间接覆盖）。
+- Schema 5 起，`CivilizationState` 以稳定 ID 序参与月哈希：聚落人口/尺度/繁荣度，以及政体人口、产出、稳定度、科技、法律与治理字段；经济、技术、个体全态入档。正式文明必须通过 1×、20×、变速暂停、存读档四路 Replay。
+- **Schema 7（Epic 5 Task 4/6）真实地理参与月哈希**：`WorldMapState` 进入 `WriteWorldMapHash`，含 `GeoDataBuild`（lock 派生 buildId，即静态源版本）、`ManifestChecksum`、`WorldMapConfigSnapshot`（`StartEra`/`StartMode`/`BorderYear`/`UseRealBorders`/`BorderView`/起始区域中心与半径，量化 4 位）以及 `DynamicOverrides`（按 `TileId` 升序，量化后入哈希）。`BorderView`（DeFactoControl/SovereigntyClaims）进入稳定月哈希，故双视图切换改变哈希。表现层 `WorldMapChunkCache` 不进哈希（测试断言）。真实地理（水邻增长 ±0.003 / slope / IsLand）通过 `CivilizationSimEngine.StepSettlements` 进入月哈希；存读档后必须 `WorldMapFactory.RebuildGeography` 重建 transient `WorldGeography`，否则 Geography=null 时水邻增长被静默跳过、哈希分叉（反证测试 `Replay_SaveLoad_RebuildGeography_KeepsHashAlignedAndGeographyMatters`）。
+- **Schema 8（Epic 3 S3-4）核心层政治/法律/族群/军事**：`CivilizationPolityState` 新增合法性四来源（`LegitimacySource`：performance/consensus/lineage/institution，无宗教项）、`EthnicComposition`（MVP 单主导折叠）、`MilitaryState`（weariness/warStatus/opponent）、`Impartiality`、`LawFamilyLocked`。月哈希纳入上述字段（量化 3 位）；读 Schema ≤7 时确定性默认值回填。`LawFamily.ReligiousLaw` 仅兼容旧档，种子与涌现路径不产出。
+- **S5-3 LOD 异步延迟装载**：`WorldMapFactory.Build` 同步物化 High（起始区逐 tile）+ 焦点 Mid；远域 Low 经 `WorldMapLodStreamer` 后台装载并 `MergeBundle(preferExisting)`，不阻塞逻辑返回。`RebuildGeography` 在返回前 `EnsureFarFieldLoaded` 以保证存读档 Replay 远域完整。表现层 `WorldMapChunkCache` 仍不进月哈希。
+- **Schema 9（Epic 7 SV1/SV2）完整存档**：`DynamicOverrides` 按 LOD 分区写入——High 逐 tile 全量，Mid/Low 聚合到父级 Low 格（有损压缩）；生态 `Indicators.currentValue` 以相对 `previousValue` 的量化 delta 落盘（读回 `current=previous+delta`）。月哈希字段集不变（仍写绝对值）。历史层增量追加由旁路 `HistoryDeltaCodec` 提供（主快照仍含全量 `Events`）。读档运行时路径用 `RebuildGeographyDeferred`（High+焦点 Mid 同步、远域 Low 异步，不阻塞逻辑 tick）；Replay / `RebuildGeography` / `SaveGameService.LoadComplete` 仍阻塞齐远域。
+- **Epic 8 T3 / B6 性能预算**：核心层全开（`ecology.v2` + `civilization.v2` + Intervention + 多聚落扩展）下，`AdvanceGameTime(MONTH_SECONDS)` 中位耗时 **&lt; 50ms**（`PerformanceBudgetTests` / `MonthlyPassBudget`）。回退 2（`SerialFix`）串行路径同预算。超预算杠杆：收紧 LOD / 保持 ForceSerialPass。
 
 ### 2.4 哈希算法
 - **FNV-1a-64** over 上述字节流（Epic 0 / Gate-0 唯一算法）。
@@ -123,7 +146,7 @@ nextWeekBoundary  = (weekIndex + 1) * WEEK_SECONDS
 | G0-3 稳定 ID 排序遍历 | `StableIdOrderingTests`：排序后序与插入序无关 | `unit/StableIdOrderingTests.cs` |
 | G0-4 RNG 分流入档 | `RngStreamTests`（确定性 + 状态往返）+ `SerializationRoundTripTests`（状态入档） | `unit/RngStreamTests.cs`, `unit/SerializationRoundTripTests.cs` |
 | G0-5 禁不确定并发与浮点漂移 | `QuantizeTests` + 并行仅叶子约束（CI 静态/Doc） | `unit/QuantizeTests.cs` |
-| G0-6 四路 Replay 哈希一致 | `Gate0DeterminismTest` | `WorldSim/Assets/Scripts/Tests/Gate0/Gate0DeterminismTest.cs` |
+| G0-6 四路 Replay 哈希一致 | `Gate0DeterminismTest` + `Replay_FourWay_RealGeography_HashStable` + `Replay_SaveLoad_RebuildGeography_KeepsHashAlignedAndGeographyMatters` | `WorldSim/Assets/Scripts/Tests/Gate0/Gate0DeterminismTest.cs`, `unit/WorldMapTask4Tests_RealGeo.cs` |
 | G0-7 哈希函数确定 | `DeterminismHash` 单测（禁 `string.GetHashCode`） | `WorldSim/Assets/Scripts/Tests/Unit/QuantizeTests.cs` / 契约 §2.4 |
 | G0-8 三级回退可用 | 回退钩子存在性（`Fix` 全局切换 / 速度档收窄 / lockstep） | Epic 0 V0-7 |
 
@@ -132,7 +155,7 @@ nextWeekBoundary  = (weekIndex + 1) * WEEK_SECONDS
 |------|-----------|--------------|
 | **B2** CI 锁同 Unity + 同 Burst | V0-8 ✅ | `gate0.yml` job `pin-versions` + `tests/ci/assert-burst-pinned.ps1`；`version-pins.json` + manifest `com.unity.burst: 1.8.30` |
 | **B3** Quantize+确定性哈希+Gate-0 入 CI | V0-2 / V0-4 / V0-5 / V0-9 ✅ | `gate0.yml` job `gate0` 跑全量 `WorldSim.Tests` EditMode，分叉即红，上传 artifact |
-| **B4** 真实地球管线 + region-presets 消费 | V0-6 / S5-1（MVP）；完整 DEM → Epic 5 | `RegionPresetConsumptionTests` + `assert-region-presets-synced.ps1`；MVP 高程为公式，非真实 DEM |
+| **B4** 真实地球管线 + region-presets 消费 | V0-6 / S5-1（MVP）；完整 DEM → Epic 5；真实地理入哈希 → Task 4/6 | `RegionPresetConsumptionTests` + `assert-region-presets-synced.ps1`；MVP 高程为公式，非真实 DEM；真实地理探针 `RealData_*` + 双视图 + 重建 + 四路 Replay 见 `unit/WorldMapEpic5Tests.cs` / `unit/WorldMapTask4Tests_RealGeo.cs` |
 
 ---
 
@@ -149,4 +172,7 @@ nextWeekBoundary  = (weekIndex + 1) * WEEK_SECONDS
 - 模拟核心零 `UnityEngine.CoreModule`（GameObject/MonoBehaviour/Transform/Time）。
 - UI 不持有游戏状态；干预唯一入口（`IInterventionTarget`）；地理只读（`IWorldGeography`）。
 - S6/S8 消费 `SimEvent`，**不回写** `WorldState`。
+- **S6 编年史派生态**（`WorldSim.Narrative.EmergentNarrativeEngine` 的 Chronicle / NotableActor）**不进** `ComputeMonthlyHash`；仅作只读呈现。历史层增量仍以确定性 `WorldState.Events`（`HistoryDeltaCodec`）为准。
+- **S8 GoalMode**（目标模式）属 UI/概念层，**不进入** `WorldInitConfig` / 月哈希；New Game 地理 4 项经 `NewGameAssembler` → `WorldInitConfig` 后仍守 B5 红线。
+- **S7 ModuleToggles**（`WorldSim.ModularToggle`）写入 `WorldState.ModuleToggles`，**进入**稳定月哈希（键排序后写 bool）；玩家面向键经 New Game 面板配置，引擎轨 `ecology.v2` / `civilization.v2` 由 Attach 打开。
 - 表现插值绝不回写逻辑态。

@@ -1,0 +1,384 @@
+{
+  "lockSchemaVersion": 1,
+  "canonicalization": {
+    "algorithm": "JSON UTF-8; object keys sorted; compact separators (',', ':'); ensure_ascii=true; sources sorted by id; sha256Pin.date excluded",
+    "buildId": "geo-v1- + first 16 hex characters of SHA-256(canonical bytes)",
+    "note": "Pretty-print whitespace and sha256Pin.date are not part of the digest. Source sha256 values are."
+  },
+  "sources": [
+    {
+      "id": "etopo-2022-60s-surface",
+      "theme": "elevation-surface",
+      "publisher": "NOAA NCEI",
+      "product": "ETOPO 2022 60 arc-second ice-surface elevation GeoTIFF",
+      "version": "ETOPO 2022 v1",
+      "url": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_surface_elev_gtif/ETOPO_2022_v1_60s_N90W180_surface.tif",
+      "landingPage": "https://www.ncei.noaa.gov/products/etopo-global-relief-model",
+      "doi": "10.25921/fd45-gt74",
+      "filename": "ETOPO_2022_v1_60s_N90W180_surface.tif",
+      "format": "geotiff",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "crs": "EPSG:4326",
+      "verticalDatum": "EGM2008 / EPSG:3855",
+      "nodata": -99999,
+      "nodataSource": "GeoTIFF GDAL_NODATA tag 42113 read from the cached ETOPO_2022_v1_60s_N90W180_surface.tif in Task 2; supersedes the -9999 ERDDAP missing_value recorded in Task 1 without reading the file. The builder always reads this tag from the raster itself rather than trusting the lock.",
+      "selectedLayers": [
+        "band1-elevation-meters-ice-surface"
+      ],
+      "bytes": 465969062,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "9d27d4b8ea8e76977e2988bca667d7c8fa68b927355feffcddd6b4875a7fd08e",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_surface_elev_gtif/ETOPO_2022_v1_60s_N90W180_surface.tif",
+        "bytes": 465969062
+      }
+    },
+    {
+      "id": "koppen-geiger-v3-1991-2020",
+      "theme": "climate-classification",
+      "publisher": "GloH2O / Beck et al. 2023",
+      "product": "GloH2O Köppen-Geiger V3 classification maps, 1991–2020 layer in koppen_geiger_tif.zip",
+      "version": "V3 / figshare 21789074.v2 (2026-01-14 correction)",
+      "url": "https://ndownloader.figshare.com/files/61012822",
+      "landingPage": "https://www.gloh2o.org/koppen/",
+      "doi": "10.6084/m9.figshare.21789074.v2",
+      "paperDoi": "10.1038/s41597-023-02549-6",
+      "filename": "koppen_geiger_tif.zip",
+      "format": "zip-geotiff",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "attribution": "Beck, H.E., T.R. McVicar, N. Vergopolan, A. Berg, N.J. Lutsko, A. Dufour, Z. Zeng, X. Jiang, A.I.J.M. van Dijk, D.G. Miralles. High-resolution (1 km) Köppen-Geiger maps for 1901–2099 based on constrained CMIP6 projections, Scientific Data 10, 724, doi:10.1038/s41597-023-02549-6 (2023).",
+      "crs": "EPSG:4326",
+      "nodata": 0,
+      "nodataSource": "GeoTIFF GDAL_NODATA tag 42113 on the extracted 1991-2020 classification layer after bootstrap",
+      "selectedLayers": [
+        "1991_2020/koppen_geiger_0p5.tif"
+      ],
+      "selectedLayersNote": "Confirmed from koppen_geiger_tif.zip member list after bootstrap. 1991-2020 classification GeoTIFFs: 1991_2020/koppen_geiger_0p00833333.tif, 1991_2020/koppen_geiger_0p1.tif, 1991_2020/koppen_geiger_0p5.tif, 1991_2020/koppen_geiger_1p0.tif",
+      "bytes": 130618411,
+      "bytesSource": "figshare API size for file 61012822, confirmed by HTTP Content-Length HEAD 200 on 2026-08-13",
+      "md5": "7fc2f5a15d4f5fe0ce59c9a9b502aa09",
+      "md5Source": "figshare API supplied_md5/computed_md5 for file 61012822; MD5 is recorded as published provenance and is not accepted as a SHA-256 substitute",
+      "sha256": "bb84453d4541f1a0bc5a804ead83f483c19ce70f16a5197f6d3a7b6a63e65562",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": true,
+        "url": "https://ndownloader.figshare.com/files/61012822",
+        "bytes": 130618411
+      },
+      "observedClassificationLayers": [
+        "1991_2020/koppen_geiger_0p00833333.tif",
+        "1991_2020/koppen_geiger_0p1.tif",
+        "1991_2020/koppen_geiger_0p5.tif",
+        "1991_2020/koppen_geiger_1p0.tif"
+      ]
+    },
+    {
+      "id": "ne-10m-admin-0",
+      "theme": "admin-0",
+      "publisher": "Natural Earth / NACIS",
+      "product": "Natural Earth 1:10m Cultural admin-0 countries (de facto)",
+      "version": "5.1.2",
+      "url": "https://naciscdn.org/naturalearth/5.1.2/10m/cultural/ne_10m_admin_0_countries.zip",
+      "landingPage": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/",
+      "filename": "ne_10m_admin_0_countries.zip",
+      "format": "zip-shapefile",
+      "license": "public-domain",
+      "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "crs": "EPSG:4326",
+      "nodata": null,
+      "selectedLayers": [
+        "ne_10m_admin_0_countries"
+      ],
+      "bytes": 4930492,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "ce1ac7036499a0edd641fbc093cd209a98f96a49d2eca8480aaacad35138a7f6",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://naciscdn.org/naturalearth/5.1.2/10m/cultural/ne_10m_admin_0_countries.zip",
+        "bytes": 4930492
+      }
+    },
+    {
+      "id": "ne-10m-admin-0-sovereignty",
+      "theme": "admin-0-sovereignty",
+      "publisher": "Natural Earth / NACIS",
+      "product": "Natural Earth 1:10m Cultural admin-0 sovereignty",
+      "version": "5.1.2",
+      "url": "https://naciscdn.org/naturalearth/5.1.2/10m/cultural/ne_10m_admin_0_sovereignty.zip",
+      "landingPage": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/",
+      "filename": "ne_10m_admin_0_sovereignty.zip",
+      "format": "zip-shapefile",
+      "license": "public-domain",
+      "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "crs": "EPSG:4326",
+      "nodata": null,
+      "selectedLayers": [
+        "ne_10m_admin_0_sovereignty"
+      ],
+      "bytes": 4906592,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "a0e01dfa76ad1f447e6a3393b0dd4d2de882423eb9d173320cd8331fa9127092",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://naciscdn.org/naturalearth/5.1.2/10m/cultural/ne_10m_admin_0_sovereignty.zip",
+        "bytes": 4906592
+      }
+    },
+    {
+      "id": "ne-10m-coastline",
+      "theme": "coastline",
+      "publisher": "Natural Earth / NACIS",
+      "product": "Natural Earth 1:10m Physical coastline",
+      "version": "5.1.2",
+      "url": "https://naciscdn.org/naturalearth/5.1.2/10m/physical/ne_10m_coastline.zip",
+      "landingPage": "https://www.naturalearthdata.com/downloads/10m-physical-vectors/",
+      "filename": "ne_10m_coastline.zip",
+      "format": "zip-shapefile",
+      "license": "public-domain",
+      "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "crs": "EPSG:4326",
+      "nodata": null,
+      "selectedLayers": [
+        "ne_10m_coastline"
+      ],
+      "bytes": 3069451,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "bfa04cdbcbef07ef90dfca1dabb48062eca29900a113df0f389303e255484017",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://naciscdn.org/naturalearth/5.1.2/10m/physical/ne_10m_coastline.zip",
+        "bytes": 3069451
+      }
+    },
+    {
+      "id": "ne-10m-disputed",
+      "theme": "disputed",
+      "publisher": "Natural Earth / NACIS",
+      "product": "Natural Earth 1:10m Cultural admin-0 disputed areas",
+      "version": "5.1.2",
+      "url": "https://naciscdn.org/naturalearth/5.1.2/10m/cultural/ne_10m_admin_0_disputed_areas.zip",
+      "landingPage": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-0-breakaway-disputed-areas/",
+      "filename": "ne_10m_admin_0_disputed_areas.zip",
+      "format": "zip-shapefile",
+      "license": "public-domain",
+      "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "crs": "EPSG:4326",
+      "nodata": null,
+      "selectedLayers": [
+        "ne_10m_admin_0_disputed_areas"
+      ],
+      "bytes": 215221,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "a250c1cf8ab68898399928a1fa1d5c242eb4de6335cb51a7f7a7f12a9f3c8438",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://naciscdn.org/naturalearth/5.1.2/10m/cultural/ne_10m_admin_0_disputed_areas.zip",
+        "bytes": 215221
+      }
+    },
+    {
+      "id": "ne-10m-lakes",
+      "theme": "lakes",
+      "publisher": "Natural Earth / NACIS",
+      "product": "Natural Earth 1:10m Physical lakes",
+      "version": "5.1.2",
+      "url": "https://naciscdn.org/naturalearth/5.1.2/10m/physical/ne_10m_lakes.zip",
+      "landingPage": "https://www.naturalearthdata.com/downloads/10m-physical-vectors/",
+      "filename": "ne_10m_lakes.zip",
+      "format": "zip-shapefile",
+      "license": "public-domain",
+      "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "crs": "EPSG:4326",
+      "nodata": null,
+      "selectedLayers": [
+        "ne_10m_lakes"
+      ],
+      "bytes": 2349685,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "0803a06f9c3cb4671d89b68c48b142aad9366ba40f665245e12a913fbc61722a",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://naciscdn.org/naturalearth/5.1.2/10m/physical/ne_10m_lakes.zip",
+        "bytes": 2349685
+      }
+    },
+    {
+      "id": "ne-10m-land",
+      "theme": "land",
+      "publisher": "Natural Earth / NACIS",
+      "product": "Natural Earth 1:10m Physical land",
+      "version": "5.1.2",
+      "url": "https://naciscdn.org/naturalearth/5.1.2/10m/physical/ne_10m_land.zip",
+      "landingPage": "https://www.naturalearthdata.com/downloads/10m-physical-vectors/",
+      "filename": "ne_10m_land.zip",
+      "format": "zip-shapefile",
+      "license": "public-domain",
+      "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "crs": "EPSG:4326",
+      "nodata": null,
+      "selectedLayers": [
+        "ne_10m_land"
+      ],
+      "bytes": 3269070,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "e547d749445eaa0964aba76738090ec88f5e63c4585122170f98c67a7ea922dc",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://naciscdn.org/naturalearth/5.1.2/10m/physical/ne_10m_land.zip",
+        "bytes": 3269070
+      }
+    },
+    {
+      "id": "ne-10m-populated-places",
+      "theme": "populated-places",
+      "publisher": "Natural Earth / NACIS",
+      "product": "Natural Earth 1:10m Cultural populated places",
+      "version": "5.1.2",
+      "url": "https://naciscdn.org/naturalearth/5.1.2/10m/cultural/ne_10m_populated_places.zip",
+      "landingPage": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/",
+      "filename": "ne_10m_populated_places.zip",
+      "format": "zip-shapefile",
+      "license": "public-domain",
+      "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "crs": "EPSG:4326",
+      "nodata": null,
+      "selectedLayers": [
+        "ne_10m_populated_places"
+      ],
+      "bytes": 2811199,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "cd149186f03d2603e0410da399b980a4357d0ac32d3a2305a49ed3dffcc41d7b",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://naciscdn.org/naturalearth/5.1.2/10m/cultural/ne_10m_populated_places.zip",
+        "bytes": 2811199
+      }
+    },
+    {
+      "id": "ne-10m-rivers",
+      "theme": "rivers",
+      "publisher": "Natural Earth / NACIS",
+      "product": "Natural Earth 1:10m Physical rivers and lake centerlines",
+      "version": "5.1.2",
+      "url": "https://naciscdn.org/naturalearth/5.1.2/10m/physical/ne_10m_rivers_lake_centerlines.zip",
+      "landingPage": "https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-rivers-lake-centerlines/",
+      "filename": "ne_10m_rivers_lake_centerlines.zip",
+      "format": "zip-shapefile",
+      "license": "public-domain",
+      "licenseUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+      "crs": "EPSG:4326",
+      "nodata": null,
+      "selectedLayers": [
+        "ne_10m_rivers_lake_centerlines"
+      ],
+      "bytes": 2079507,
+      "bytesSource": "HTTP Content-Length from authoritative HEAD 200 on 2026-08-13",
+      "sha256": "ded71b01870855ccfe19b51f2ec14c9bb48fae23c0e9f3c11974d426433b5c38",
+      "sha256Publication": "not-published-by-authority",
+      "sha256BlockFetch": false,
+      "sha256Pin": {
+        "date": "2026-08-13",
+        "method": "bootstrap-from-locked-https-url",
+        "byteLengthVerified": true,
+        "md5Verified": false,
+        "url": "https://naciscdn.org/naturalearth/5.1.2/10m/physical/ne_10m_rivers_lake_centerlines.zip",
+        "bytes": 2079507
+      }
+    }
+  ],
+  "derivation": {
+    "outputGrids": {
+      "Low": {
+        "stepDegrees": 2.0,
+        "width": 180,
+        "height": 90,
+        "lodValue": 2
+      },
+      "Mid": {
+        "stepDegrees": 1.0,
+        "width": 360,
+        "height": 180,
+        "lodValue": 1
+      },
+      "High": {
+        "stepDegrees": 0.5,
+        "width": 720,
+        "height": 360,
+        "lodValue": 0
+      }
+    },
+    "projection": "equirectangular",
+    "pixelConvention": "cell-center",
+    "longitudeRange": [
+      -180,
+      180
+    ],
+    "latitudeRange": [
+      -90,
+      90
+    ],
+    "gzipMtime": 0,
+    "landRasterization": "even-odd point-in-polygon of ne_10m_land at the cell center, minus ne_10m_lakes",
+    "waterFlags": "every non-land cell, plus coast and river cells; lakes count as water",
+    "coastFlags": "land cell crossed by an ne_10m_coastline segment, or with an orthogonal neighbor that is water",
+    "riverFlags": "land cell crossed by an ne_10m_rivers_lake_centerlines segment, filtered by scalerank per LOD so a coarse grid is not saturated by tributaries it cannot resolve (RIVER_SCALERANK_MAX_BY_LOD in grid_build.py: Low<=2, Mid<=4, High<=6; only River and River (Intermittent) feature classes are admitted, Lake Centerline and Canal are excluded); the admitted feature sets are strictly nested across LODs",
+    "polylineRasterization": "cell intersection: grid-line crossings of each segment plus the cells holding its vertices; a segment exactly on a latitude grid line resolves to the cell below it",
+    "elevationResample": "integer-metre mean of the ETOPO 60s pixels whose centers fall in the output cell; source values are rounded to whole metres before summation so the mean is order-independent, and coarser grids reduce the same per-cell sums and counts",
+    "slope": "steepest inclination to an orthogonal neighbor as atan(elevation difference / ground distance between cell centers), stored in tenths of a degree and clamped to 25.5 degrees by the one-byte field; zonal spacing floored at the 85-degree cosine. At 0.5 degree resolution the cell-mean terrain never exceeds about 8.5 degrees (about 7.1 degrees on land), so this field is far gentler than a point slope measured on the native 60-arc-second grid.",
+    "koppenResample": "majority of 1991-2020 classification codes with ties broken to the lowest class code, then mapped to ClimateZone/BiomeType through the explicit table in koppen.py; the table is reconciled against the legend.txt shipped in the same archive at build time (reconcile_koppen_legend in grid_build.py)",
+    "temperatureRainfall": "DERIVED PROXIES, NOT SOURCED. The locked Koppen product ships classifications only and contains no temperature or precipitation raster. Baseline temperature and annual rainfall are computed from the Koppen class plus latitude and elevation offsets against per-class reference points, using the bounded constants documented in koppen.py. Do not present them as measured climate data.",
+    "oceanClimate": "SYNTHETIC, NOT SOURCED. The Koppen product classifies land only and leaves water as NoData, and no ocean temperature or precipitation source is locked. Climate zone, baseline temperature and annual rainfall on every non-land cell are therefore synthetic latitude bands invented by this builder (OCEAN_CLIMATE_BANDS / OCEAN_RAINFALL_BANDS / ocean_temperature_c in koppen.py, see WATER_CLIMATE_IS_SYNTHETIC). They must never be described as Koppen-derived. Every water cell is flagged IsInterpolated so the synthetic climate is not mistaken for upstream data; water elevation itself does remain sourced from ETOPO.",
+    "missingPolicy": "set IsInterpolated only after source NoData; fixed neighbor then latitude fallback; never silently invent upstream pixels",
+    "borderPolicy": "Natural Earth de facto admin-0 countries by default; sovereignty polygons locked for claims view; disputed attributes retained; no extra-legal adjudication",
+    "currentBuildFidelity": "full-source-real-earth-with-derived-climate-proxies",
+    "samplingNote": "Task 2 removed the embedded SAMPLE_* sampler. Land, water, coast and river come from Natural Earth 5.1.2 1:10m, elevation and slope from ETOPO 2022 60-arc-second, and climate and biome from Koppen-Geiger V3 1991-2020, all read from the verified .geo-cache. Temperature and rainfall remain derived proxies (see temperatureRainfall).",
+    "glottolog": "out of scope for this lock"
+  }
+}

@@ -1,0 +1,17 @@
+# WorldSim geo builder
+# Requires: Python >= 3.10 (verified on CPython 3.12, Windows x64)
+#
+# `fetch`, `verify`, `bootstrap` and `print-build-id` remain standard-library
+# only. `build` additionally needs numpy for block-wise raster maths.
+#
+# numpy is the single third-party dependency. GeoTIFF decoding
+# (tiff_tags.py, geotiff.py) and shapefile geometry reading
+# (shapefile_reader.py) are implemented in-tree against the standard library
+# rather than pulling in GDAL/rasterio/pyshp: those wheels are large, carry
+# native GDAL builds, and would widen the trusted surface of an offline,
+# fail-closed, byte-reproducible build for functionality this build does not
+# need. Only the exact TIFF and shapefile features the locked sources use are
+# supported, and anything else fails closed.
+#
+# Pin exactly. Do not add unpinned dependencies.
+numpy==2.3.2

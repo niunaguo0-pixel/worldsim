@@ -30,7 +30,7 @@
 **CONCERN / 阻塞项**：
 - B1（已解决，2026-08-12 用户采纳 ADR-002 选项 2）：**选项 2（float + 禁 fast-math + 量化写回 + `Fix` 兜底）** 已采纳，非全局定点，Gate-0 成本与风险可控。
 - B2：须确认 CI 锁定"同 Unity 版本 + 同 Burst 设置"（ADR-003），否则 float 逐位一致前提失效。
-- B3：须实现 `Quantize` 边界与指标哈希（FNV/xxHash over 确定性字节流）并写入 CI 门禁；哈希函数本身须确定（禁 `string.GetHashCode` 非稳定序）。
+- B3：须实现 `Quantize` 边界与指标哈希（**FNV-1a-64** over 确定性字节流；xxHash 未实现）并写入 CI 门禁；哈希函数本身须确定（禁 `string.GetHashCode` 非稳定序）。
 
 > 收敛说明（2026-08-12）：ADR-001~004 已锁定，B1 随 ADR-002 选项 2 采纳而清零；本评审判定维持 **CONCERNS**，但 CONCERNS 收敛为 **B2–B4** 执行项（均列为 Phase 4 预制作入口条件，须排期）。
 

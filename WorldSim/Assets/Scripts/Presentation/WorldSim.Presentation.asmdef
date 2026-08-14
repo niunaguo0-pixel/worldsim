@@ -4,7 +4,16 @@
   "references": [
     "WorldSim.Simulation.Core",
     "WorldSim.Simulation.Time",
-    "WorldSim.Simulation.Intervention"
+    "WorldSim.Simulation.Intervention",
+    "WorldSim.Simulation.WorldMap",
+    "WorldSim.Simulation.Ecology",
+    "WorldSim.Simulation.Civilization",
+    "WorldSim.Narrative",
+    "WorldSim.ModularToggle",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "UnityEngine.UI"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

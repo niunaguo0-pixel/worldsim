@@ -1,12 +1,12 @@
 ---
 项目名: WorldSim
 文档名: Phase 3 出口控制清单（Control Checklist）
-版本: v1.0.3
+版本: v1.0.4
 日期: 2026-08-12
 作者: 程基岩
 阶段: Phase 3 — 技术搭建（出口门）
 关联: worldsim-architecture.md / adr/ADR-001~004 / architecture-review.md
-变更摘要: v1.0.3（P1/P2）——EraGate 对齐 S3 v1.4.4（禁绝对人口）；月哈希补产出/军力/稳定度/TechTier/资源；`BuildScript.cs` 落地；`tests/` 去双源 `.cs`；`assert-region-presets-synced` 入 CI；契约钉死 FNV-1a-64；asmdef 表注明 Epic 0 已建 9/规划 14。v1.0.2（P0）——UTF-8 + G0/B2/B3/B8 闭环。
+变更摘要: v1.0.4（P1/P2 文档）——契约 §2.3 对齐 ComputeMonthlyHash；epics/架构/HTML 去掉过时 Burst/128-bit/窄 filter/xxHash 口径；本地 `run-gate0-local` 含 presets 同步且 min=33；gate0 Windows job 改用 `shell: powershell`（自托管常无 pwsh）。**未**改 runner 装服务（仍手动 run.cmd）。v1.0.3——EraGate/Schema3/BuildScript/双源清理。
 ---
 
 # Phase 3 出口控制清单（Control Checklist）
@@ -30,9 +30,10 @@
 | G0-8 | 三级回退可用 | `DeterminismFallback` 默认 None；NarrowSpeed/SerialFix/Lockstep 钩子+单测 | ✅ V0-7 |
 
 > CI：`.github/workflows/gate0.yml`
-> 1. `pin-versions`（ubuntu）：`assert-burst-pinned` + `check-sim-asmdef`
-> 2. `gate0`（**self-hosted Windows X64**）：`resolve-unity.ps1`（Hub + `HKLM\SOFTWARE\Unity Technologies\Installer\Unity 6000.0.81f1` 双重确认）→ 全量 `WorldSim.Tests` EditMode → 上传 `gate0.xml`
-> 本地：`tests/ci/run-gate0-local.ps1`
+> 1. `pin-versions`（ubuntu）：`assert-burst-pinned` + `check-sim-asmdef` + `assert-region-presets-synced`
+> 2. `gate0`（**self-hosted Windows X64**，`shell: powershell`）：`resolve-unity.ps1` → 全量 `WorldSim.Tests` EditMode → 上传 `gate0.xml`
+> 本地：`tests/ci/run-gate0-local.ps1`（含 presets 同步，`GATE0_MIN`=33）
+> Runner：当前手动 `run.cmd` 接单；装 Windows 服务另议。
 
 ---
 
@@ -56,7 +57,7 @@
 | B3 | Quantize + 哈希 + Gate-0 入 CI | ✅ V0-5/V0-9（全量 EditMode + 自托管） | 是（已闭环） | 工程 |
 | B4 | 真实地球管线 + region-presets 消费 | ⏳ 部分：V0-6 MVP 消费已做；完整 Natural Earth 管线 → Epic 5 | 是（完整管线） | Phase 4 |
 | B5 | 空间映射「绝不指定单国家族」红线 | ✅ V0-6 `RegionPresetRedLines` | 建议 | Phase 4 |
-| B6 | 核心层全开月级 pass 预算 profiler | 建议 | 否 | Phase 4 |
+| B6 | 核心层全开月级 pass 预算 profiler | 建议 | 否 | Phase 4：**T3 已落** `PerformanceBudgetTests`（中位 &lt;50ms） |
 | B7 | AI Navigation 不入模拟核心 | 建议 | 建议 | Phase 4 |
 | B8 | `com.unity.burst` 固定版本入 manifest + CI assert | ✅ V0-8 | 是（已闭环） | 工程 |
 
@@ -72,8 +73,8 @@
 4. ✅ `WorldSim.Simulation.*` asmdef + CI `check-sim-asmdef`
 5. ✅ `WorldSim.Editor.BuildScript.cs`（ADR-003；`BuildWin64` headless）
 6. ✅ region-presets 导入/消费（V0-6）；StreamingAssets 与 design 由 `assert-region-presets-synced.ps1` 守住
-7. ⏳ 模块化开关框架（S7）完整配置 — 切片仅有 `ModuleToggles` 字典
-8. ⏳ NPR 微缩沙盘渲染原型 — 美术侧，非 Epic 0
+7. ✅ 模块化开关框架（S7）完整配置 — `WorldSim.ModularToggle` 目录/预设 + New Game 面板 + 文明子步骤门控
+8. ✅ NPR 微缩沙盘渲染原型 — P2 地球+色板+rim；打磨：四季 Volume 基座 / AS-2 Overlay 切片 / 旱灾偏色+AS-4 ≥1.5s（手绘探针与 Water 变体顺延）
 9. ✅ `com.unity.burst@1.8.30` 直依 + `assert-burst-pinned`（lock 中他包写的 ≥1.8.29 仅为下限，解析为 1.8.30）
 
 > 环境：Unity **6000.0.81f1**；Hub：`C:\Program Files\Unity\Hub\Editor\6000.0.81f1`；注册表：`HKLM\SOFTWARE\Unity Technologies\Installer\Unity 6000.0.81f1`（`Location x64`）。

@@ -7,6 +7,11 @@
     "WorldSim.Simulation.WorldMap",
     "WorldSim.Simulation.Intervention",
     "WorldSim.Simulation.Ecology",
+    "WorldSim.Simulation.Civilization",
+    "WorldSim.Narrative",
+    "WorldSim.ModularToggle",
+    "WorldSim.Presentation",
+    "WorldSim.UI",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],

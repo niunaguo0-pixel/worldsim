@@ -3,6 +3,7 @@
   "rootNamespace": "WorldSim.Simulation.Ecology",
   "references": [
     "WorldSim.Simulation.Core",
+    "WorldSim.ModularToggle",
     "Unity.Mathematics"
   ],
   "includePlatforms": [],

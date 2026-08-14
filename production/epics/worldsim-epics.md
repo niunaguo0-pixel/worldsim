@@ -20,7 +20,7 @@
 
 > 本文是工程视角的 Phase 4 实装拆解：**确定性垂直切片优先**（Gate-0 首道门），再按系统铺开。
 > **不写设计 / 美术 / UX 规格**——所有 Story 均为工程实现项，验收标准对齐 GDD 需求 ID 与架构/ADR 契约。
-> 测试框架脚手架见 `tests/`（含 `tests/contracts/determinism-contract.md`、`tests/gate0/`、`tests/unit/`、CI 见 `.github/workflows/gate0.yml`）。
+> 测试：**可执行测试**在 `WorldSim/Assets/Scripts/Tests/`；契约与 CI 在 `tests/`（`tests/contracts/determinism-contract.md`、`tests/ci/`、`.github/workflows/gate0.yml`）。`tests/unit`/`tests/gate0` 仅占位说明，无双源 `.cs`。
 
 ---
 
@@ -82,13 +82,13 @@
 
 ### Story V0-2 — 确定性数学基座（Quantize / Fix / 确定性哈希 / RNG 分流）
 - **优先级**：Must ｜ **映射**：B3 / G0-4 / G0-5 / G0-7 / ADR-002（选项 2）
-- **需求追溯**：架构 §4.2（RNG 分流 xoshiro256**）/ §4.5（Quantize + Fix 兜底）/ §4.3（确定性哈希 FNV-1a/xxHash）/ S4 §7.3 铁律 4、5
+- **需求追溯**：架构 §4.2（RNG 分流 xoshiro256**）/ §4.5（Quantize + Fix 兜底）/ §4.3（确定性哈希 **FNV-1a-64**）/ S4 §7.3 铁律 4、5
 - **验收标准**：
   1. `Quantize(double/decimal, int decimals)` 与 `Fix`（Q 格式 32.32）落于 `WorldSim.Simulation.Core.Math`；关键累加量写回前经 `Quantize`。
-  2. `RngRegistry`：每子系统独立流 `streamId = Hash(worldSeed, systemTag)`；PRNG 用 **xoshiro256**（**禁用 `System.Random`**）；每条流 128-bit 状态可（反）序列化。
-  3. `DeterminismHash`：FNV-1a-64 / xxHash over **确定性字节流**（显式小端、固定字段顺序、集合先排序后写）；**禁用 `string.GetHashCode`**。
+  2. `RngRegistry`：每子系统独立流 `streamId = Hash(worldSeed, systemTag)`；PRNG 用 xoshiro256**（禁用 `System.Random`）；每条流 **256-bit** 全状态可（反）序列化。
+  3. `DeterminismHash`：**FNV-1a-64** over **确定性字节流**（显式小端、固定字段顺序、集合先排序后写）；**禁用 `string.GetHashCode`**；xxHash 未实现。
   4. `DeterminismHash` 与 `Quantize` 输出在 PC x64 同 Unity/Burst 下逐位一致（单测覆盖）。
-- **测试证据**：`tests/unit/QuantizeTests.cs`、`tests/unit/RngStreamTests.cs`、`tests/contracts/determinism-contract.md`。
+- **测试证据**：`WorldSim/Assets/Scripts/Tests/Unit/QuantizeTests.cs`、`RngStreamTests.cs`、`tests/contracts/determinism-contract.md`。
 
 ### Story V0-3 — SimOrchestrator + S4 双频混合结算时间驱动
 - **优先级**：Must ｜ **映射**：G0-1 / G0-2 / G0-3 / ADR-001
@@ -99,7 +99,7 @@
   3. `activeEntities` 及所有聚落/政体/物种集合遍历前 `SortedByStableId`（铁律 3）；`HashSet` 迭代序不得直接进逻辑。
   4. `SimOrchestrator` 月级大账顺序对齐 S3 §4.3（16 步）+ S2（11 步）+ S1（干预结算）；末步重算 `activeEntities`。
   5. 切片内最小 S2/S3 桩：1 聚落 + 少量物种 + 月/周事件产出，足以在 ≥120 月内触发 ≥1 时代过渡、≥1 战事、≥1 灾害（覆盖周级通道）。
-- **测试证据**：`tests/unit/SimOrchestratorBoundaryTests.cs`（1× 与 20× 产出**完全一致**的边界/事件序列）、`tests/unit/StableIdOrderingTests.cs`。
+- **测试证据**：`WorldSim/Assets/Scripts/Tests/Unit/SimOrchestratorBoundaryTests.cs`（1× 与 20× 产出**完全一致**的边界/事件序列）、`StableIdOrderingTests.cs`。
 
 ### Story V0-4 — 序列化往返（ADR-004 全量快照 + 命令日志）
 - **优先级**：Must ｜ **映射**：B3 / G0-4（RNG 状态入档）/ ADR-004（选项 1）
@@ -109,7 +109,7 @@
   2. 序列化含：`WorldState` 全量 + `RngRegistry` 全状态 + `gameClock`/累加器 + `moduleToggles` + `InterventionLog`。
   3. 读档恢复**逐位一致**状态；续跑演化与无存档路逐月哈希一致（Gate-0 路径④成立）。
   4. `InterventionLog`（按游戏月时间戳）随档保存，作为 Replay 输入。
-- **测试证据**：`tests/unit/SerializationRoundTripTests.cs`（往返后 `DeterminismHash` 不变；四路之一用存读档）。
+- **测试证据**：`WorldSim/Assets/Scripts/Tests/Unit/SerializationRoundTripTests.cs`（往返后 `DeterminismHash` 不变；四路之一用存读档）。
 
 ### Story V0-5 — Gate-0 四路 Replay 测试台
 - **优先级**：Must ｜ **映射**：B3 / G0-6 / G0-7 / G0-8（钩子前置）
@@ -119,8 +119,8 @@
   2. 时长 **≥120 游戏月**，含 ≥1 时代过渡 + ≥1 战事 + ≥1 灾害。
   3. 每月级大账结束对关键指标（各 `Polity.population`/总产出/总军力/稳定度、各 `Species.population`、`Resource.currentAmount`、科技层级、`RngRegistry` 全状态）**先 Quantize 再 DeterminismHash**，逐月比对四路序列。
   4. 任一月分叉即失败，并输出**首个分叉月**用于定位；断言无分叉。
-  5. 测试以 EditMode headless 运行，CI 过滤器 `-testFilter Gate0Determinism`。
-- **测试证据**：`tests/gate0/Gate0DeterminismTest.cs`（四类 SpeedProfile + 统一哈希比对器）。
+  5. 测试以 EditMode headless 运行；CI 跑**全量** `WorldSim.Tests`（不再用过窄 `-testFilter Gate0Determinism`）。
+- **测试证据**：`WorldSim/Assets/Scripts/Tests/Gate0/Gate0DeterminismTest.cs`（四类 SpeedProfile + 统一哈希比对器）。
 
 ### Story V0-6 — 真实地球 MVP 区域精算：消费 `region-presets.json`
 - **优先级**：Must ｜ **映射**：B4 / ADR-004（region 契约）/ S5 §2.2.2
@@ -128,9 +128,9 @@
 - **验收标准**：
   1. Editor/初始化器读取 `region-presets.json`（schemaVersion 1.0，6 预设：fertile_crescent / yellow_yangtze / nile / mediterranean_europe / indus_ganges / mesoamerica）。
   2. 预设 → `WorldInitConfig`：`center/radiusDeg` → `startRegionCenter/Radius`；`ethnicSeed` → `RealEthnicDistribution`（地缘模式空间映射）；`legalFamilyDefault` → `legalTraditionSeed` **偏置（绝不指定单国家族）**。
-  3. **MVP 区域精算**：按 (lat,lon,radius) 在真实地球网格上初始化 High 精度起始区域（切片内可用简化真实数据：1:50m 海岸线 + 低精度高程 + 简化气候，S5 §5.1）。
+  3. **MVP 区域精算**：按 (lat,lon,radius) 初始化 High 精度起始区域网格；**Epic 0 切片用公式高程/生物群系（非真实 DEM / 非 Natural Earth 1:50m）**；完整海岸线+DEM 管线归 Epic 5 / S5-1。
   4. **红线落地**：空间映射只给「偏置/种子」，不得为任一国家/聚落指定具体 `lawFamily`/`ethnicGroup`（B5 红线前置校验，单测覆盖）。
-- **测试证据**：`tests/unit/RegionPresetConsumptionTests.cs`（消费契约 + 红线断言；归入 `tests/unit/` 后续补）。
+- **测试证据**：`WorldSim/Assets/Scripts/Tests/Unit/RegionPresetConsumptionTests.cs`（消费契约 + 红线断言）。
 
 ### Story V0-7 — 三级回退钩子（不强制启用）
 - **优先级**：Could ｜ **映射**：G0-8 / ADR-002（回退路径）
@@ -145,16 +145,16 @@
 - **需求追溯**：控制清单 B2 / 架构 §8.4 / `docs/unity-setup-complete.md`（Unity 6000.0.81f1）
 - **验收标准**：
   1. CI 锁定 **Unity 6000.0.81f1**（编辑器官方版本号 env 固定，非 `latest`）。
-  2. **Burst 版本锁**：由于当前 `Packages/manifest.json` **未含 `com.unity.burst`**（见 §7 R-N2），本 Story 负责将其以**固定版本**加入 manifest，并在 CI 增加「manifest 必须声明 `com.unity.burst@<pin>`」断言步骤——B2 的「同 Burst 设置」在启用 Job/Burst（回退2）前必须先闭环。
+  2. **Burst 版本锁**：**已落地** — `Packages/manifest.json` 直接依赖 `com.unity.burst: 1.8.30`；CI `assert-burst-pinned.ps1` + `version-pins.json` 断言（B2/B8）。
   3. 编辑器版本与 manifest 声明一致，CI 首次配置可复现。
 - **测试证据**：`.github/workflows/gate0.yml` 的 `pin-versions` 步骤 + manifest 断言。
 
 ### Story V0-9 — Gate-0 CI 自动门禁（B3）
 - **优先级**：Must ｜ **映射**：B3 / ADR-003（选项 A）
-- **需求追溯**：控制清单 G0 全项 / 架构 §8.4（headless 跑 Gate0Determinism，分叉即红）
+- **需求追溯**：控制清单 G0 全项 / 架构 §8.4（headless 全量 EditMode，分叉即红）
 - **验收标准**：
-  1. `.github/workflows/gate0.yml`：build → `-runTests -testFilter Gate0Determinism` → **哈希分叉则 CI 红、阻断合入**。
-  2. 门禁项 G0-1~G0-8 全部由 V0-1~V0-5 的测试覆盖并接入 CI。
+  1. `.github/workflows/gate0.yml`：`pin-versions` → self-hosted Windows 全量 `-assemblyNames WorldSim.Tests` EditMode → **哈希分叉则 CI 红、阻断合入**（`shell: powershell`，勿依赖未装的 `pwsh`）。
+  2. 门禁项 G0-1~G0-8 全部由 V0-1~V0-5/V0-7 的测试覆盖并接入 CI。
   3. gate0.xml 作为 artifact 上传；首个分叉月信息进入日志。
 - **测试证据**：`.github/workflows/gate0.yml`（见交付物 3）。
 
@@ -338,14 +338,14 @@
 ### B2 — CI 锁定同 Unity 版本 + 同 Burst 设置
 - **负责 Story**：**V0-8（Must）** + V0-9（CI 门禁载体）。
 - **依赖**：无前置；但依赖 `docs/unity-setup-complete.md` 已确认的 Unity 6000.0.81f1。
-- **关键阻塞（见 §7 R-N2）**：当前 `Packages/manifest.json` **不含 `com.unity.burst`**。B2 的「同 Burst 设置」要求 Burst 必须固定版本入 manifest，并在 CI 断言。V0-8 负责补 `com.unity.burst@<pin>` 与 manifest 断言步骤。
-- **验收标准**：CI env 固定 `UNITY_VERSION=6000.0.81f1`；`manifest.json` 声明 `com.unity.burst@<pin>`；CI 步骤 `assert-burst-pinned` 通过；Gate-0 在同版本下复现。
+- **关键阻塞（见 §7 R-N2）**：**已闭环** — `Packages/manifest.json` 直接依赖 `com.unity.burst: 1.8.30`；CI `assert-burst-pinned` + `version-pins.json` 断言。
+- **验收标准**：CI env 固定 `UNITY_VERSION=6000.0.81f1`；`manifest.json` 声明 `com.unity.burst@1.8.30`；CI 步骤 `assert-burst-pinned` 通过；Gate-0 在同版本下复现。
 - **排期**：Sprint 1 第 1 周（与 V0-9 同批进 CI）。
 
 ### B3 — Quantize + 确定性指标哈希 + Gate-0 测试入 CI
 - **负责 Story**：**V0-2（Quantize/Fix/哈希/RNG）** + **V0-4（序列化，RNG 状态入档）** + **V0-5（四路 Replay 测试台）** + **V0-9（CI 门禁）**。
 - **依赖**：V0-2 → V0-4 → V0-5 → V0-9（流水线顺序）。
-- **验收标准**：`Quantize` + `DeterminismHash`（FNV-1a/xxHash，禁 `string.GetHashCode`）落地并被 V0-5 调用；四路 Replay ≥120 月逐月哈希一致；G0-1~G0-8 全部由测试覆盖并接入 CI；分叉即红、阻断合入。
+- **验收标准**：`Quantize` + `DeterminismHash`（**FNV-1a-64**，禁 `string.GetHashCode`）落地并被 V0-5 调用；四路 Replay ≥120 月逐月哈希一致；G0-1~G0-8 全部由测试覆盖并接入 CI；分叉即红、阻断合入。
 - **排期**：Sprint 1 第 1–2 周（数学基座 V0-2 先就位，再串 V0-4/5/9）。
 
 ### B4 — 真实地球数据获取/导入管线 + region-presets 消费
@@ -369,6 +369,6 @@
 ## 14. 假设与待主理人确认项
 
 1. **切片内的「最小 S2/S3 桩」粒度**：本文假设切片用 1 聚落 + 少量物种 + 可编排战事/灾害即可满足「≥1 时代过渡 + ≥1 战事 + ≥1 灾害」触发周级通道；若需更真实触发条件，Epic 2/3 的 Must Story 可能需前移——请主理人确认切片桩范围。
-2. **Burst 版本**：manifest 当前缺 Burst（R-N2）；V0-8 将选定一个固定版本（建议 1.8.x，与 Unity 6000.0.81f1 兼容）。如需特定版本请指示。
+2. **Burst 版本**：**已闭环** — `com.unity.burst: 1.8.30` 直依 + CI pin（原 R-N2）。
 3. **量化精度（Quantize decimals）**：各指标的具体小数位需在 V0-2 实现时由 playtest 校准（过粗丢信息、过细仍漂移）；初值建议人口/军力/产出 Quantize 到整数或 1 位、稳定度/资源到 3 位——以 `determinism-contract.md` 为可调中心。
-4. **CI Runner 形态**：`.github/workflows/gate0.yml` 按「自带 Unity 许可证 + 预装/安装 6000.0.81f1 的 runner」撰写；若改用 Unity Cloud Build（ADR-003 选项 C 延展）需另行调整。
+4. **CI Runner 形态**：`.github/workflows/gate0.yml` 按「自带 Unity + 预装 6000.0.81f1 的 self-hosted Windows runner」撰写；runner 当前可手动 `run.cmd` 接单（装服务另议）。

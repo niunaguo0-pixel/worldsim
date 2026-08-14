@@ -1,0 +1,22 @@
+{
+  "name": "WorldSim.UI",
+  "rootNamespace": "WorldSim.UI",
+  "references": [
+    "WorldSim.Simulation.Core",
+    "WorldSim.Simulation.Time",
+    "WorldSim.Simulation.Intervention",
+    "WorldSim.Simulation.WorldMap",
+    "WorldSim.Narrative",
+    "WorldSim.ModularToggle",
+    "WorldSim.Presentation"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
