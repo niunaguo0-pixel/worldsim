@@ -11,10 +11,14 @@ namespace WorldSim.Presentation
 
     /// <summary>
     /// Unity 胶水 (P1 / 可玩月循环): Update 只传 dtReal; 挂载干预系统 + HUD + 可见沙盘.
+    /// S8：可延后到 New Game 确认后再 StartWorld。
     /// </summary>
     public sealed class SimulationRunner : MonoBehaviour, ITimePresentationSource, ITimeControlSink,
         IPlayableInterventionSink
     {
+        /// <summary>在 AddComponent 之前置 true，则 Awake 不立即开局（供 New Game 流程）。</summary>
+        public static bool PendingDeferStart;
+
         [SerializeField] private ulong worldSeed = 42;
         [SerializeField] private bool enablePlayableHud = true;
         [SerializeField] private bool attachInterventionSystem = true;
@@ -30,31 +34,48 @@ namespace WorldSim.Presentation
         private GameObject _settlementVisual;
         private GameObject _resourceVisual;
         private WorldViewSnapshot _viewSnapshot;
+        private bool _started;
 
         public WorldState World => _world;
         public SimOrchestrator Orchestrator => _orchestrator;
         public InterventionSystem Interventions => _interventions;
         public TimeViewSnapshot TimeSnapshot => _timeSnapshot;
         public CameraLodController CameraLod => _cameraLod;
-        /// <summary>Epic 7 SV2：读档/开局远域 Low 装载器；可为 null。</summary>
         public WorldMapLodStreamer MapLodStreamer => _mapLodStreamer;
-        /// <summary>Epic 6 P3：边界间插值后的只读 WorldView。</summary>
         public WorldViewSnapshot WorldView => _viewSnapshot;
+        public bool HasStarted => _started;
 
         private void Awake()
         {
-            _world = WorldState.CreateMinimalSlice(worldSeed, speedMultiplier: 1);
+            if (PendingDeferStart)
+            {
+                PendingDeferStart = false;
+                return;
+            }
+
+            var mapConfig = new WorldInitConfig
+            {
+                PresetKey = "fertile_crescent",
+                StartEra = StartEra.Modern,
+                StartRegionCenterLat = 33,
+                StartRegionCenterLon = 44,
+                StartRegionRadiusDeg = 8
+            };
+            StartWorld(mapConfig, worldSeed, useFormalHud: false);
+        }
+
+        /// <summary>S8 New Game / 测试共用入口：按配置装配世界与表现层。</summary>
+        public void StartWorld(WorldInitConfig mapConfig, ulong seed, bool useFormalHud)
+        {
+            if (mapConfig == null) throw new ArgumentNullException(nameof(mapConfig));
+            if (_started) return;
+
+            worldSeed = seed;
+            _world = WorldState.CreateMinimalSlice(seed, speedMultiplier: 1);
             WorldMapViewSnapshot mapSnapshot;
             try
             {
-                var mapConfig = new WorldInitConfig
-                {
-                    PresetKey = "fertile_crescent",
-                    StartEra = StartEra.Modern,
-                    StartRegionCenterLat = 33,
-                    StartRegionCenterLon = 44,
-                    StartRegionRadiusDeg = 8
-                };
+                mapConfig.NormalizeDerivedMode();
                 string geoRoot = Path.Combine(Application.streamingAssetsPath, "Geo", "v1");
                 var build = WorldMapFactory.Build(geoRoot, mapConfig, _world);
                 _mapLodStreamer = build.LodStreamer;
@@ -66,6 +87,7 @@ namespace WorldSim.Presentation
                 mapSnapshot = new WorldMapViewSnapshot
                     { BundleAvailable = false, Error = ex.Message };
             }
+
             _orchestrator = new SimOrchestrator(_world);
 
             if (attachInterventionSystem)
@@ -101,17 +123,20 @@ namespace WorldSim.Presentation
             if (input == null) input = gameObject.AddComponent<PlayableInputController>();
             input.Bind(this, this, this, _cameraLod);
 
-            if (enablePlayableHud)
+            if (enablePlayableHud && !useFormalHud)
             {
                 var hud = gameObject.GetComponent<PlayableMonthLoopHud>();
                 if (hud == null) hud = gameObject.AddComponent<PlayableMonthLoopHud>();
                 hud.Bind(this, this, this, fx, _cameraLod, input);
+                hud.enabled = true;
             }
+
+            _started = true;
         }
 
         private void Update()
         {
-            if (_orchestrator == null) return;
+            if (!_started || _orchestrator == null) return;
             _orchestrator.Update(Time.deltaTime);
             RefreshTimeSnapshot();
             if (_world != null)
@@ -121,7 +146,6 @@ namespace WorldSim.Presentation
             }
         }
 
-        /// <summary>P3：把插值结果推到表现物体/相机；绝不写回 WorldState。</summary>
         private void ApplyPresentationVisuals(WorldViewSnapshot view)
         {
             if (_settlementVisual != null)
@@ -185,11 +209,6 @@ namespace WorldSim.Presentation
             RefreshTimeSnapshot();
         }
 
-        /// <summary>
-        /// 生产存读档路径 (Task 4 Important 2 / Epic 7 SV2): 反序列化后 Geography 为 null (transient),
-        /// 必须显式重建。SV2：先 High+焦点 Mid，远域 Low 异步，不阻塞逻辑 tick。
-        /// Replay 测试仍应调用 WorldMapFactory.RebuildGeography（阻塞齐远域）。
-        /// </summary>
         public void LoadFromSnapshot(byte[] snapshot)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
@@ -205,8 +224,6 @@ namespace WorldSim.Presentation
             _orchestrator = new SimOrchestrator(_world);
             if (attachInterventionSystem)
                 _interventions = InterventionSystem.AttachToSlice(_world);
-            // Task 5: 把 FX bridge 重新绑定到新 InterventionSystem 实例, 否则存读档后
-            // _fx._sys 仍指向旧对象, CausalChain 增长不再被消费, 干预无视觉反馈。
             if (attachInterventionSystem)
             {
                 var fx = gameObject.GetComponent<InterventionFxBridge>();
@@ -223,6 +240,7 @@ namespace WorldSim.Presentation
             _viewSnapshot = _worldView.Sync(_world, WorldMapPresenter.SphereRadius);
             ApplyPresentationVisuals(_viewSnapshot);
             RefreshTimeSnapshot();
+            _started = true;
         }
 
         private void RefreshTimeSnapshot()
@@ -232,7 +250,6 @@ namespace WorldSim.Presentation
             _timeSnapshot = _timePresentation.Capture(_world, pendingCount);
         }
 
-        /// <summary>真实地球低模 mesh + 聚落；仅 bundle 缺失时出现明确错误占位。</summary>
         private static SandboxBindings EnsureVisibleSandbox(WorldMapViewSnapshot mapSnapshot)
         {
             GameObject root = GameObject.Find("WorldSim_Sandbox");
@@ -356,7 +373,6 @@ namespace WorldSim.Presentation
             }
             catch (UnityException)
             {
-                // 标签未定义时仍可用显式绑定的 Camera 引用
             }
 
             cam.clearFlags = CameraClearFlags.Skybox;
@@ -374,8 +390,30 @@ namespace WorldSim.Presentation
             if (UnityEngine.Object.FindObjectOfType<SimulationRunner>() != null) return;
 #endif
             EnsureMainCamera();
+            PendingDeferStart = true;
             var go = new GameObject("WorldSim_PlayableLoop");
-            go.AddComponent<SimulationRunner>();
+            var runner = go.AddComponent<SimulationRunner>();
+            // GameSessionController 在 WorldSim.UI；用反射避免 Presentation→UI 循环依赖
+            var sessionType = Type.GetType("WorldSim.UI.GameSessionController, WorldSim.UI");
+            if (sessionType != null)
+            {
+                var session = go.AddComponent(sessionType);
+                sessionType.GetMethod("BeginNewGameFlow")?.Invoke(session, new object[] { runner });
+            }
+            else
+            {
+                // UI 程序集未就绪时回退立即开局
+                PendingDeferStart = false;
+                var mapConfig = new WorldInitConfig
+                {
+                    PresetKey = "fertile_crescent",
+                    StartEra = StartEra.Modern,
+                    StartRegionCenterLat = 33,
+                    StartRegionCenterLon = 44,
+                    StartRegionRadiusDeg = 8
+                };
+                runner.StartWorld(mapConfig, 42, useFormalHud: false);
+            }
         }
     }
 }

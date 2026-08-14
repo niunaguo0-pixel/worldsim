@@ -10,6 +10,7 @@
     "WorldSim.Simulation.Civilization",
     "WorldSim.Narrative",
     "WorldSim.Presentation",
+    "WorldSim.UI",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],

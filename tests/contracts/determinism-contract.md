@@ -173,4 +173,5 @@ nextWeekBoundary  = (weekIndex + 1) * WEEK_SECONDS
 - UI 不持有游戏状态；干预唯一入口（`IInterventionTarget`）；地理只读（`IWorldGeography`）。
 - S6/S8 消费 `SimEvent`，**不回写** `WorldState`。
 - **S6 编年史派生态**（`WorldSim.Narrative.EmergentNarrativeEngine` 的 Chronicle / NotableActor）**不进** `ComputeMonthlyHash`；仅作只读呈现。历史层增量仍以确定性 `WorldState.Events`（`HistoryDeltaCodec`）为准。
+- **S8 GoalMode**（目标模式）属 UI/概念层，**不进入** `WorldInitConfig` / 月哈希；New Game 地理 4 项经 `NewGameAssembler` → `WorldInitConfig` 后仍守 B5 红线。
 - 表现插值绝不回写逻辑态。
