@@ -10,13 +10,13 @@
   - docs/architecture/adr/ADR-001~004（已接受）
   - docs/architecture/control-checklist.md v1.1.0（Phase 3 PASS / Phase 4 OPEN）
   - docs/architecture/architecture-review.md（CONCERNS 收敛为 B2–B4）
-  - production/phase4-gate.md v1.1.0
+  - production/phase4-gate.md v1.2.0
   - production/sprint-02-plan.md（已结项）
-  - production/sprint-03-plan.md v1.0.0
+  - production/sprint-03-plan.md（已结项）
   - design/gdd/time-progression.md (S4) / civilization-system.md (S3) / world-map-generator.md (S5)
   - design/gdd/data/region-presets.json（schemaVersion 1.0）
   - docs/unity-setup-complete.md（Unity 6000.0.81f1 / CLI）
-状态: Phase 4 进行中 — Epic 0 Done；Sprint 02 CLOSED；Sprint 03 = S2/S3 月账 + P3
+状态: Phase 4 进行中 — Epic 0 Done；Sprint 02–03 CLOSED；下一 Sprint 04 待开
 ---
 
 # WorldSim — Phase 4 预制作 Epic / Story 拆分
@@ -25,7 +25,7 @@
 > **不写设计 / 美术 / UX 规格**——所有 Story 均为工程实现项，验收标准对齐 GDD 需求 ID 与架构/ADR 契约。
 > 测试：**可执行测试**在 `WorldSim/Assets/Scripts/Tests/`；契约与 CI 在 `tests/`（`tests/contracts/determinism-contract.md`、`tests/ci/`、`.github/workflows/gate0.yml`）。`tests/unit`/`tests/gate0` 仅占位说明，无双源 `.cs`。
 >
-> **2026-08-14 对账**：Epic 0 = **Done**；Sprint 02 VS-8 = **CLOSED**（PR #7）。Epic 1/4/5/6 部分 Story 已超前落地。**Sprint 03 主攻 Epic 2/3 Must（S2-1/2、S3-1/2）+ P3 采样对齐**（见 `production/sprint-03-plan.md`）。
+> **2026-08-14 对账**：Epic 0 = **Done**；Sprint 02 VS-8 = **CLOSED**（PR #7）；Sprint 03 S2/S3+P3 = **CLOSED**（PR #9）。Epic 2/3 Must 已收口；**下一 Sprint 04 = Epic 5 全分辨率地球 + Epic 7 LOD 存档 + S3-3/5**（§11）。
 
 ---
 
@@ -59,17 +59,18 @@
 |------|------|------|---------|------------|-----------------|
 | **Epic 0** | **确定性垂直切片（Gate-0 门）** | SimOrchestrator + S4 双频混合结算 + 四路 Replay + region-presets 消费 + CI 门禁 | 无（地基） | **Sprint 1（Must）** | **Done** — Sprint 01 结项 |
 | Epic 1 | S1 干预系统 | IInterventionTarget 注册 / 异步 pending / InterventionLog / 紧急干预 | Epic 0（确定性核心） | Sprint 2 | **代码已部分落地**；Sprint 02 主攻 VS-8，非重做干预 |
-| Epic 2 | S2 生态模拟引擎 | WorldTile 生态态 / 11 步月结 / 地貌季节 / 灾害预警 | Epic 0 | Sprint 3 | **Sprint 03 主攻**（引擎已挂 11 步，薄步加深） |
-| Epic 3 | S3 文明发展 | 聚落成长+尺度层级 / 16 步月结 / 经济科技个体 / 国家聚合 | Epic 0, Epic 2 | Sprint 3–4 | **Sprint 03 主攻 Must**（16 步已挂；⑦–⑨ 空壳待填） |
+| Epic 2 | S2 生态模拟引擎 | WorldTile 生态态 / 11 步月结 / 地貌季节 / 灾害预警 | Epic 0 | Sprint 3 | **Sprint 03 CLOSED** — Must S2-1/2 已收口（PR #9） |
+| Epic 3 | S3 文明发展 | 聚落成长+尺度层级 / 16 步月结 / 经济科技个体 / 国家聚合 | Epic 0, Epic 2 | Sprint 3–4 | **Sprint 03 CLOSED Must**；S3-3/4/5 → Sprint 4–5 |
 | Epic 4 | S4 时间表现层 | 速度控件 / 时间轴 HUD / 尺度跃迁联动（时间核心已在 Epic 0） | Epic 0 | Sprint 2 | **代码已部分落地**（Formal HUD / 变速） |
 | Epic 5 | S5 世界地图（完整管线） | Natural Earth 导入 / 生物群系 / LOD 分块 / 双开局模式（region 消费在 Epic 0） | Epic 0 | Sprint 4 | **代码已部分落地**（geo-v1 + S5-4 双开局） |
-| Epic 6 | 表现层（Runtime/Presentation/Camera） | SimulationRunner 胶水 / NPR 渲染 / 表现插值 / 相机 LOD | Epic 0 | Sprint 2–5 | VS-8 已收；**Sprint 03 对齐 P3 采样 Civ/Eco v2** |
+| Epic 6 | 表现层（Runtime/Presentation/Camera） | SimulationRunner 胶水 / NPR 渲染 / 表现插值 / 相机 LOD | Epic 0 | Sprint 2–5 | VS-8 已收；**P3 Civ/Eco 采样已收**（PR #9） |
 | Epic 7 | 存档（S10，完整） | LOD 分块序列化 / delta 增量 / 异步延迟装载（快照往返已在 Epic 0） | Epic 0 | Sprint 4 | 待排 |
 | Epic 8 | 测试基础设施（持续） | 单元/集成/性能回归；Gate-0 门禁维护；确定性契约演进 | 贯穿 | Sprint 1+ 持续 | 进行中 |
 
 > **说明**：Epic 0 内的 `序列化往返` 与 `真实地球 region 消费` 是 Gate-0 路径④与 B4 的最小兑现；Epic 7 / Epic 5 再补全「完整 LOD 分块 / 全分辨率数据管线」。
-> **Sprint 02**：以 `production/sprint-02-plan.md`（VS-8）为准，已结项。  
-> **Sprint 03**：以 `production/sprint-03-plan.md`（S2-1/2 + S3-1/2 + P3）为准。
+> **Sprint 02**：`production/sprint-02-plan.md` — 已结项。  
+> **Sprint 03**：`production/sprint-03-plan.md` — 已结项。  
+> **Sprint 04**：待开 — Epic 5 S5-1/2 + Epic 7 SV1 + S3-3/5（§11 原排期）。
 ---
 
 ## 2. Epic 0 — 确定性垂直切片（Gate-0 门）【Sprint 1 · Must】
