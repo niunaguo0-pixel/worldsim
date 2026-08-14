@@ -19,7 +19,7 @@
 
 # Phase 4 预制作 · 首个冲刺计划（Sprint 01）
 
-> **结项说明（2026-08-14）**：本冲刺（Epic 0 / V0-1~V0-9）已在代码与 CI 兑现，Gate-0 全绿。阶段门记录见 `production/phase4-gate.md`。下一冲刺见 `production/sprint-02-plan.md`（VS-8 可访问性 Standard）。
+> **结项说明（2026-08-14）**：本冲刺（Epic 0 / V0-1~V0-9）已在代码与 CI 兑现，Gate-0 全绿。阶段门记录见 `production/phase4-gate.md`。Sprint 02（VS-8）已结项；当前冲刺见 `production/sprint-03-plan.md`。
 
 ## 1. 目标（Why）
 
