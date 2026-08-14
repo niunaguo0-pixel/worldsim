@@ -18,8 +18,9 @@ namespace WorldSim.Presentation
                 mat.SetColor("_RimColor", NprDioramaPalette.DeepBrown);
             if (mat.HasProperty("_RimPower"))
                 mat.SetFloat("_RimPower", 2.5f);
+            // 全局饱和度以 Volume −20 为准（asset-spec §7.1）；shader 近 1.0 避免叠乘过灰
             if (mat.HasProperty("_Saturation"))
-                mat.SetFloat("_Saturation", 0.72f);
+                mat.SetFloat("_Saturation", 0.95f);
             if (mat.HasProperty("_Brightness"))
                 mat.SetFloat("_Brightness", 1.05f);
             if (mat.HasProperty("_BaseColor"))

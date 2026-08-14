@@ -38,6 +38,8 @@ namespace WorldSim.Presentation
         private GameObject _settlementVisual;
         private GameObject _resourceVisual;
         private WorldViewSnapshot _viewSnapshot;
+        private DioramaVolumeController _dioramaVolume;
+        private As2HazardOverlay _as2Overlay;
         private bool _started;
 
         public WorldState World => _world;
@@ -123,10 +125,14 @@ namespace WorldSim.Presentation
             _settlementVisual = sandbox.Settlement;
             _resourceVisual = sandbox.ResourceVisual;
             DioramaLightingBootstrap.EnsureKeyLight();
+            _dioramaVolume = DioramaVolumeController.EnsureOn(gameObject);
+            _as2Overlay = As2HazardOverlay.EnsureOn(gameObject);
+            Camera mainCam = EnsureMainCamera();
+            _as2Overlay.Bind(mainCam, sandbox.Settlement.transform);
             _cameraLod = gameObject.GetComponent<CameraLodController>();
             if (_cameraLod == null) _cameraLod = gameObject.AddComponent<CameraLodController>();
             _cameraLod.Bind(
-                EnsureMainCamera(),
+                mainCam,
                 sandbox.Root.transform,
                 sandbox.Settlement.GetComponent<Renderer>(),
                 sandbox.SettlementLabel,
@@ -134,6 +140,7 @@ namespace WorldSim.Presentation
 
             _viewSnapshot = _worldView.Sync(_world, WorldMapPresenter.SphereRadius);
             ApplyPresentationVisuals(_viewSnapshot);
+            TickDioramaGrade(0f);
 
             var input = gameObject.GetComponent<PlayableInputController>();
             if (input == null) input = gameObject.AddComponent<PlayableInputController>();
@@ -159,7 +166,42 @@ namespace WorldSim.Presentation
             {
                 _viewSnapshot = _worldView.Sync(_world, WorldMapPresenter.SphereRadius);
                 ApplyPresentationVisuals(_viewSnapshot);
+                TickDioramaGrade(Time.unscaledDeltaTime);
             }
+        }
+
+        private void TickDioramaGrade(float unscaledDeltaTime)
+        {
+            if (_world == null) return;
+            bool underDisaster = AnySettlementUnderDisaster(_world);
+            if (_dioramaVolume != null)
+            {
+                _dioramaVolume.Tick(
+                    _timeSnapshot.Season,
+                    underDisaster,
+                    _timeSnapshot.SpeedMultiplier,
+                    reduceMotion: false,
+                    unscaledDeltaTime);
+            }
+
+            if (_as2Overlay != null)
+            {
+                _as2Overlay.SetVisible(underDisaster || (_dioramaVolume != null && _dioramaVolume.DroughtWeight > 0.05f));
+                if (underDisaster)
+                    _as2Overlay.SetLabel("⚠ 旱灾前兆");
+            }
+        }
+
+        private static bool AnySettlementUnderDisaster(WorldState world)
+        {
+            if (world?.Settlements == null) return false;
+            for (int i = 0; i < world.Settlements.Count; i++)
+            {
+                if (world.Settlements[i].underDisaster)
+                    return true;
+            }
+
+            return false;
         }
 
         private void ApplyPresentationVisuals(WorldViewSnapshot view)
@@ -256,6 +298,15 @@ namespace WorldSim.Presentation
             _viewSnapshot = _worldView.Sync(_world, WorldMapPresenter.SphereRadius);
             ApplyPresentationVisuals(_viewSnapshot);
             RefreshTimeSnapshot();
+            if (_dioramaVolume == null)
+                _dioramaVolume = DioramaVolumeController.EnsureOn(gameObject);
+            if (_as2Overlay == null)
+            {
+                _as2Overlay = As2HazardOverlay.EnsureOn(gameObject);
+                if (_settlementVisual != null)
+                    _as2Overlay.Bind(EnsureMainCamera(), _settlementVisual.transform);
+            }
+            TickDioramaGrade(0f);
             _started = true;
         }
 
