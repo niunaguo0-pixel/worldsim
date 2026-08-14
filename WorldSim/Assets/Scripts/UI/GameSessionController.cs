@@ -29,6 +29,10 @@ namespace WorldSim.UI
             _formalHud = gameObject.GetComponent<FormalGameHud>();
             if (_formalHud == null) _formalHud = gameObject.AddComponent<FormalGameHud>();
             _formalHud.enabled = false;
+
+            var access = gameObject.GetComponent<AccessibilitySettingsScreen>();
+            if (access == null) access = gameObject.AddComponent<AccessibilitySettingsScreen>();
+            access.Hide();
         }
 
         private void OnNewGameConfirmed(NewGameDraft draft, WorldInitConfig config)

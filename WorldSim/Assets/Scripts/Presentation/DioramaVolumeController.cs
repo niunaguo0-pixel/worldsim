@@ -97,7 +97,10 @@ namespace WorldSim.Presentation
                 ? 1f
                 : Mathf.Clamp01(unscaledDeltaTime / Mathf.Max(0.0001f, _transitionSeconds));
             _droughtWeight = Mathf.MoveTowards(_droughtWeight, _droughtTarget, step);
-            Apply(DioramaGradeMath.Compose(season, _droughtWeight));
+            var sample = DioramaGradeMath.Compose(season, _droughtWeight);
+            if (reduceMotion)
+                sample = DioramaGradeMath.ApplyReduceMotion(sample);
+            Apply(sample);
         }
 
         /// <summary>单测/调试：瞬时设置旱灾权重（仍不写逻辑态）。</summary>

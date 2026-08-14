@@ -126,5 +126,12 @@ namespace WorldSim.Presentation
             if (droughtWeight <= 0f) return seasonGrade;
             return Lerp(seasonGrade, SampleDrought(), Mathf.Clamp01(droughtWeight));
         }
+
+        /// <summary>asset-spec §7.4：减少动态时 Bloom Intensity ×0.5。</summary>
+        public static GradeSample ApplyReduceMotion(GradeSample g)
+        {
+            g.BloomIntensity *= 0.5f;
+            return g;
+        }
     }
 }
