@@ -31,8 +31,23 @@ namespace WorldSim.Presentation
         }
     }
 
-    public sealed class WorldMapPresenter
+    /// <summary>
+    /// 真实地球球形表现：生成 UV 球面 mesh，按经纬度采样真实生物群系顶点色与高程位移；
+    /// 缩远时自动自转，缩近时停止自转以便观察地表细节。
+    /// </summary>
+    public sealed class WorldMapPresenter : MonoBehaviour
     {
+        public const float SphereRadius = 5f;
+        public const float ElevationScale = 0.18f;
+        public const float RotationDegreesPerSecond = 6f;
+        public const float RotationStopDistance = 9f;
+
+        private float _currentRotationSpeed;
+        private bool _autoRotate = true;
+
+        /// <summary>当前相机距离，由 CameraLodController 写入；距离小则停转。</summary>
+        public float CameraDistance { get; set; } = RotationStopDistance + 1f;
+
         public GameObject Build(WorldMapViewSnapshot snapshot)
         {
             if (snapshot == null || !snapshot.BundleAvailable)
@@ -44,48 +59,93 @@ namespace WorldSim.Presentation
             renderer.sharedMaterial = new Material(Shader.Find("Sprites/Default")
                 ?? Shader.Find("Universal Render Pipeline/Unlit")
                 ?? Shader.Find("Standard"));
-            filter.sharedMesh = BuildMesh(snapshot);
+            filter.sharedMesh = BuildSphereMesh(snapshot);
+            var presenter = root.AddComponent<WorldMapPresenter>();
+            presenter._autoRotate = true;
             return root;
         }
 
-        public Mesh BuildMesh(WorldMapViewSnapshot snapshot)
+        /// <summary>生成 UV 球面 mesh：纬度环 × 经度段，顶点色来自真实生物群系，Y 位移来自高程。</summary>
+        public Mesh BuildSphereMesh(WorldMapViewSnapshot snapshot)
         {
             const int width = WorldMapViewSnapshot.Width;
             const int height = WorldMapViewSnapshot.Height;
-            var vertices = new Vector3[(width + 1) * (height + 1)];
-            var colors = new Color[vertices.Length];
-            var uv = new Vector2[vertices.Length];
-            for (int y = 0; y <= height; y++)
-                for (int x = 0; x <= width; x++)
+            int latSegments = height;
+            int lonSegments = width;
+            int vertexCount = (latSegments + 1) * (lonSegments + 1);
+            var vertices = new Vector3[vertexCount];
+            var colors = new Color[vertexCount];
+            var uv = new Vector2[vertexCount];
+
+            for (int row = 0; row <= latSegments; row++)
+            {
+                double lat = 90.0 - (double)row / latSegments * 180.0;
+                double latRad = lat * Math.PI / 180.0;
+                float cosLat = (float)Math.Cos(latRad);
+                float sinLat = (float)Math.Sin(latRad);
+                int sy = Math.Min(height - 1, row == 0 ? 0 : row - 1);
+                if (row == latSegments) sy = height - 1;
+
+                for (int col = 0; col <= lonSegments; col++)
                 {
-                    int vertex = y * (width + 1) + x;
-                    int sx = x == width ? 0 : x;
-                    int sy = Math.Min(height - 1, y);
+                    int sx = col == lonSegments ? 0 : col;
+                    double lon = -180.0 + (double)sx / width * 360.0;
+                    double lonRad = lon * Math.PI / 180.0;
+                    float cosLon = (float)Math.Cos(lonRad);
+                    float sinLon = (float)Math.Sin(lonRad);
+
                     var tile = snapshot.Tiles[sy * width + sx];
-                    float px = (x / (float)width - 0.5f) * 36f;
-                    float pz = (0.5f - y / (float)height) * 18f;
-                    float py = tile.IsLand ? (float)Math.Max(0.02, tile.ElevationMeters / 12000.0) : 0f;
-                    vertices[vertex] = new Vector3(px, py, pz);
-                    colors[vertex] = ColorFor(tile);
-                    uv[vertex] = new Vector2(x / (float)width, y / (float)height);
+                    float elev = tile.IsLand
+                        ? (float)Math.Max(0.0, tile.ElevationMeters / 9000.0) * ElevationScale
+                        : 0f;
+                    float r = SphereRadius + elev;
+
+                    vertices[row * (lonSegments + 1) + col] = new Vector3(
+                        r * cosLat * cosLon,
+                        r * sinLat,
+                        r * cosLat * sinLon);
+                    colors[row * (lonSegments + 1) + col] = ColorFor(tile);
+                    uv[row * (lonSegments + 1) + col] = new Vector2(
+                        (float)col / lonSegments, (float)row / latSegments);
                 }
-            var triangles = new int[width * height * 6];
+            }
+
+            int triangleCount = latSegments * lonSegments * 6;
+            var triangles = new int[triangleCount];
             int t = 0;
-            for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++)
+            for (int row = 0; row < latSegments; row++)
+            {
+                for (int col = 0; col < lonSegments; col++)
                 {
-                    int a = y * (width + 1) + x;
+                    int a = row * (lonSegments + 1) + col;
                     int b = a + 1;
-                    int c = a + width + 1;
+                    int c = a + (lonSegments + 1);
                     int d = c + 1;
                     triangles[t++] = a; triangles[t++] = c; triangles[t++] = b;
                     triangles[t++] = b; triangles[t++] = c; triangles[t++] = d;
                 }
-            var mesh = new Mesh { name = "WorldSim_180x90_RealEarth" };
+            }
+
+            var mesh = new Mesh { name = "WorldSim_RealEarthSphere" };
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            mesh.vertices = vertices; mesh.colors = colors; mesh.uv = uv; mesh.triangles = triangles;
-            mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            mesh.vertices = vertices;
+            mesh.colors = colors;
+            mesh.uv = uv;
+            mesh.triangles = triangles;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
             return mesh;
+        }
+
+        private void Update()
+        {
+            bool shouldRotate = _autoRotate && CameraDistance > RotationStopDistance;
+            float targetSpeed = shouldRotate ? RotationDegreesPerSecond : 0f;
+            _currentRotationSpeed = Mathf.Lerp(
+                _currentRotationSpeed, targetSpeed,
+                1f - Mathf.Exp(-3f * Time.unscaledDeltaTime));
+            if (Mathf.Abs(_currentRotationSpeed) > 0.001f)
+                transform.Rotate(Vector3.up, _currentRotationSpeed * Time.unscaledDeltaTime, Space.World);
         }
 
         private static Color ColorFor(WorldTileData tile)

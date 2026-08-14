@@ -85,6 +85,7 @@ byte[] BuildDeterministicBuffer(WorldState ws):
 - Schema 5 起，`CivilizationState` 以稳定 ID 序参与月哈希：聚落人口/尺度/繁荣度，以及政体人口、产出、稳定度、科技、法律与治理字段；经济、技术、个体全态入档。正式文明必须通过 1×、20×、变速暂停、存读档四路 Replay。
 - **Schema 7（Epic 5 Task 4/6）真实地理参与月哈希**：`WorldMapState` 进入 `WriteWorldMapHash`，含 `GeoDataBuild`（lock 派生 buildId，即静态源版本）、`ManifestChecksum`、`WorldMapConfigSnapshot`（`StartEra`/`StartMode`/`BorderYear`/`UseRealBorders`/`BorderView`/起始区域中心与半径，量化 4 位）以及 `DynamicOverrides`（按 `TileId` 升序，量化后入哈希）。`BorderView`（DeFactoControl/SovereigntyClaims）进入稳定月哈希，故双视图切换改变哈希。表现层 `WorldMapChunkCache` 不进哈希（测试断言）。真实地理（水邻增长 ±0.003 / slope / IsLand）通过 `CivilizationSimEngine.StepSettlements` 进入月哈希；存读档后必须 `WorldMapFactory.RebuildGeography` 重建 transient `WorldGeography`，否则 Geography=null 时水邻增长被静默跳过、哈希分叉（反证测试 `Replay_SaveLoad_RebuildGeography_KeepsHashAlignedAndGeographyMatters`）。
 - **Schema 8（Epic 3 S3-4）核心层政治/法律/族群/军事**：`CivilizationPolityState` 新增合法性四来源（`LegitimacySource`：performance/consensus/lineage/institution，无宗教项）、`EthnicComposition`（MVP 单主导折叠）、`MilitaryState`（weariness/warStatus/opponent）、`Impartiality`、`LawFamilyLocked`。月哈希纳入上述字段（量化 3 位）；读 Schema ≤7 时确定性默认值回填。`LawFamily.ReligiousLaw` 仅兼容旧档，种子与涌现路径不产出。
+- **S5-3 LOD 异步延迟装载**：`WorldMapFactory.Build` 同步物化 High（起始区逐 tile）+ 焦点 Mid；远域 Low 经 `WorldMapLodStreamer` 后台装载并 `MergeBundle(preferExisting)`，不阻塞逻辑返回。`RebuildGeography` 在返回前 `EnsureFarFieldLoaded` 以保证存读档 Replay 远域完整。表现层 `WorldMapChunkCache` 仍不进月哈希。
 
 ### 2.4 哈希算法
 - **FNV-1a-64** over 上述字节流（Epic 0 / Gate-0 唯一算法）。

@@ -11,8 +11,8 @@ namespace WorldSim.Tests.Unit
     [Category("Epic5WorldMap")]
     public class WorldMapPresentationTests
     {
-        // Task 6: 顶点预算 = Low (180x90) 网格 + 1 行/列闭合 = 181*91 顶点。
-        // 真实重生产物仍用 Low LOD 渲染全球沙盘, 不再用 simplified 占位。
+        // 球面 mesh 顶点预算 = (latSegments+1)*(lonSegments+1) = 91*181, 与 Low LOD 平面网格一致。
+        // 真实重生产物用 UV 球面渲染全球地球, 不再用 simplified 占位。
         [Test]
         public void SnapshotAndMesh_HaveRealEarthLowModelBudget()
         {
@@ -25,9 +25,9 @@ namespace WorldSim.Tests.Unit
             };
             WorldMapFactory.Build(root, cfg, world);
             var snapshot = WorldMapViewSnapshot.Capture(world.Geography, world.Map.GeoDataBuild);
-            var mesh = new WorldMapPresenter().BuildMesh(snapshot);
-            Assert.AreEqual(181 * 91, mesh.vertexCount, "Low LOD mesh vertex budget must be 181*91");
-            Assert.AreEqual(180 * 90 * 2, mesh.triangles.Length / 3, "Low LOD mesh triangle count must be 180*90*2");
+            var mesh = new WorldMapPresenter().BuildSphereMesh(snapshot);
+            Assert.AreEqual(181 * 91, mesh.vertexCount, "Sphere mesh vertex budget must be 181*91");
+            Assert.AreEqual(180 * 90 * 2, mesh.triangles.Length / 3, "Sphere mesh triangle count must be 180*90*2");
             Object.DestroyImmediate(mesh);
         }
 

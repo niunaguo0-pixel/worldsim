@@ -3,7 +3,6 @@ namespace WorldSim.Presentation
     using System.Collections.Generic;
     using System.Text;
     using UnityEngine;
-    using UnityEngine.InputSystem;
     using WorldSim.Simulation.Core;
     using WorldSim.Simulation.Intervention;
 
@@ -28,23 +27,26 @@ namespace WorldSim.Presentation
         private IPlayableInterventionSink _interventions;
         private InterventionFxBridge _interventionFx;
         private CameraLodController _cameraLod;
+        private PlayableInputController _input;
         private GenerationTimelinePresenter _generationTimeline = new GenerationTimelinePresenter();
         private IReadOnlyList<SimEvent> _lastConsumedEventSlice;
         private Vector2 _eventScroll;
-        private string _toast = "可玩月循环：暂停/变速后点干预，过月看粮储与事件。";
+        private string _toast = "可玩月循环：键鼠操控相机与时间，H 看帮助。";
 
         public void Bind(
             ITimePresentationSource timeSource,
             ITimeControlSink timeControls,
             IPlayableInterventionSink interventions,
             InterventionFxBridge interventionFx,
-            CameraLodController cameraLod)
+            CameraLodController cameraLod,
+            PlayableInputController input = null)
         {
             _timeSource = timeSource;
             _timeControls = timeControls;
             _interventions = interventions;
             _interventionFx = interventionFx;
             _cameraLod = cameraLod;
+            _input = input;
             _generationTimeline = new GenerationTimelinePresenter();
             _recentEvents.Clear();
             _lastConsumedEventSlice = null;
@@ -53,24 +55,9 @@ namespace WorldSim.Presentation
         private void Update()
         {
             if (_timeSource == null || _timeControls == null) return;
-
             var snapshot = _timeSource.TimeSnapshot;
             ConsumeIncrementalEvents(snapshot.Events);
-
-            var keyboard = Keyboard.current;
-            if (keyboard == null) return;
-
-            if (keyboard.spaceKey.wasPressedThisFrame)
-                SetPaused(!snapshot.IsPaused);
-            else if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
-                SetSpeed(1);
-            else if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame)
-                SetSpeed(2);
-            else if (keyboard.digit5Key.wasPressedThisFrame || keyboard.numpad5Key.wasPressedThisFrame)
-                SetSpeed(5);
-            else if (keyboard.digit0Key.wasPressedThisFrame || keyboard.numpad0Key.wasPressedThisFrame ||
-                     keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
-                SetSpeed(20);
+            // 键鼠路由由 PlayableInputController 统一处理，避免与 HUD 双重响应
         }
 
         private void OnGUI()
@@ -80,7 +67,7 @@ namespace WorldSim.Presentation
             ConsumeIncrementalEvents(snapshot.Events);
 
             const float pad = 12f;
-            GUILayout.BeginArea(new Rect(pad, pad, 420f, Screen.height - pad * 2));
+            GUILayout.BeginArea(new Rect(pad, pad, 440f, Screen.height - pad * 2));
             GUILayout.BeginVertical("box");
 
             GUILayout.Label($"【请看 Game 窗口】WorldSim · 可玩月循环");
@@ -100,6 +87,14 @@ namespace WorldSim.Presentation
                     (_cameraLod.ReduceMotion ? "动效已降级" : "完整动效"));
             }
 
+            if (_input != null)
+            {
+                string mode = _input.InterveneMode
+                    ? $"干预模式 · {_input.CurrentPreset.Label}"
+                    : "观察模式";
+                GUILayout.Label($"输入 {mode}  |  {_input.StatusMessage}");
+            }
+
             GUILayout.Space(6);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(snapshot.IsPaused ? "继续 [Space]" : "暂停 [Space]", GUILayout.Height(28)))
@@ -109,7 +104,17 @@ namespace WorldSim.Presentation
             if (GUILayout.Button(SpeedLabel(snapshot, 5), GUILayout.Width(48), GUILayout.Height(28))) SetSpeed(5);
             if (GUILayout.Button(SpeedLabel(snapshot, 20), GUILayout.Width(56), GUILayout.Height(28))) SetSpeed(20);
             GUILayout.EndHorizontal();
-            GUILayout.Label("快捷键：Space 暂停/继续，1 / 2 / 5 / 0 切换速度");
+
+            if (_input != null && _input.ShowHelp)
+            {
+                GUILayout.BeginVertical("box");
+                GUILayout.Label(PlayableControlMap.HelpText());
+                GUILayout.EndVertical();
+            }
+            else
+            {
+                GUILayout.Label("快捷键摘要：H 帮助 · WASD 平移 · 滚轮缩放 · I 干预 · Space 暂停");
+            }
 
             if (snapshot.ShowHighSpeedHint)
             {
@@ -121,7 +126,7 @@ namespace WorldSim.Presentation
             }
 
             GUILayout.Space(6);
-            GUILayout.Label("干预（延迟 1 游戏月生效）");
+            GUILayout.Label("干预（延迟 1 游戏月生效）· 亦可 I→Q/E→Enter");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("降雨 +10", GUILayout.Height(28)))
                 TryIntervene("rainfall_0", 10.0, "已预约降雨");

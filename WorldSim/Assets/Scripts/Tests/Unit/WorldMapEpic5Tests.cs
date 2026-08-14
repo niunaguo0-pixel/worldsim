@@ -96,13 +96,21 @@ namespace WorldSim.Tests.Unit
         }
 
         [Test]
-        public void Geography_StartHighAndGlobalLowAreSynchronous()
+        public void Geography_CriticalHighAndMidSync_FarLowAfterEnsure()
         {
             var world = new WorldState(1);
             var cfg = Config(StartEra.Primordial);
             var result = WorldMapFactory.Build(GeoRoot, cfg, world);
+            Assert.IsNotNull(result.LodStreamer);
             Assert.AreEqual(MapLodLevel.High,
                 result.Geography.GetTile(new GeoCoordinate(33, 44), MapLodLevel.High).Lod);
+            // 焦点 Mid 带应在关键路径物化（Nile 约在 mid 半径内）
+            var nearEdge = result.Geography.GetTile(new GeoCoordinate(27, 31), MapLodLevel.Mid);
+            Assert.That(nearEdge.Lod == MapLodLevel.Mid || nearEdge.Lod == MapLodLevel.High
+                || nearEdge.Lod == MapLodLevel.Low);
+
+            result.LodStreamer.EnsureFarFieldLoaded();
+            Assert.IsTrue(result.LodStreamer.IsFarFieldReady);
             Assert.AreEqual(MapLodLevel.Low,
                 result.Geography.GetTile(new GeoCoordinate(-20, -60), MapLodLevel.High).Lod);
             Assert.AreSame(result.Geography, world.Geography);
@@ -112,6 +120,7 @@ namespace WorldSim.Tests.Unit
         public void Geography_NaturalBoundariesAndSettlementSites()
         {
             var result = WorldMapFactory.Build(GeoRoot, Config(StartEra.Primordial));
+            result.LodStreamer.EnsureFarFieldLoaded();
             // Nile at (27, 31) (Upper Egypt / Luxor): 在起始区域 (33,44,r=8) 之外, 回退到 Low LOD.
             // Task 5 重生后真实 Low 网格 (2°, scalerank<=2) 在 (27,31) 单元保留尼罗河河道
             // (flags=land+water+river); 旧 (26,31) 单元在真实数据下是纯陆地无河。

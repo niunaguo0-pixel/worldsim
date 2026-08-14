@@ -81,11 +81,15 @@ namespace WorldSim.Presentation
                 sandbox.SettlementLabel,
                 sandbox.AggregateStatistics);
 
+            var input = gameObject.GetComponent<PlayableInputController>();
+            if (input == null) input = gameObject.AddComponent<PlayableInputController>();
+            input.Bind(this, this, this, _cameraLod);
+
             if (enablePlayableHud)
             {
                 var hud = gameObject.GetComponent<PlayableMonthLoopHud>();
                 if (hud == null) hud = gameObject.AddComponent<PlayableMonthLoopHud>();
-                hud.Bind(this, this, this, fx, _cameraLod);
+                hud.Bind(this, this, this, fx, _cameraLod, input);
             }
         }
 
@@ -159,6 +163,12 @@ namespace WorldSim.Presentation
                 if (fx == null) fx = gameObject.AddComponent<InterventionFxBridge>();
                 fx.Bind(_interventions);
             }
+            var input = gameObject.GetComponent<PlayableInputController>();
+            if (input != null)
+                input.Bind(this, this, this, _cameraLod);
+            var hud = gameObject.GetComponent<PlayableMonthLoopHud>();
+            if (hud != null)
+                hud.Bind(this, this, this, gameObject.GetComponent<InterventionFxBridge>(), _cameraLod, input);
             RefreshTimeSnapshot();
         }
 
@@ -190,14 +200,15 @@ namespace WorldSim.Presentation
             {
                 settlement = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 settlement.name = "Settlement_Alpha";
-                settlement.transform.position = new Vector3(0f, 0.75f, 0f);
-                settlement.transform.localScale = new Vector3(1.6f, 1.5f, 1.6f);
+                float surfaceY = WorldMapPresenter.SphereRadius + 0.4f;
+                settlement.transform.position = new Vector3(0f, surfaceY, 0f);
+                settlement.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
                 var r = settlement.GetComponent<Renderer>();
                 if (r != null)
                 {
                     r.material = new Material(Shader.Find("Universal Render Pipeline/Lit")
                         ?? Shader.Find("Standard"));
-                    r.material.color = new Color(0.85f, 0.55f, 0.22f);
+                    r.material.color = new Color(0.95f, 0.55f, 0.15f);
                 }
             }
             settlement.transform.SetParent(root.transform, true);
@@ -206,11 +217,11 @@ namespace WorldSim.Presentation
             if (settlementLabel == null)
             {
                 settlementLabel = new GameObject("Settlement_Alpha_Label");
-                settlementLabel.transform.position = new Vector3(0f, 2.2f, 0f);
+                settlementLabel.transform.position = new Vector3(0f, WorldMapPresenter.SphereRadius + 1.2f, 0f);
                 var tm = settlementLabel.AddComponent<TextMesh>();
                 tm.text = "聚落 Alpha";
                 tm.fontSize = 32;
-                tm.characterSize = 0.08f;
+                tm.characterSize = 0.06f;
                 tm.anchor = TextAnchor.MiddleCenter;
                 tm.alignment = TextAlignment.Center;
                 tm.color = Color.white;
@@ -221,11 +232,11 @@ namespace WorldSim.Presentation
             if (aggregateStatistics == null)
             {
                 aggregateStatistics = new GameObject("WorldSim_AggregateStatistics");
-                aggregateStatistics.transform.position = new Vector3(0f, 3.2f, 0f);
+                aggregateStatistics.transform.position = new Vector3(0f, WorldMapPresenter.SphereRadius + 2.5f, 0f);
                 var tm = aggregateStatistics.AddComponent<TextMesh>();
                 tm.text = "文明聚合统计";
-                tm.fontSize = 32;
-                tm.characterSize = 0.12f;
+                tm.fontSize = 28;
+                tm.characterSize = 0.10f;
                 tm.anchor = TextAnchor.MiddleCenter;
                 tm.alignment = TextAlignment.Center;
                 tm.color = new Color(0.85f, 0.95f, 1f);

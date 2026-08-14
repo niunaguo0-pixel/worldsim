@@ -1,15 +1,20 @@
 namespace WorldSim.Presentation
 {
     using UnityEngine;
+    using UnityEngine.InputSystem;
 
-    /// <summary>处理沙盘相机缩放、平移与表现对象切换；不持有 WorldState。</summary>
+    /// <summary>
+    /// 沙盘相机：完整键鼠控制（Input System）。
+    /// 滚轮缩放；WASD/方向键与左/中键拖拽平移；R 复位。不持有 WorldState。
+    /// </summary>
     public sealed class CameraLodController : MonoBehaviour
     {
-        private const float MinDistance = 3f;
-        private const float MaxDistance = 28f;
-        private const float InitialDistance = 10f;
-        private const float ZoomStep = 1.5f;
+        private const float MinDistance = 6f;
+        private const float MaxDistance = 30f;
+        private const float InitialDistance = 14f;
+        private const float ZoomStep = 1.6f;
         private const float PanExtent = 12f;
+        private const float KeyboardPanSpeed = 6f;
         private const float PositionSmoothTime = 0.12f;
         private static readonly Vector3 ViewDirection = new Vector3(0.64f, 0.5f, -0.64f).normalized;
 
@@ -26,11 +31,13 @@ namespace WorldSim.Presentation
         private float _distanceVelocity;
         private bool _initialized;
         private CameraLodDecision _decision;
+        private Vector2 _lastPointer;
 
         public CameraLodLevel CurrentLod => _decision.Level;
         public string CurrentLodLabel => _decision.Label;
         public bool ReduceMotion => _decision.ReduceMotion;
         public float TargetDistance => _targetDistance;
+        public Vector3 TargetFocus => _targetFocus;
 
         public void Bind(
             Camera targetCamera,
@@ -62,9 +69,18 @@ namespace WorldSim.Presentation
             _targetFocus.z = Mathf.Clamp(_targetFocus.z + worldDelta.y, -PanExtent, PanExtent);
         }
 
+        public void ResetView()
+        {
+            Vector3 rootPosition = _sandboxRoot != null ? _sandboxRoot.position : Vector3.zero;
+            _targetFocus = rootPosition + Vector3.up * 0.5f;
+            _targetDistance = InitialDistance;
+            ApplyLod(CameraLodPolicy.Evaluate(_targetDistance));
+        }
+
         private void Update()
         {
             if (!TryInitialize()) return;
+            PollInput(Time.unscaledDeltaTime);
 
             _focus = Vector3.SmoothDamp(_focus, _targetFocus, ref _focusVelocity, PositionSmoothTime);
             _distance = Mathf.SmoothDamp(_distance, _targetDistance, ref _distanceVelocity, PositionSmoothTime);
@@ -78,26 +94,61 @@ namespace WorldSim.Presentation
 
             if (_camera.orthographic)
                 _camera.orthographicSize = Mathf.Max(1.5f, _distance * 0.55f);
+
+            var earth = _sandboxRoot != null
+                ? _sandboxRoot.GetComponentInChildren<WorldMapPresenter>()
+                : null;
+            if (earth != null)
+                earth.CameraDistance = _distance;
         }
 
-        private void OnGUI()
+        private void PollInput(float dt)
         {
-            if (!TryInitialize()) return;
+            var keyboard = Keyboard.current;
+            var mouse = Mouse.current;
 
-            Event input = Event.current;
-            if (input.type == EventType.ScrollWheel)
+            if (keyboard != null)
             {
-                Zoom(input.delta.y);
-                input.Use();
+                Vector2 keyPan = Vector2.zero;
+                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) keyPan.y += 1f;
+                if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) keyPan.y -= 1f;
+                if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) keyPan.x -= 1f;
+                if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) keyPan.x += 1f;
+                if (keyPan.sqrMagnitude > 0f)
+                {
+                    keyPan.Normalize();
+                    float scale = Mathf.Max(0.35f, _targetDistance * 0.08f);
+                    Pan(keyPan * (KeyboardPanSpeed * scale * dt));
+                }
+
+                if (keyboard.rKey.wasPressedThisFrame)
+                    ResetView();
             }
-            else if (input.type == EventType.MouseDrag && input.button == 2)
+
+            if (mouse == null) return;
+
+            Vector2 scroll = mouse.scroll.ReadValue();
+            if (Mathf.Abs(scroll.y) > 0.01f)
+                Zoom(-scroll.y * 0.01f); // 滚轮上=拉近
+
+            Vector2 pointer = mouse.position.ReadValue();
+            bool overHud = pointer.x < 460f;
+            bool dragging = mouse.middleButton.isPressed
+                || (mouse.leftButton.isPressed && !overHud);
+            if (dragging)
             {
-                float worldPerPixel = Mathf.Max(0.002f, _targetDistance / Mathf.Max(1f, Screen.height));
-                Vector3 right = _camera.transform.right;
-                Vector3 forward = Vector3.ProjectOnPlane(_camera.transform.forward, Vector3.up).normalized;
-                Vector3 delta = (-right * input.delta.x - forward * input.delta.y) * worldPerPixel;
-                Pan(new Vector2(delta.x, delta.z));
-                input.Use();
+                if (mouse.leftButton.wasPressedThisFrame || mouse.middleButton.wasPressedThisFrame)
+                    _lastPointer = pointer;
+                else
+                {
+                    Vector2 deltaPx = pointer - _lastPointer;
+                    _lastPointer = pointer;
+                    float worldPerPixel = Mathf.Max(0.002f, _targetDistance / Mathf.Max(1f, Screen.height));
+                    Vector3 right = _camera.transform.right;
+                    Vector3 forward = Vector3.ProjectOnPlane(_camera.transform.forward, Vector3.up).normalized;
+                    Vector3 delta = (-right * deltaPx.x - forward * deltaPx.y) * worldPerPixel;
+                    Pan(new Vector2(delta.x, delta.z));
+                }
             }
         }
 

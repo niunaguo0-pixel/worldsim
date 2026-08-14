@@ -1,35 +1,46 @@
 namespace WorldSim.Simulation.WorldMap
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Security.Cryptography;
-    using WorldSim.Simulation.Core;
-    using WorldSim.Simulation.Core.WorldGeography;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using WorldSim.Simulation.Core;
+using WorldSim.Simulation.Core.WorldGeography;
 
     public sealed class WorldMapBuildResult
     {
         public GeoBundleManifest Manifest;
         public WorldGeography Geography;
+        /// <summary>S5-3：管理远域 Low 异步装载；可为 null（仅当未启动延迟装载）。</summary>
+        public WorldMapLodStreamer LodStreamer;
     }
 
     public static class WorldMapFactory
     {
-        /// <summary>确定性启动路径：全球 Low 与起始区域 High 都在返回前可用。</summary>
+        /// <summary>
+        /// S5-3 确定性启动：同步 High（起始区）+ 焦点 Mid；远域 Low 异步延迟装载，不阻塞返回。
+        /// 需要完整远域时调用 result.LodStreamer.EnsureFarFieldLoaded()。
+        /// </summary>
         public static WorldMapBuildResult Build(string geoRoot, WorldInitConfig config, WorldState world = null)
         {
             if (config == null) throw new ArgumentNullException(nameof(config));
             var manifest = ReadManifestAndVerify(geoRoot, config);
-            var loaded = LoadBundlesForStartRegion(manifest, geoRoot, config);
-            var geography = new WorldGeography(loaded, world?.Map?.DynamicOverrides);
+            var critical = WorldMapLodStreamer.LoadCriticalBundles(manifest, geoRoot, config);
+            var geography = new WorldGeography(critical, world?.Map?.DynamicOverrides);
+            var streamer = new WorldMapLodStreamer();
+            streamer.BeginDeferredFarField(manifest, geoRoot, geography);
             AssignWorldMapState(world, manifest, config, geography);
-            return new WorldMapBuildResult { Manifest = manifest, Geography = geography };
+            return new WorldMapBuildResult
+            {
+                Manifest = manifest,
+                Geography = geography,
+                LodStreamer = streamer
+            };
         }
 
         /// <summary>
-        /// 存档加载后的 Geography 显式重建路径 (Task 4): 从已持久化的 WorldMapState
-        /// (静态 chunk 引用 + 动态覆盖) 重读 Low 全量与起始区域 High, 重建只读 Geography,
-        /// 防止依赖系统 NRE 或静默回退。Mid/表现层数据不写回模拟态。
+        /// 存档加载后重建 Geography：先同步 High+焦点 Mid，再等待远域 Low 完成，
+        /// 保证读档续跑与 Replay 腿看到完整远域（逻辑 tick 本身不做 IO）。
         /// </summary>
         public static WorldGeography RebuildGeography(WorldState world, string geoRoot)
         {
@@ -45,8 +56,11 @@ namespace WorldSim.Simulation.WorldMap
             };
             var manifest = new GeoBundleManifest();
             manifest.Chunks.AddRange(world.Map.StaticChunks);
-            var loaded = LoadBundlesForStartRegion(manifest, geoRoot, config);
-            var geography = new WorldGeography(loaded, world.Map.DynamicOverrides);
+            var critical = WorldMapLodStreamer.LoadCriticalBundles(manifest, geoRoot, config);
+            var geography = new WorldGeography(critical, world.Map.DynamicOverrides);
+            var streamer = new WorldMapLodStreamer();
+            streamer.BeginDeferredFarField(manifest, geoRoot, geography);
+            streamer.EnsureFarFieldLoaded();
             world.Geography = geography;
             return geography;
         }
@@ -60,40 +74,6 @@ namespace WorldSim.Simulation.WorldMap
                 throw new InvalidDataException("Requested geoDataBuild does not match bundle: " + config.GeoDataBuild);
             config.GeoDataBuild = manifest.BuildId;
             return manifest;
-        }
-
-        private static List<WorldMapBundle> LoadBundlesForStartRegion(GeoBundleManifest manifest, string geoRoot, WorldInitConfig config)
-        {
-            var loaded = new List<WorldMapBundle>();
-            foreach (var chunk in manifest.Chunks)
-            {
-                if (chunk.Lod != MapLodLevel.Low && chunk.Lod != MapLodLevel.High) continue;
-                string fullPath = Path.Combine(geoRoot, chunk.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-                VerifyChecksum(fullPath, chunk.Checksum);
-                WorldMapBundle bundle;
-                if (chunk.Lod == MapLodLevel.High)
-                {
-                    double cLat = config.StartRegionCenterLat;
-                    double cLon = config.StartRegionCenterLon;
-                    double radius = Math.Max(0.5, config.StartRegionRadiusDeg);
-                    // 流式读取: 只物化起始区域内的 High tile, 不先物化整个 High 网格 (Task 4)
-                    bundle = WorldMapBundleReader.ReadBundle(fullPath, c => WithinStartRegion(c, cLat, cLon, radius));
-                }
-                else
-                {
-                    bundle = WorldMapBundleReader.ReadBundle(fullPath);
-                }
-                loaded.Add(bundle);
-            }
-            return loaded;
-        }
-
-        private static bool WithinStartRegion(GeoCoordinate c, double centerLat, double centerLon, double radius)
-        {
-            double dLat = c.Latitude - centerLat;
-            double dLon = EquirectangularProjection.WrappedLongitudeDistance(c.Longitude, centerLon);
-            dLon *= Math.Cos((c.Latitude + centerLat) * 0.5 * Math.PI / 180.0);
-            return Math.Sqrt(dLat * dLat + dLon * dLon) <= radius;
         }
 
         private static void AssignWorldMapState(WorldState world, GeoBundleManifest manifest, WorldInitConfig config, WorldGeography geography)

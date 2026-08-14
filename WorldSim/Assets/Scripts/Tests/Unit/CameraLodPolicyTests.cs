@@ -35,7 +35,8 @@ namespace WorldSim.Tests.Unit
 
                 controller.Zoom(1f);
 
-                Assert.AreEqual(11.5f, controller.TargetDistance, 0.0001f);
+                // InitialDistance=14, ZoomStep=1.6 → 15.6；落在 Civilization 档
+                Assert.AreEqual(15.6f, controller.TargetDistance, 0.0001f);
                 Assert.AreEqual(CameraLodLevel.Civilization, controller.CurrentLod);
                 Assert.IsTrue(controller.ReduceMotion);
             }

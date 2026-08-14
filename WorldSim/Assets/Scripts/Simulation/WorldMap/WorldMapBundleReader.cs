@@ -91,8 +91,8 @@ namespace WorldSim.Simulation.WorldMap
         public static WorldMapBundle ReadBundle(string path) => ReadBundle(path, false, null);
 
         /// <summary>
-        /// 流式读取: 对 High LOD 只保留 keepPredicate(coordinate) 为真的 tile, 避免先把整个
-        /// High 网格物化进内存 (Task 4). Low/Mid 始终全量保留。predicate 为 null 时等价于全量。
+        /// 流式读取: 对 High/Mid 可按 keepPredicate 只物化焦点带 tile；Low 始终全量。
+        /// predicate 为 null 时等价于全量。
         /// </summary>
         public static WorldMapBundle ReadBundle(string path, Func<GeoCoordinate, bool> keepPredicate)
             => ReadBundle(path, keepPredicate != null, keepPredicate);
@@ -115,7 +115,9 @@ namespace WorldSim.Simulation.WorldMap
             };
             int count = reader.ReadInt32();
             if (count != bundle.Width * bundle.Height) throw new InvalidDataException("Geo tile count mismatch");
-            bool filterHigh = usePredicate && bundle.Lod == MapLodLevel.High;
+            // S5-3: High 起始区 / Mid 焦点带可过滤；Low 全量（异步路径不传 predicate）
+            bool filterSpatial = usePredicate
+                && (bundle.Lod == MapLodLevel.High || bundle.Lod == MapLodLevel.Mid);
             for (int i = 0; i < count; i++)
             {
                 byte flags = reader.ReadByte();
@@ -129,7 +131,7 @@ namespace WorldSim.Simulation.WorldMap
                 int y = i / bundle.Width;
                 int id = EquirectangularProjection.EncodeTileId(bundle.Lod, x, y);
                 var coordinate = EquirectangularProjection.ToCoordinate(id);
-                if (filterHigh && !keepPredicate(coordinate)) continue;
+                if (filterSpatial && !keepPredicate(coordinate)) continue;
                 bundle.Tiles[id] = new WorldTileData
                 {
                     TileId = id,

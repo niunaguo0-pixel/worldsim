@@ -13,11 +13,37 @@ namespace WorldSim.Simulation.WorldMap
         {
             if (bundles == null) throw new ArgumentNullException(nameof(bundles));
             foreach (var bundle in bundles)
-                foreach (var pair in bundle.Tiles)
-                    _tiles[pair.Key] = pair.Value;
+                MergeBundle(bundle, preferExisting: false);
             if (overrides != null)
                 foreach (var item in overrides)
                     _overrides[item.TileId] = item;
+        }
+
+        /// <summary>
+        /// S5-3：异步远域 Low 装载完成后合并；preferExisting=true 时不覆盖已有 High/Mid tile。
+        /// </summary>
+        public void MergeBundle(WorldMapBundle bundle, bool preferExisting = true)
+        {
+            if (bundle == null) throw new ArgumentNullException(nameof(bundle));
+            foreach (var pair in bundle.Tiles)
+            {
+                if (preferExisting && _tiles.ContainsKey(pair.Key)) continue;
+                _tiles[pair.Key] = pair.Value;
+            }
+        }
+
+        /// <summary>已物化 tile 数（测试/诊断用，不进月哈希）。</summary>
+        public int MaterializedTileCount => _tiles.Count;
+
+        public bool TryGetExactTile(int worldTileId, out WorldTileData tile)
+        {
+            if (_tiles.TryGetValue(worldTileId, out tile))
+            {
+                tile = ApplyOverride(tile);
+                return true;
+            }
+            tile = null;
+            return false;
         }
 
         public WorldTileData GetTile(int worldTileId)
