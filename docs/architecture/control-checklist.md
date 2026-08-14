@@ -74,7 +74,7 @@
 5. ✅ `WorldSim.Editor.BuildScript.cs`（ADR-003；`BuildWin64` headless）
 6. ✅ region-presets 导入/消费（V0-6）；StreamingAssets 与 design 由 `assert-region-presets-synced.ps1` 守住
 7. ✅ 模块化开关框架（S7）完整配置 — `WorldSim.ModularToggle` 目录/预设 + New Game 面板 + 文明子步骤门控
-8. ✅ NPR 微缩沙盘渲染原型 — P2 地球+色板+rim；打磨：四季 Volume 基座 / AS-2 Overlay 切片 / 旱灾偏色+AS-4 ≥1.5s（手绘探针与 Water 变体顺延）
+8. ✅ NPR 微缩沙盘渲染原型 — P2 地球+色板+rim；打磨：四季 Volume / AS-2 Overlay / 旱灾偏色+AS-4；**手绘 TEX_DETAIL 探针 + NprWater 变体**（远看色块近看笔触，水面灰蓝 Fresnel）
 9. ✅ `com.unity.burst@1.8.30` 直依 + `assert-burst-pinned`（lock 中他包写的 ≥1.8.29 仅为下限，解析为 1.8.30）
 
 > 环境：Unity **6000.0.81f1**；Hub：`C:\Program Files\Unity\Hub\Editor\6000.0.81f1`；注册表：`HKLM\SOFTWARE\Unity Technologies\Installer\Unity 6000.0.81f1`（`Location x64`）。

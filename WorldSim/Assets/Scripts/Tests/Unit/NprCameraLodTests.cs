@@ -28,7 +28,11 @@ namespace WorldSim.Tests.Unit
         public void ColorForTile_UsesWaterAndBiomePalette()
         {
             var water = new WorldTileData { IsLand = false };
-            Assert.AreEqual(NprDioramaPalette.WaterBlue, NprDioramaPalette.ColorForTile(water));
+            Color waterColor = NprDioramaPalette.ColorForTile(water);
+            Assert.AreEqual(NprDioramaPalette.WaterBlue.r, waterColor.r, 0.001f);
+            Assert.AreEqual(NprDioramaPalette.WaterBlue.g, waterColor.g, 0.001f);
+            Assert.AreEqual(NprDioramaPalette.WaterBlue.b, waterColor.b, 0.001f);
+            Assert.AreEqual(0f, waterColor.a, 0.001f);
 
             var desert = new WorldTileData { IsLand = true, Biome = BiomeType.Desert };
             Assert.AreEqual(NprDioramaPalette.EarthOchre, NprDioramaPalette.ColorForTile(desert));

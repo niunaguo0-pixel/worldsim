@@ -44,6 +44,7 @@ namespace WorldSim.Presentation
 
         private WorldMapViewSnapshot _snapshot;
         private MeshFilter _meshFilter;
+        private MeshRenderer _meshRenderer;
         private CameraLodLevel _appliedLod = (CameraLodLevel)(-1);
         private float _currentRotationSpeed;
         private bool _autoRotate = true;
@@ -66,6 +67,7 @@ namespace WorldSim.Presentation
             var presenter = root.AddComponent<WorldMapPresenter>();
             presenter._snapshot = snapshot;
             presenter._meshFilter = filter;
+            presenter._meshRenderer = renderer;
             presenter._autoRotate = true;
             var decision = CameraLodPolicy.ForLevel(CameraLodLevel.Individual);
             filter.sharedMesh = BuildSphereMesh(
@@ -180,6 +182,9 @@ namespace WorldSim.Presentation
 
         private void Update()
         {
+            if (_meshRenderer != null && _meshRenderer.sharedMaterial != null)
+                NprMaterialFactory.ApplyDetailStrength(_meshRenderer.sharedMaterial, CameraDistance);
+
             bool shouldRotate = _autoRotate && _allowAutoRotate && CameraDistance > RotationStopDistance;
             float targetSpeed = shouldRotate ? RotationDegreesPerSecond : 0f;
             _currentRotationSpeed = Mathf.Lerp(
