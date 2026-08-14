@@ -14,11 +14,12 @@ namespace WorldSim.Simulation.Core.Serialization
     /// <summary>
     /// WorldState 全量二进制快照 (ADR-004 选项 1 / V0-4 / Epic 7).
     /// 显式小端自定义 writer; 集合排序后写; 含 RngRegistry 256-bit + InterventionLog + 时钟 + ModuleToggles.
-    /// Schema 9：LOD 分区 DynamicOverrides + 生态指标 delta；历史层增量见 HistoryDeltaCodec.
+    /// Schema 10：Schema 9 LOD/delta + Military.HasNavy。
+    /// Schema 9：LOD 分区 DynamicOverrides + 生态指标绝对值。
     /// </summary>
     public static class WorldStateSerializer
     {
-        public const int SchemaVersion = 9; // Epic 7 SV1 LOD；指标字段写量化绝对值（避免 delta 不可逆）
+        public const int SchemaVersion = 10;
         public const int Magic = 0x57534D31; // 'WSM1'
 
         public static byte[] Save(WorldState world)
@@ -29,11 +30,11 @@ namespace WorldSim.Simulation.Core.Serialization
             return w.ToArray();
         }
 
-        /// <summary>迁移/回归工具：导出 3–8 格式，验证 Schema 9 的向后读取路径。</summary>
+        /// <summary>迁移/回归工具：导出 3–(SchemaVersion) 格式，验证向后读取路径。</summary>
         public static byte[] SaveLegacy(WorldState world, int targetSchemaVersion)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
-            if (targetSchemaVersion < 3 || targetSchemaVersion > 8)
+            if (targetSchemaVersion < 3 || targetSchemaVersion > SchemaVersion)
                 throw new ArgumentOutOfRangeException(nameof(targetSchemaVersion));
             using var w = new DeterministicBinaryWriter();
             WriteAll(w, world, targetSchemaVersion);
@@ -522,14 +523,14 @@ namespace WorldSim.Simulation.Core.Serialization
                 w.WriteInt32(p.stableId); w.WriteInt32(p.techTier); w.WriteInt32(p.sustainedSurplusMonths); w.WriteInt32(p.divisionDepth); w.WriteInt32(p.lawStage);
                 w.WriteDouble(p.population); w.WriteDouble(p.output); w.WriteDouble(p.militaryPower); w.WriteDouble(p.stability); w.WriteDouble(p.legitimacy); w.WriteDouble(p.capacityUtilization);
                 w.WriteBool(p.hasWriting); w.WriteByte((byte)p.governance); w.WriteByte((byte)p.lawFamily); w.WriteByte((byte)p.titleTier); w.WriteByte((byte)p.scaleTier); w.WriteByte((byte)p.dominionMode); w.WriteDouble(p.aggregationCost);
-                if (schemaVersion >= 8) WritePolityS34(w, p);
+                if (schemaVersion >= 8) WritePolityS34(w, p, schemaVersion);
             }
             var es = SortedCopy(c.Economies, x => x.stableId); w.WriteInt32(es.Count);
             foreach (var e in es) { w.WriteInt32(e.stableId); w.WriteInt32(e.settlementId); w.WriteDouble(e.food); w.WriteDouble(e.wood); w.WriteDouble(e.stone); w.WriteDouble(e.goods); w.WriteDouble(e.energy); w.WriteDouble(e.foodSurplus); w.WriteDouble(e.divisionLevel); w.WriteByte(e.exchangeMode); }
             var ts = SortedCopy(c.Tech, x => x.stableId); w.WriteInt32(ts.Count); foreach (var t in ts) { w.WriteInt32(t.stableId); w.WriteInt32(t.polityId); w.WriteDouble(t.agriculture); w.WriteDouble(t.hunt); w.WriteDouble(t.defense); w.WriteDouble(t.trade); w.WriteDouble(t.faith); w.WriteDouble(t.military); w.WriteDouble(t.culture); }
             var ins = SortedCopy(c.Individuals, x => x.stableId); w.WriteInt32(ins.Count); foreach (var i in ins) { w.WriteInt32(i.stableId); w.WriteInt32(i.settlementId); w.WriteInt32(i.ageMonths); w.WriteDouble(i.health); w.WriteByte(i.occupation); w.WriteBool(i.alive); }
         }
-        private static void WritePolityS34(DeterministicBinaryWriter w, CivilizationPolityState p)
+        private static void WritePolityS34(DeterministicBinaryWriter w, CivilizationPolityState p, int schemaVersion)
         {
             var src = p.LegitimacySources ?? new LegitimacySource();
             w.WriteDouble(src.Performance); w.WriteDouble(src.Consensus); w.WriteDouble(src.Lineage); w.WriteDouble(src.Institution);
@@ -545,6 +546,7 @@ namespace WorldSim.Simulation.Core.Serialization
             w.WriteDouble(eth.Fractionalization); w.WriteDouble(eth.Polarization); w.WriteDouble(eth.EthnicInequality);
             var mil = p.Military ?? new MilitaryState();
             w.WriteDouble(mil.Weariness); w.WriteByte((byte)mil.Status); w.WriteInt32(mil.OpponentPolityId);
+            if (schemaVersion >= 10) w.WriteBool(mil.HasNavy);
         }
         private static CivilizationState ReadCivilization(DeterministicBinaryReader r, int schemaVersion)
         {
@@ -560,7 +562,7 @@ namespace WorldSim.Simulation.Core.Serialization
                     hasWriting=r.ReadBool(), governance=(GovernanceType)r.ReadByte(), lawFamily=(LawFamily)r.ReadByte(), titleTier=(TitleTier)r.ReadByte(),
                     scaleTier=(ScaleTier)r.ReadByte(), dominionMode=(DominionMode)r.ReadByte(), aggregationCost=r.ReadDouble()
                 };
-                if (schemaVersion >= 8) ReadPolityS34(r, p);
+                if (schemaVersion >= 8) ReadPolityS34(r, p, schemaVersion);
                 else EnsurePolityS34Defaults(p);
                 c.Polities.Add(p);
             }
@@ -600,6 +602,12 @@ namespace WorldSim.Simulation.Core.Serialization
                 OpponentPolityId = r.ReadInt32()
             };
         }
+        private static void ReadPolityS34(DeterministicBinaryReader r, CivilizationPolityState p, int schemaVersion)
+        {
+            ReadPolityS34(r, p);
+            if (schemaVersion >= 10)
+                p.Military.HasNavy = r.ReadBool();
+        }
         private static void EnsurePolityS34Defaults(CivilizationPolityState p)
         {
             if (p.LegitimacySources == null) p.LegitimacySources = new LegitimacySource();
@@ -633,11 +641,29 @@ namespace WorldSim.Simulation.Core.Serialization
                 w.WriteDouble(DeterminismMath.Quantize(eth.EthnicInequality,3));
                 var mil = p.Military ?? new MilitaryState();
                 w.WriteDouble(DeterminismMath.Quantize(mil.Weariness,3)); w.WriteByte((byte)mil.Status); w.WriteInt32(mil.OpponentPolityId);
+                w.WriteBool(mil.HasNavy);
+                w.WriteByte((byte)p.dominionMode);
+                w.WriteDouble(DeterminismMath.Quantize(p.aggregationCost, 3));
+            }
+            foreach (var e in SortedCopy(c.Economies, x => x.stableId))
+            {
+                w.WriteInt32(e.stableId);
+                w.WriteDouble(DeterminismMath.Quantize(e.food, 3));
+                w.WriteDouble(DeterminismMath.Quantize(e.wood, 3));
+                w.WriteDouble(DeterminismMath.Quantize(e.stone, 3));
+                w.WriteDouble(DeterminismMath.Quantize(e.goods, 3));
+                w.WriteDouble(DeterminismMath.Quantize(e.energy, 3));
+                w.WriteByte(e.exchangeMode);
             }
             foreach (var t in SortedCopy(c.Tech, x => x.stableId))
             {
                 w.WriteInt32(t.stableId);
+                w.WriteDouble(DeterminismMath.Quantize(t.agriculture, 3));
+                w.WriteDouble(DeterminismMath.Quantize(t.hunt, 3));
+                w.WriteDouble(DeterminismMath.Quantize(t.defense, 3));
+                w.WriteDouble(DeterminismMath.Quantize(t.trade, 3));
                 w.WriteDouble(DeterminismMath.Quantize(t.faith, 3));
+                w.WriteDouble(DeterminismMath.Quantize(t.military, 3));
                 w.WriteDouble(DeterminismMath.Quantize(t.culture, 3));
             }
         }

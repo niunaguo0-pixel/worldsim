@@ -277,9 +277,9 @@ namespace WorldSim.Simulation.WorldMap
                 cities.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
                 foreach (var city in cities)
                 {
-                    int tileId = world.Geography.GetTileId(city.Location, MapLodLevel.High);
-                    var actual = world.Geography.GetTile(city.Location, MapLodLevel.High);
-                    tileId = actual.TileId;
+                    int tileId = FindHabitable(world.Geography, city.Location);
+                    var site = SettlementSiteEvaluator.Evaluate(world.Geography, tileId);
+                    if (!site.IsHabitable) continue;
                     world.Civilization.Settlements.Add(new CivilizationSettlementState
                     {
                         stableId = settlementId, worldTileId = tileId, polityId = polityId,
@@ -289,6 +289,24 @@ namespace WorldSim.Simulation.WorldMap
                     });
                     AddSupportState(world.Civilization, settlementId, polityId);
                     settlementId++;
+                }
+                if (!HasSettlementFor(world.Civilization, polityId))
+                {
+                    var center = new GeoCoordinate(
+                        (country.MinLat + country.MaxLat) * 0.5,
+                        (country.MinLon + country.MaxLon) * 0.5);
+                    int tileId = FindHabitable(world.Geography, center);
+                    if (SettlementSiteEvaluator.Evaluate(world.Geography, tileId).IsHabitable)
+                    {
+                        world.Civilization.Settlements.Add(new CivilizationSettlementState
+                        {
+                            stableId = settlementId, worldTileId = tileId, polityId = polityId,
+                            population = 1000, housingCapacity = 1200, foodCapacity = 1100, spaceCapacity = 1500,
+                            prosperity = 0.6, tier = SettlementTier.City
+                        });
+                        AddSupportState(world.Civilization, settlementId, polityId);
+                        settlementId++;
+                    }
                 }
                 polityId++;
             }
@@ -309,6 +327,13 @@ namespace WorldSim.Simulation.WorldMap
                     best = g;
             }
             return best;
+        }
+
+        private static bool HasSettlementFor(CivilizationState state, int polityId)
+        {
+            foreach (var s in state.Settlements)
+                if (s.polityId == polityId) return true;
+            return false;
         }
 
         private static void AddSupportState(CivilizationState state, int settlementId, int polityId)

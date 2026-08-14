@@ -424,7 +424,7 @@ namespace WorldSim.Tests.Unit
                 { Weariness = 0.25, Status = WarStatus.Recovering, OpponentPolityId = 99 };
 
             byte[] bytes = WorldStateSerializer.Save(world);
-            Assert.AreEqual(9, WorldStateSerializer.SchemaVersion);
+            Assert.AreEqual(10, WorldStateSerializer.SchemaVersion);
             var loaded = WorldStateSerializer.Load(bytes);
             var lp = loaded.Civilization.Polities[0];
             Assert.AreEqual(0.1, lp.LegitimacySources.Performance, 1e-9);

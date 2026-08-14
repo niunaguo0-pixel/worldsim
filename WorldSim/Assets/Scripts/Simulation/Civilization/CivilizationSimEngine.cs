@@ -190,10 +190,20 @@ namespace WorldSim.Simulation.Civilization
             {
                 e.food = Q(e.food + 8.0 - 5.0);
                 e.wood = Q(e.wood + 1.0);
+                e.stone = Q(e.stone + 0.5);
+                e.goods = Q(e.goods + 0.25 + e.divisionLevel * 0.15);
+                e.energy = Q(e.energy + (e.divisionLevel >= 2 ? 0.3 : 0.05));
                 e.foodSurplus = Q(e.food - 20.0);
                 e.divisionLevel = Q(Math.Max(0, e.foodSurplus / 20.0));
-                e.exchangeMode = (byte)(e.divisionLevel >= 2 ? 1 : 0);
+                e.exchangeMode = (byte)ClassifyExchange(e.divisionLevel);
             }
+        }
+
+        private static ExchangeMode ClassifyExchange(double divisionLevel)
+        {
+            if (divisionLevel >= 4) return ExchangeMode.Market;
+            if (divisionLevel >= 2) return ExchangeMode.Tribute;
+            return ExchangeMode.Reciprocity;
         }
 
         private static void StepSettlements(WorldState world, CivilizationState civ)
@@ -207,12 +217,17 @@ namespace WorldSim.Simulation.Civilization
                 if (world.Geography != null)
                 {
                     var tile = world.Geography.GetTile(s.worldTileId);
-                    // 选址约束：非陆地/陡坡惩罚；近水奖励；缓坡额外奖励。
-                    if (!tile.IsLand || tile.Slope > 20) growth -= 0.05;
+                    // 与 SettlementSiteEvaluator 同阈值（Task 4 / 0.5° 校准），不引用 WorldMap。
+                    bool uninhabitable = !tile.IsLand
+                        || tile.Biome == BiomeType.Ocean
+                        || tile.Biome == BiomeType.Ice
+                        || tile.Slope > 6
+                        || tile.ElevationMeters > 3500;
+                    if (uninhabitable) growth -= 0.05;
                     else
                     {
                         if (world.Geography.HasWaterNearby(s.worldTileId)) growth += 0.003;
-                        if (tile.Slope < 8) growth += 0.002;
+                        if (tile.Slope < 6) growth += 0.002;
                     }
                 }
                 if (s.population > cc) growth -= 0.04;
@@ -241,6 +256,10 @@ namespace WorldSim.Simulation.Civilization
                 var p = PolityFor(civ, t.polityId);
                 if (p == null) continue;
                 t.agriculture = Q(t.agriculture + 0.03);
+                t.hunt = Q(t.hunt + 0.02);
+                t.defense = Q(t.defense + 0.015);
+                t.trade = Q(t.trade + 0.015);
+                t.military = Q(t.military + 0.01);
                 if (t.agriculture >= 1.0 && p.techTier < 8) p.techTier++;
                 p.hasWriting |= p.techTier >= 3;
             }
@@ -458,6 +477,7 @@ namespace WorldSim.Simulation.Civilization
             {
                 if (p.Military == null) p.Military = new MilitaryState();
                 p.militaryPower = Q(Math.Max(0, p.militaryPower + 0.1));
+                p.Military.HasNavy = PolityHasNavy(world, civ, p);
                 if (p.Military.Status == WarStatus.Recovering)
                 {
                     p.Military.Weariness = Q(Math.Max(0, p.Military.Weariness - 0.05));
@@ -482,6 +502,7 @@ namespace WorldSim.Simulation.Civilization
                 var b = polities[i + 1];
                 if (a.Military == null) a.Military = new MilitaryState();
                 if (b.Military == null) b.Military = new MilitaryState();
+                if (IsNaturallySeparated(world, civ, a, b)) continue;
 
                 if (a.Military.Status == WarStatus.Idle && b.Military.Status == WarStatus.Idle)
                 {
@@ -519,6 +540,49 @@ namespace WorldSim.Simulation.Civilization
             }
         }
 
+        private static bool PolityHasNavy(WorldState world, CivilizationState civ, CivilizationPolityState p)
+        {
+            if (world.Geography == null || p.techTier < 3) return false;
+            foreach (var s in civ.Settlements)
+            {
+                if (s.polityId != p.stableId) continue;
+                if (world.Geography.HasCoast(s.worldTileId)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>河/山自然边界阻断自动开战；无海军的沿海对也阻断。无地理时保持切片自动开战。</summary>
+        private static bool IsNaturallySeparated(
+            WorldState world, CivilizationState civ, CivilizationPolityState a, CivilizationPolityState b)
+        {
+            if (world.Geography == null) return false;
+            bool sawPair = false;
+            bool allBlocked = true;
+            foreach (var sa in civ.Settlements)
+            {
+                if (sa.polityId != a.stableId) continue;
+                foreach (var sb in civ.Settlements)
+                {
+                    if (sb.polityId != b.stableId) continue;
+                    sawPair = true;
+                    if (!TileBoundaryBlocks(world.Geography, sa.worldTileId, a, b)
+                        && !TileBoundaryBlocks(world.Geography, sb.worldTileId, a, b))
+                        allBlocked = false;
+                }
+            }
+            return sawPair && allBlocked;
+        }
+
+        private static bool TileBoundaryBlocks(
+            IWorldGeography geography, int tileId, CivilizationPolityState a, CivilizationPolityState b)
+        {
+            if (geography.HasRiver(tileId)) return true;
+            if (geography.GetElevation(tileId) >= 2200 || geography.GetSlope(tileId) >= 5) return true;
+            if (geography.HasCoast(tileId))
+                return !(a.Military.HasNavy && b.Military.HasNavy);
+            return false;
+        }
+
         private static double Clamp01(double x) => x < 0 ? 0 : (x > 1 ? 1 : x);
         private static void StepEra(WorldState world, CivilizationState civ, int month)
         {
@@ -542,6 +606,11 @@ namespace WorldSim.Simulation.Civilization
                 p.population = Q(pop); p.output = Q(output); p.aggregationCost = Q(count * 1.0);
                 p.scaleTier = count >= 8 ? ScaleTier.Continental : count >= 3 ? ScaleTier.Regional : ScaleTier.Local;
                 p.titleTier = p.techTier >= 4 ? TitleTier.King : TitleTier.Chief;
+                // 三轴独立：DominionMode 只由聚落数分档，不写民族/法律。
+                p.dominionMode = count >= 8 ? DominionMode.Federal
+                    : count >= 3 ? DominionMode.Tributary
+                    : count >= 2 ? DominionMode.Direct
+                    : DominionMode.None;
             }
         }
         private static void EmitEvents(WorldState world, CivilizationState civ, int month)

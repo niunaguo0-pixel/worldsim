@@ -10,6 +10,7 @@ namespace WorldSim.Simulation.Core.Civilization
     public enum TitleTier : byte { None, Chief, King, Emperor }
     public enum ScaleTier : byte { Local, Regional, Continental, Global }
     public enum DominionMode : byte { None, Direct, Tributary, Federal }
+    public enum ExchangeMode : byte { Reciprocity, Tribute, Market, Monetary, Industrial, ServiceInfo }
     public enum WarStatus : byte { Idle, AtWar, Recovering }
 
     /// <summary>合法性四项世俗来源（GDD §2.4）；不含宗教项。</summary>
@@ -89,6 +90,8 @@ namespace WorldSim.Simulation.Core.Civilization
         public double Weariness;
         public WarStatus Status;
         public int OpponentPolityId;
+        /// <summary>S5-2 / S3：沿海 + 军事科技达标后解锁海军；入月哈希。</summary>
+        public bool HasNavy;
     }
 
     public sealed class CivilizationSettlementState

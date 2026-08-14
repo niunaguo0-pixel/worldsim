@@ -29,7 +29,7 @@ namespace WorldSim.Tests.Unit
         [Test]
         public void Schema9_IsCurrentAndLoadsLegacyEight()
         {
-            Assert.AreEqual(9, WorldStateSerializer.SchemaVersion);
+            Assert.AreEqual(10, WorldStateSerializer.SchemaVersion);
             var world = WorldState.CreateMinimalSlice(9);
             byte[] legacy8 = WorldStateSerializer.SaveLegacy(world, 8);
             var loaded = WorldStateSerializer.Load(legacy8);

@@ -203,7 +203,7 @@ namespace WorldSim.Tests.Unit
                 { TileId = 3000001, HasBiome = true, Biome = BiomeType.Wetland });
             byte[] bytes = WorldStateSerializer.Save(world);
             var loaded = WorldStateSerializer.Load(bytes);
-            Assert.AreEqual(9, WorldStateSerializer.SchemaVersion);
+            Assert.AreEqual(10, WorldStateSerializer.SchemaVersion);
             Assert.AreEqual("build7", loaded.Map.GeoDataBuild);
             Assert.AreEqual((int)BorderView.SovereigntyClaims, loaded.Map.Config.BorderView);
             Assert.AreEqual(1, loaded.Map.StaticChunks.Count);

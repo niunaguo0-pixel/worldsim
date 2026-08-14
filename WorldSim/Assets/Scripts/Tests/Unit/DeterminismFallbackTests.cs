@@ -101,7 +101,7 @@ namespace WorldSim.Tests.Unit
             byte[] bytes = WorldStateSerializer.Save(world);
             var loaded = WorldStateSerializer.Load(bytes);
             Assert.AreEqual(DeterminismFallbackLevel.SerialFix, loaded.Fallback.Level);
-            Assert.AreEqual(9, WorldStateSerializer.SchemaVersion);
+            Assert.AreEqual(10, WorldStateSerializer.SchemaVersion);
         }
 
         [Test]
