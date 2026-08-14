@@ -57,18 +57,176 @@ namespace WorldSim.Simulation.WorldMap
             config.NormalizeDerivedMode();
             RegionPresetRedLines.ValidateInitConfig(config);
             var world = new WorldState(seed);
-            var map = WorldMapFactory.Build(geoRoot, config, world);
+            WorldMapFactory.Build(geoRoot, config, world);
+            // 完整地缘种子（测试/离线工具）；可玩路径用 regionScoped=true
+            var political = ApplyDualStart(world, config, geoRoot, regionScoped: false);
+            return new WorldStartResult { World = world, Config = config, GeoPolitical = political };
+        }
+
+        /// <summary>
+        /// S5-4：在已有 Geography 的 WorldState 上按双开局模式播种文明。
+        /// regionScoped=true 时仅保留与起始区域相交的国家（可玩性能）；false 为全量快照。
+        /// 共享同一 IWorldGeography；不改地理 bundle。
+        /// </summary>
+        public static GeoPoliticalInit ApplyDualStart(
+            WorldState world,
+            WorldInitConfig config,
+            string geoRoot,
+            bool regionScoped)
+        {
+            if (world == null) throw new ArgumentNullException(nameof(world));
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (world.Geography == null)
+                throw new InvalidOperationException("ApplyDualStart requires world.Geography (call WorldMapFactory.Build first).");
+
+            config.NormalizeDerivedMode();
+            RegionPresetRedLines.ValidateInitConfig(config);
             world.EraIndex = (int)config.StartEra;
+            ClearCivilizationSeed(world);
 
             if (config.StartMode == StartMode.PrimordialSandbox)
             {
                 InitializePrimordial(world, config);
-                return new WorldStartResult { World = world, Config = config, GeoPolitical = null };
+                return null;
             }
 
             var political = ReadGeoPolitical(geoRoot, config.BorderYear, config.BorderView);
+            if (regionScoped)
+                political = FilterToStartRegion(political, config);
             InitializeModern(world, config, political);
-            return new WorldStartResult { World = world, Config = config, GeoPolitical = political };
+            return political;
+        }
+
+        private static void ClearCivilizationSeed(WorldState world)
+        {
+            var civ = world.Civilization ?? (world.Civilization = new CivilizationState());
+            civ.Settlements.Clear();
+            civ.Polities.Clear();
+            civ.Economies.Clear();
+            civ.Tech.Clear();
+            civ.Individuals.Clear();
+            civ.LastSettledMonth = -1;
+        }
+
+        /// <summary>保留 bbox/城市落入起始圆的国家；若空则退化为距中心最近有城国家。</summary>
+        public static GeoPoliticalInit FilterToStartRegion(GeoPoliticalInit source, WorldInitConfig config)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (config == null) throw new ArgumentNullException(nameof(config));
+
+            double lat0 = config.StartRegionCenterLat;
+            double lon0 = config.StartRegionCenterLon;
+            double r = Math.Max(0.5, config.StartRegionRadiusDeg);
+            var filtered = new GeoPoliticalInit
+            {
+                BorderYear = source.BorderYear,
+                BorderView = source.BorderView
+            };
+
+            foreach (var c in source.Countries)
+            {
+                if (!CountryIntersectsRegion(c, lat0, lon0, r))
+                    continue;
+                filtered.Countries.Add(CloneCountryScoped(c, lat0, lon0, r));
+            }
+
+            if (filtered.Countries.Count == 0)
+            {
+                CountryInit best = null;
+                double bestDist = double.MaxValue;
+                foreach (var c in source.Countries)
+                {
+                    double d = CountryDistanceToCenter(c, lat0, lon0);
+                    if (d < bestDist)
+                    {
+                        bestDist = d;
+                        best = c;
+                    }
+                }
+
+                if (best != null)
+                    filtered.Countries.Add(CloneCountryScoped(best, lat0, lon0, r));
+            }
+
+            foreach (var d in source.DisputedAreas)
+            {
+                if (BBoxIntersectsCircle(d.MinLat, d.MinLon, d.MaxLat, d.MaxLon, lat0, lon0, r))
+                    filtered.DisputedAreas.Add(d);
+            }
+
+            return filtered;
+        }
+
+        private static CountryInit CloneCountryScoped(CountryInit source, double lat0, double lon0, double r)
+        {
+            var copy = new CountryInit
+            {
+                Name = source.Name,
+                MinLat = source.MinLat,
+                MinLon = source.MinLon,
+                MaxLat = source.MaxLat,
+                MaxLon = source.MaxLon
+            };
+            CityInit nearest = null;
+            double nearestDist = double.MaxValue;
+            for (int i = 0; i < source.Cities.Count; i++)
+            {
+                var city = source.Cities[i];
+                double d = HaversineApproxDeg(lat0, lon0, city.Location.Latitude, city.Location.Longitude);
+                if (d <= r)
+                    copy.Cities.Add(city);
+                if (d < nearestDist)
+                {
+                    nearestDist = d;
+                    nearest = city;
+                }
+            }
+
+            if (copy.Cities.Count == 0 && nearest != null)
+                copy.Cities.Add(nearest);
+            return copy;
+        }
+
+        private static bool CountryIntersectsRegion(CountryInit c, double lat0, double lon0, double r)
+        {
+            if (BBoxIntersectsCircle(c.MinLat, c.MinLon, c.MaxLat, c.MaxLon, lat0, lon0, r))
+                return true;
+            for (int i = 0; i < c.Cities.Count; i++)
+            {
+                if (HaversineApproxDeg(lat0, lon0, c.Cities[i].Location.Latitude, c.Cities[i].Location.Longitude) <= r)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static double CountryDistanceToCenter(CountryInit c, double lat0, double lon0)
+        {
+            double best = HaversineApproxDeg(lat0, lon0, (c.MinLat + c.MaxLat) * 0.5, (c.MinLon + c.MaxLon) * 0.5);
+            for (int i = 0; i < c.Cities.Count; i++)
+            {
+                double d = HaversineApproxDeg(lat0, lon0, c.Cities[i].Location.Latitude, c.Cities[i].Location.Longitude);
+                if (d < best) best = d;
+            }
+
+            return best;
+        }
+
+        private static bool BBoxIntersectsCircle(
+            double minLat, double minLon, double maxLat, double maxLon,
+            double lat0, double lon0, double r)
+        {
+            double clampLat = Math.Max(minLat, Math.Min(maxLat, lat0));
+            double clampLon = Math.Max(minLon, Math.Min(maxLon, lon0));
+            return HaversineApproxDeg(lat0, lon0, clampLat, clampLon) <= r;
+        }
+
+        /// <summary>平面近似（度）：对起始半径级筛选足够且确定性。</summary>
+        private static double HaversineApproxDeg(double lat1, double lon1, double lat2, double lon2)
+        {
+            double dLat = lat1 - lat2;
+            double dLon = lon1 - lon2;
+            return Math.Sqrt(dLat * dLat + dLon * dLon);
         }
 
         private static void InitializePrimordial(WorldState world, WorldInitConfig config)

@@ -92,6 +92,9 @@ namespace WorldSim.Presentation
                 string geoRoot = Path.Combine(Application.streamingAssetsPath, "Geo", "v1");
                 var build = WorldMapFactory.Build(geoRoot, mapConfig, _world);
                 _mapLodStreamer = build.LodStreamer;
+                // S5-4：双开局（远古沙盒 / 地缘）播种文明；可玩路径区域裁剪
+                if (_world.Geography != null)
+                    WorldStartFactory.ApplyDualStart(_world, mapConfig, geoRoot, regionScoped: true);
                 mapSnapshot = WorldMapViewSnapshot.Capture(_world.Geography, _world.Map.GeoDataBuild);
             }
             catch (Exception ex)

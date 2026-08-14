@@ -10,6 +10,7 @@ namespace WorldSim.UI
         public StartEra StartEra = StartEra.Modern;
         public string PresetKey = "fertile_crescent";
         public int BorderYear = 2026;
+        public BorderView BorderView = BorderView.DeFactoControl;
         public bool UsePresetLegalBias = true;
         public LegalFamilyBias LegalBiasOverride = LegalFamilyBias.CustomaryLaw;
         public GoalMode GoalMode = GoalMode.SandboxNoVictory;

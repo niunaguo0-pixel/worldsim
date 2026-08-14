@@ -78,16 +78,36 @@ namespace WorldSim.UI
             }
 
             GUILayout.Space(4);
-            GUILayout.Label("③ 国界年份（远古沙盒时忽略）");
+            GUILayout.Label("③ 国界年份（远古沙盒时忽略；目前仅 2026 快照）");
             GUILayout.BeginHorizontal();
             for (int i = 0; i < NewGameAssembler.SuggestedBorderYears.Length; i++)
             {
                 int y = NewGameAssembler.SuggestedBorderYears[i];
-                string label = _draft.BorderYear == y ? $"▶{y}" : y.ToString();
-                if (GUILayout.Button(label, GUILayout.Height(24)))
+                bool supported = NewGameAssembler.IsSupportedBorderYear(y);
+                string label = !supported
+                    ? y + "(未到)"
+                    : (_draft.BorderYear == y ? "▶" + y : y.ToString());
+                GUI.enabled = supported || _draft.StartEra == StartEra.Primordial;
+                if (GUILayout.Button(label, GUILayout.Height(24)) && supported)
                     _draft.BorderYear = y;
+                GUI.enabled = true;
             }
             GUILayout.EndHorizontal();
+
+            if (_draft.StartEra != StartEra.Primordial)
+            {
+                GUILayout.Label("国界视图");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(
+                        _draft.BorderView == BorderView.DeFactoControl ? "▶实际控制" : "实际控制",
+                        GUILayout.Height(24)))
+                    _draft.BorderView = BorderView.DeFactoControl;
+                if (GUILayout.Button(
+                        _draft.BorderView == BorderView.SovereigntyClaims ? "▶主权主张" : "主权主张",
+                        GUILayout.Height(24)))
+                    _draft.BorderView = BorderView.SovereigntyClaims;
+                GUILayout.EndHorizontal();
+            }
 
             GUILayout.Space(4);
             GUILayout.Label("④ 法律传统偏好（仅地缘模式）");
