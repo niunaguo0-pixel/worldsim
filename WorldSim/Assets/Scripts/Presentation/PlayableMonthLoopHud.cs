@@ -3,6 +3,7 @@ namespace WorldSim.Presentation
     using System.Collections.Generic;
     using System.Text;
     using UnityEngine;
+    using WorldSim.Narrative;
     using WorldSim.Simulation.Core;
     using WorldSim.Simulation.Intervention;
 
@@ -29,9 +30,13 @@ namespace WorldSim.Presentation
         private CameraLodController _cameraLod;
         private PlayableInputController _input;
         private GenerationTimelinePresenter _generationTimeline = new GenerationTimelinePresenter();
+        private EmergentNarrativeEngine _narrative = new EmergentNarrativeEngine();
         private IReadOnlyList<SimEvent> _lastConsumedEventSlice;
         private Vector2 _eventScroll;
+        private Vector2 _chronicleScroll;
         private string _toast = "可玩月循环：键鼠操控相机与时间，H 看帮助。";
+
+        public EmergentNarrativeEngine Narrative => _narrative;
 
         public void Bind(
             ITimePresentationSource timeSource,
@@ -48,6 +53,7 @@ namespace WorldSim.Presentation
             _cameraLod = cameraLod;
             _input = input;
             _generationTimeline = new GenerationTimelinePresenter();
+            _narrative = new EmergentNarrativeEngine();
             _recentEvents.Clear();
             _lastConsumedEventSlice = null;
         }
@@ -154,10 +160,12 @@ namespace WorldSim.Presentation
             GUILayout.Label(_toast);
 
             DrawGenerationTimeline();
+            DrawChronicle();
+            DrawNotableActors();
 
             GUILayout.Space(6);
-            GUILayout.Label("近期事件");
-            _eventScroll = GUILayout.BeginScrollView(_eventScroll, GUILayout.Height(180));
+            GUILayout.Label("近期原始事件（调试）");
+            _eventScroll = GUILayout.BeginScrollView(_eventScroll, GUILayout.Height(100));
             var sb = new StringBuilder();
             for (int i = 0; i < _recentEvents.Count; i++)
             {
@@ -172,6 +180,56 @@ namespace WorldSim.Presentation
 
             GUILayout.EndVertical();
             GUILayout.EndArea();
+        }
+
+        private void DrawChronicle()
+        {
+            GUILayout.Space(6);
+            GUILayout.Label($"编年史（S6）· {_narrative.EntryCount} 条");
+            _chronicleScroll = GUILayout.BeginScrollView(_chronicleScroll, GUILayout.Height(160));
+            var recent = _narrative.GetRecentEntries(12);
+            if (recent.Count == 0)
+            {
+                GUILayout.Label("（尚无编年条目）");
+            }
+            else
+            {
+                for (int i = recent.Count - 1; i >= 0; i--)
+                {
+                    ChronicleEntry entry = recent[i];
+                    string mark = entry.IsComposite ? "◆" : "·";
+                    GUILayout.Label(
+                        $"{mark} M{entry.GameMonth} [{SignificanceLabel(entry.Significance)}] {entry.Title}");
+                    GUILayout.Label($"    {entry.Body}");
+                }
+            }
+            GUILayout.EndScrollView();
+        }
+
+        private void DrawNotableActors()
+        {
+            var actors = _narrative.GetTopNotableActors(4);
+            if (actors.Count == 0) return;
+            GUILayout.Space(4);
+            GUILayout.Label("关键个体 / 政体");
+            for (int i = 0; i < actors.Count; i++)
+            {
+                NotableActor a = actors[i];
+                GUILayout.Label(
+                    $"#{a.SourceId}  分 {a.Score:0.#}  事件 {a.EventCount}  末月 M{a.LastMonth}");
+            }
+        }
+
+        private static string SignificanceLabel(ChronicleSignificance significance)
+        {
+            switch (significance)
+            {
+                case ChronicleSignificance.Low: return "低";
+                case ChronicleSignificance.Normal: return "常";
+                case ChronicleSignificance.High: return "高";
+                case ChronicleSignificance.Critical: return "危";
+                default: return "?";
+            }
         }
 
         private string EmergencyLabel(EmergencyType type, string name)
@@ -224,6 +282,7 @@ namespace WorldSim.Presentation
             if (eventSlice == null || ReferenceEquals(eventSlice, _lastConsumedEventSlice)) return;
             _lastConsumedEventSlice = eventSlice;
             _generationTimeline.Consume(eventSlice);
+            _narrative.Consume(eventSlice);
 
             for (int i = 0; i < eventSlice.Count; i++)
             {

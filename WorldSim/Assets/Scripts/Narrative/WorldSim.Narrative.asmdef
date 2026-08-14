@@ -1,0 +1,16 @@
+{
+  "name": "WorldSim.Narrative",
+  "rootNamespace": "WorldSim.Narrative",
+  "references": [
+    "WorldSim.Simulation.Core"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

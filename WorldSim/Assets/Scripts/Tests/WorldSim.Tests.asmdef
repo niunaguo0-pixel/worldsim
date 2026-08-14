@@ -8,6 +8,7 @@
     "WorldSim.Simulation.Intervention",
     "WorldSim.Simulation.Ecology",
     "WorldSim.Simulation.Civilization",
+    "WorldSim.Narrative",
     "WorldSim.Presentation",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"

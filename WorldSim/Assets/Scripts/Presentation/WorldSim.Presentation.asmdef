@@ -6,6 +6,7 @@
     "WorldSim.Simulation.Time",
     "WorldSim.Simulation.Intervention",
     "WorldSim.Simulation.WorldMap",
+    "WorldSim.Narrative",
     "Unity.InputSystem"
   ],
   "includePlatforms": [],
