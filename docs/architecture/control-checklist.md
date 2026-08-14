@@ -32,8 +32,8 @@
 > CI：`.github/workflows/gate0.yml`
 > 1. `pin-versions`（ubuntu）：`assert-burst-pinned` + `check-sim-asmdef` + `assert-region-presets-synced`
 > 2. `gate0`（**self-hosted Windows X64**，`shell: powershell`）：`resolve-unity.ps1` → 全量 `WorldSim.Tests` EditMode → 上传 `gate0.xml`
-> 本地：`tests/ci/run-gate0-local.ps1`（含 presets 同步，`GATE0_MIN`=33）
-> Runner：当前手动 `run.cmd` 接单；装 Windows 服务另议。
+> 本地：`tests/ci/run-gate0-local.ps1`（含 presets 同步，`GATE0_MIN` 见脚本）
+> Runner：`worldsim-pc` @ `C:\actions-runner\worldsim`；登录自启任务 `WorldSim-GitHub-Actions-Runner`；本机 `git config --global core.autocrlf false`（geo SHA 依赖 LF）。Windows 服务仍可选升级。
 
 ---
 

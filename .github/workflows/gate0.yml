@@ -4,7 +4,8 @@
 #   - check-sim-asmdef.ps1（G0-1�?#
 # V0-9 / B3: gate0（需本机/自托�?Windows + Unity 6000.0.81f1�?#   - resolve-unity.ps1：Hub 路径 + HKLM Installer 注册表双重确�?#   - �?WorldSim.Tests 全部 EditMode（含 Gate0Determinism / Fallback / RegionPreset�?#   - 分叉即红；上�?gate0.xml / gate0.log
 #
-# Runner: 默认 self-hosted Windows（预�?Unity）。GitHub hosted 无编辑器，勿�?windows-latest�?
+# Runner: 默认 self-hosted Windows（预装 Unity）。GitHub hosted 无编辑器，勿改 windows-latest。
+# 本机 runner：C:\actions-runner\worldsim + 登录任务 WorldSim-GitHub-Actions-Runner；core.autocrlf=false。
 name: Gate-0 Determinism Gate
 
 on:
@@ -66,6 +67,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Force LF checkout for geo checksums
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+          git config core.autocrlf false
+          git config core.eol lf
+          if (Test-Path "WorldSim/Assets/StreamingAssets/Geo") {
+            git checkout -- "WorldSim/Assets/StreamingAssets/Geo"
+          }
 
       - name: Resolve Unity (Hub + registry dual confirm)
         id: unity
