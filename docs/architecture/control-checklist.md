@@ -1,12 +1,12 @@
 ---
 项目名: WorldSim
 文档名: Phase 3 出口控制清单（Control Checklist）
-版本: v1.1.0
+版本: v1.2.0
 日期: 2026-08-14
 作者: 程基岩 / 游承峰（阶段门）
 阶段: Phase 3 出口 PASS → Phase 4 预制作 OPEN
 关联: worldsim-architecture.md / adr/ADR-001~004 / architecture-review.md / production/phase4-gate.md
-变更摘要: v1.1.0（2026-08-14）——Phase 3 出口正式 **PASS**；Phase 4 预制作 **OPEN**；新增 §F 状态；Sprint 01（Gate-0）结项，Sprint 02=VS-8 可访问性 Standard。v1.0.4——契约/epics/HTML 口径与 gate0 powershell；runner 备注后改登录自启。
+变更摘要: v1.2.0（2026-08-14）——Sprint 02 VS-8 **CLOSED**（PR #7）；Sprint 03 **OPEN**（S2/S3 月账 + P3）。v1.1.0——Phase 3 PASS / Phase 4 OPEN / §F；Sprint 01 结项。
 ---
 
 # Phase 3 出口控制清单（Control Checklist）
@@ -100,7 +100,9 @@
 | Phase 3 出口 | **PASS** |
 | Phase 4 预制作 | **OPEN** |
 | 入口条件复核 | 2026-08-14（§D.1–D.9 全 ✅） |
-| 当前 Sprint | **Sprint 02** — VS-8 可访问性 Standard（实现中 / 见 `production/sprint-02-plan.md`） |
-| Sprint 01 | **CLOSED** — Gate-0 已绿（见 `production/sprint-01-plan.md` / `production/phase4-gate.md`） |
+| 当前 Sprint | **Sprint 03** — S2/S3 月账满流水线 + P3（见 `production/sprint-03-plan.md`） |
+| Sprint 01 | **CLOSED** — Gate-0 已绿（见 `production/sprint-01-plan.md`） |
+| Sprint 02 | **CLOSED** — VS-8 Standard（PR #7 / `production/sprint-02-plan.md`） |
 | Runner | `worldsim-pc` online；登录任务 `WorldSim-GitHub-Actions-Runner`；`core.autocrlf=false` |
 | 权威阶段门记录 | `production/phase4-gate.md` |
+| 分支 Checks | tip 须 V0-8+V0-9 **success（2/2）**；合入后等绿；禁止默认 `--admin` |
