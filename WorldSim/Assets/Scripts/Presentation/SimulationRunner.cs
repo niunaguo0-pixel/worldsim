@@ -80,6 +80,7 @@ namespace WorldSim.Presentation
             if (mapConfig == null) throw new ArgumentNullException(nameof(mapConfig));
             if (_started) return;
 
+            AccessibilitySettings.Load();
             worldSeed = seed;
             _world = WorldState.CreateMinimalSlice(seed, speedMultiplier: 1);
             ModularToggleService.ApplyPreset(_world, ModulePreset.MvpMinimal);
@@ -183,7 +184,7 @@ namespace WorldSim.Presentation
                     _timeSnapshot.Season,
                     underDisaster,
                     _timeSnapshot.SpeedMultiplier,
-                    reduceMotion: false,
+                    reduceMotion: AccessibilitySettings.ReduceMotion,
                     unscaledDeltaTime);
             }
 

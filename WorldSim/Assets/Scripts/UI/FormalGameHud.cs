@@ -108,6 +108,7 @@ namespace WorldSim.UI
 
         private void DrawOverview(TimeViewSnapshot snap)
         {
+            GUILayout.Space(6);
             GUILayout.Label("时间控制");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(snap.IsPaused ? "继续" : "暂停", GUILayout.Height(28)))
@@ -117,6 +118,14 @@ namespace WorldSim.UI
             if (GUILayout.Button("5×", GUILayout.Height(28))) _timeControls.SetSpeedMultiplier(5);
             if (GUILayout.Button("20×", GUILayout.Height(28))) _timeControls.SetSpeedMultiplier(20);
             GUILayout.EndHorizontal();
+
+            if (GUILayout.Button("可访问性", GUILayout.Height(26)))
+            {
+                var access = GetComponent<AccessibilitySettingsScreen>();
+                if (access == null) access = gameObject.AddComponent<AccessibilitySettingsScreen>();
+                access.Toggle();
+                _toast = access.IsVisible ? "已打开可访问性设置" : "已关闭可访问性设置";
+            }
 
             GUILayout.Space(6);
             GUILayout.Label("干预（延迟 1 月）");
