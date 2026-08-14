@@ -1,11 +1,11 @@
 ---
 项目名: WorldSim
 文档名: Phase 4 预制作阶段门记录
-版本: v1.2.0
+版本: v1.3.0
 日期: 2026-08-14
 作者: 游承峰（主理人）/ 程基岩（工程）
 阶段: Phase 4 — 预制作 OPEN
-关联: docs/architecture/control-checklist.md / production/sprint-01-plan.md / production/sprint-02-plan.md / production/sprint-03-plan.md
+关联: docs/architecture/control-checklist.md / production/sprint-01-plan.md / production/sprint-02-plan.md / production/sprint-03-plan.md / production/sprint-04-plan.md
 状态: 生效
 ---
 
@@ -20,7 +20,7 @@
 | Sprint 01（Epic 0 / Gate-0） | **CLOSED** | 2026-08-14 |
 | Sprint 02（VS-8 可访问性 Standard） | **CLOSED** | 2026-08-14 |
 | Sprint 03（S2/S3 月账 + P3） | **CLOSED** | 2026-08-14 |
-| Sprint 04 | **待开** — 全分辨率地球 + 存档 LOD + S3-3/5（见 epics §11） | — |
+| Sprint 04（地球消费 + 存档 LOD + S3-3/5） | **OPEN** | 2026-08-14 |
 
 ## 2. PASS 证据
 
@@ -31,6 +31,7 @@
   - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31781780787 （PR #7 Sprint 02）
   - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31788570658 （PR #9 Sprint 03）
   - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31788896739 （PR #9 合并后 main）
+  - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31789661741 （PR #10 Sprint 03 文档结项后 main）
 - Workflow：`.github/workflows/gate0.yml`（V0-8 ubuntu + V0-9 self-hosted；`GATE0_MIN_TESTS=118`）。
 
 ### 2.2 控制清单入口条件
@@ -70,16 +71,25 @@ U1–U4 已于 2026-08-12 接受。
 
 证据：PR #9 → `main`@`2bcdef4`；run https://github.com/niunaguo0-pixel/worldsim/actions/runs/31788570658 。详情见 `production/sprint-03-plan.md`。
 
-## 6. Sprint 04 目标（一句话 · 待开计划）
+## 6. Sprint 04 OPEN（地球消费 + 存档 LOD + S3-3/5 / A4-1 ~ A4-6）
 
-**Epic 5 全分辨率地球网格 + Epic 7 存档 LOD 分块 + S3-3/5 国家聚合/经济深化**（epics §11 Sprint 4 原排期）。
+权威计划：`production/sprint-04-plan.md`。
 
-不做：粒子预算 UI、AX-2、删历史分支。
+| Story | 状态 |
+|-------|------|
+| A4-1 S5-1 全分辨率消费（不重做 geo-v1 导入） | 待做 |
+| A4-2 S5-2 选址 / 自然边界 / 沿海海军 | 待做 |
+| A4-3 SV1 LOD 存档接入（codec 已有） | 待做 |
+| A4-4 S3-3 五种资源 + 七科技线 + 个体生命周期 | 待做 |
+| A4-5 S3-5 政体 Σ 聚合 + 三轴（含 DominionMode） | 待做 |
+| A4-6 Gate-0 回归 | 待做 |
 
-权威计划：待新建 `production/sprint-04-plan.md`（文档门另开 PR）。
+代码分支（文档门合入后另开）：`cursor/sprint04-earth-lod`。
+
+不做：新 geo 源、S5-3/S5-4 重做、S3-4 核心层全开、SV2 打磨、粒子预算 UI、AX-2。
 
 ## 7. 备注
 
-- Epic 2/3 Must（S2-1/2、S3-1/2）+ P3 已在 Sprint 03 收口；S3-3/4/5 Should 留 Sprint 4–5。
+- Epic 2/3 Must（S2-1/2、S3-1/2）+ P3 已在 Sprint 03 收口；S3-3/5 在 Sprint 04；S3-4 留 Sprint 5。
 - Runner：`C:\actions-runner\worldsim`；`worldsim-pc` online。
 - **分支检查铁律**：推送/PR/合并须 V0-8+V0-9 均 success（2/2）；禁止默认 `--admin`。
