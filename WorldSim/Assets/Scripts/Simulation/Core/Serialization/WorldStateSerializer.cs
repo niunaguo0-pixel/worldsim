@@ -18,7 +18,7 @@ namespace WorldSim.Simulation.Core.Serialization
     /// </summary>
     public static class WorldStateSerializer
     {
-        public const int SchemaVersion = 7; // Epic 5 + Task 4: 加 BorderView 到地图配置
+        public const int SchemaVersion = 8; // S3-4: 合法性四来源 / 族群折叠 / 军事最小态
         public const int Magic = 0x57534D31; // 'WSM1'
 
         public static byte[] Save(WorldState world)
@@ -29,11 +29,11 @@ namespace WorldSim.Simulation.Core.Serialization
             return w.ToArray();
         }
 
-        /// <summary>迁移/回归工具：导出 3/4/5/6 格式，验证 Schema 7 的向后读取路径。</summary>
+        /// <summary>迁移/回归工具：导出 3–7 格式，验证 Schema 8 的向后读取路径。</summary>
         public static byte[] SaveLegacy(WorldState world, int targetSchemaVersion)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
-            if (targetSchemaVersion < 3 || targetSchemaVersion > 6)
+            if (targetSchemaVersion < 3 || targetSchemaVersion > 7)
                 throw new ArgumentOutOfRangeException(nameof(targetSchemaVersion));
             using var w = new DeterministicBinaryWriter();
             WriteAll(w, world, targetSchemaVersion);
@@ -49,7 +49,7 @@ namespace WorldSim.Simulation.Core.Serialization
             if (magic != Magic)
                 throw new InvalidDataException($"Bad WorldState magic: 0x{magic:X8}");
             int ver = r.ReadInt32();
-            if (ver != 3 && ver != 4 && ver != 5 && ver != 6 && ver != SchemaVersion)
+            if (ver != 3 && ver != 4 && ver != 5 && ver != 6 && ver != 7 && ver != SchemaVersion)
                 throw new InvalidDataException($"Unsupported schemaVersion {ver}, expected {SchemaVersion}");
 
             ulong seed = r.ReadUInt64();
@@ -84,7 +84,7 @@ namespace WorldSim.Simulation.Core.Serialization
             if (ver >= 4)
                 world.Ecology = ReadEcology(r);
             if (ver >= 5)
-                world.Civilization = ReadCivilization(r);
+                world.Civilization = ReadCivilization(r, ver);
             if (ver >= 6)
                 world.Map = ReadWorldMapState(r, ver);
 
@@ -218,7 +218,7 @@ namespace WorldSim.Simulation.Core.Serialization
             WritePolities(w, SortedCopy(world.Polities, p => p.stableId));
             WriteResources(w, SortedCopy(world.Resources, r => r.stableId));
             if (schemaVersion >= 4) WriteEcology(w, world.Ecology);
-            if (schemaVersion >= 5) WriteCivilization(w, world.Civilization);
+            if (schemaVersion >= 5) WriteCivilization(w, world.Civilization, schemaVersion);
             if (schemaVersion >= 6) WriteWorldMapState(w, world.Map, schemaVersion);
 
             var events = new List<SimEvent>(world.Events);
@@ -460,33 +460,129 @@ namespace WorldSim.Simulation.Core.Serialization
             foreach (var i in SortedCopy(eco.Indicators, x => x.stableId)) { w.WriteInt32(i.stableId); w.WriteDouble(DeterminismMath.Quantize(i.currentValue, 3)); w.WriteByte((byte)i.zone); w.WriteInt32(i.stressMonths); }
         }
 
-        private static void WriteCivilization(DeterministicBinaryWriter w, CivilizationState c)
+        private static void WriteCivilization(DeterministicBinaryWriter w, CivilizationState c, int schemaVersion)
         {
             c = c ?? new CivilizationState(); w.WriteInt32(c.LastSettledMonth); w.WriteDouble(c.EcoImpactCoefficient);
             var ss = SortedCopy(c.Settlements, x => x.stableId); w.WriteInt32(ss.Count);
             foreach (var s in ss) { w.WriteInt32(s.stableId); w.WriteInt32(s.worldTileId); w.WriteInt32(s.polityId); w.WriteDouble(s.population); w.WriteDouble(s.housingCapacity); w.WriteDouble(s.foodCapacity); w.WriteDouble(s.spaceCapacity); w.WriteDouble(s.prosperity); w.WriteByte((byte)s.tier); w.WriteBool(s.agricultureZone); w.WriteBool(s.housingZone); w.WriteBool(s.storageZone); }
             var ps = SortedCopy(c.Polities, x => x.stableId); w.WriteInt32(ps.Count);
-            foreach (var p in ps) { w.WriteInt32(p.stableId); w.WriteInt32(p.techTier); w.WriteInt32(p.sustainedSurplusMonths); w.WriteInt32(p.divisionDepth); w.WriteInt32(p.lawStage); w.WriteDouble(p.population); w.WriteDouble(p.output); w.WriteDouble(p.militaryPower); w.WriteDouble(p.stability); w.WriteDouble(p.legitimacy); w.WriteDouble(p.capacityUtilization); w.WriteBool(p.hasWriting); w.WriteByte((byte)p.governance); w.WriteByte((byte)p.lawFamily); w.WriteByte((byte)p.titleTier); w.WriteByte((byte)p.scaleTier); w.WriteByte((byte)p.dominionMode); w.WriteDouble(p.aggregationCost); }
+            foreach (var p in ps)
+            {
+                w.WriteInt32(p.stableId); w.WriteInt32(p.techTier); w.WriteInt32(p.sustainedSurplusMonths); w.WriteInt32(p.divisionDepth); w.WriteInt32(p.lawStage);
+                w.WriteDouble(p.population); w.WriteDouble(p.output); w.WriteDouble(p.militaryPower); w.WriteDouble(p.stability); w.WriteDouble(p.legitimacy); w.WriteDouble(p.capacityUtilization);
+                w.WriteBool(p.hasWriting); w.WriteByte((byte)p.governance); w.WriteByte((byte)p.lawFamily); w.WriteByte((byte)p.titleTier); w.WriteByte((byte)p.scaleTier); w.WriteByte((byte)p.dominionMode); w.WriteDouble(p.aggregationCost);
+                if (schemaVersion >= 8) WritePolityS34(w, p);
+            }
             var es = SortedCopy(c.Economies, x => x.stableId); w.WriteInt32(es.Count);
             foreach (var e in es) { w.WriteInt32(e.stableId); w.WriteInt32(e.settlementId); w.WriteDouble(e.food); w.WriteDouble(e.wood); w.WriteDouble(e.stone); w.WriteDouble(e.goods); w.WriteDouble(e.energy); w.WriteDouble(e.foodSurplus); w.WriteDouble(e.divisionLevel); w.WriteByte(e.exchangeMode); }
             var ts = SortedCopy(c.Tech, x => x.stableId); w.WriteInt32(ts.Count); foreach (var t in ts) { w.WriteInt32(t.stableId); w.WriteInt32(t.polityId); w.WriteDouble(t.agriculture); w.WriteDouble(t.hunt); w.WriteDouble(t.defense); w.WriteDouble(t.trade); w.WriteDouble(t.faith); w.WriteDouble(t.military); w.WriteDouble(t.culture); }
             var ins = SortedCopy(c.Individuals, x => x.stableId); w.WriteInt32(ins.Count); foreach (var i in ins) { w.WriteInt32(i.stableId); w.WriteInt32(i.settlementId); w.WriteInt32(i.ageMonths); w.WriteDouble(i.health); w.WriteByte(i.occupation); w.WriteBool(i.alive); }
         }
-        private static CivilizationState ReadCivilization(DeterministicBinaryReader r)
+        private static void WritePolityS34(DeterministicBinaryWriter w, CivilizationPolityState p)
+        {
+            var src = p.LegitimacySources ?? new LegitimacySource();
+            w.WriteDouble(src.Performance); w.WriteDouble(src.Consensus); w.WriteDouble(src.Lineage); w.WriteDouble(src.Institution);
+            w.WriteDouble(p.Impartiality); w.WriteBool(p.LawFamilyLocked);
+            var eth = p.Ethnicity ?? EthnicComposition.CreateSingletonDominant("Band", "Unclassified");
+            eth.EnforceMvpFold();
+            w.WriteInt32(eth.Groups.Count);
+            for (int i = 0; i < eth.Groups.Count; i++)
+            {
+                var g = eth.Groups[i];
+                w.WriteInt32(g.StableId); w.WriteString(g.Name ?? ""); w.WriteString(g.LanguageFamily ?? ""); w.WriteDouble(g.PopulationShare);
+            }
+            w.WriteDouble(eth.Fractionalization); w.WriteDouble(eth.Polarization); w.WriteDouble(eth.EthnicInequality);
+            var mil = p.Military ?? new MilitaryState();
+            w.WriteDouble(mil.Weariness); w.WriteByte((byte)mil.Status); w.WriteInt32(mil.OpponentPolityId);
+        }
+        private static CivilizationState ReadCivilization(DeterministicBinaryReader r, int schemaVersion)
         {
             var c = new CivilizationState { LastSettledMonth = r.ReadInt32(), EcoImpactCoefficient = r.ReadDouble() }; int n = r.ReadInt32();
             for (int i = 0; i < n; i++) c.Settlements.Add(new CivilizationSettlementState { stableId=r.ReadInt32(), worldTileId=r.ReadInt32(), polityId=r.ReadInt32(), population=r.ReadDouble(), housingCapacity=r.ReadDouble(), foodCapacity=r.ReadDouble(), spaceCapacity=r.ReadDouble(), prosperity=r.ReadDouble(), tier=(SettlementTier)r.ReadByte(), agricultureZone=r.ReadBool(), housingZone=r.ReadBool(), storageZone=r.ReadBool() });
-            n=r.ReadInt32(); for(int i=0;i<n;i++) c.Polities.Add(new CivilizationPolityState { stableId=r.ReadInt32(), techTier=r.ReadInt32(), sustainedSurplusMonths=r.ReadInt32(), divisionDepth=r.ReadInt32(), lawStage=r.ReadInt32(), population=r.ReadDouble(), output=r.ReadDouble(), militaryPower=r.ReadDouble(), stability=r.ReadDouble(), legitimacy=r.ReadDouble(), capacityUtilization=r.ReadDouble(), hasWriting=r.ReadBool(), governance=(GovernanceType)r.ReadByte(), lawFamily=(LawFamily)r.ReadByte(), titleTier=(TitleTier)r.ReadByte(), scaleTier=(ScaleTier)r.ReadByte(), dominionMode=(DominionMode)r.ReadByte(), aggregationCost=r.ReadDouble() });
+            n=r.ReadInt32();
+            for (int i = 0; i < n; i++)
+            {
+                var p = new CivilizationPolityState
+                {
+                    stableId=r.ReadInt32(), techTier=r.ReadInt32(), sustainedSurplusMonths=r.ReadInt32(), divisionDepth=r.ReadInt32(), lawStage=r.ReadInt32(),
+                    population=r.ReadDouble(), output=r.ReadDouble(), militaryPower=r.ReadDouble(), stability=r.ReadDouble(), legitimacy=r.ReadDouble(), capacityUtilization=r.ReadDouble(),
+                    hasWriting=r.ReadBool(), governance=(GovernanceType)r.ReadByte(), lawFamily=(LawFamily)r.ReadByte(), titleTier=(TitleTier)r.ReadByte(),
+                    scaleTier=(ScaleTier)r.ReadByte(), dominionMode=(DominionMode)r.ReadByte(), aggregationCost=r.ReadDouble()
+                };
+                if (schemaVersion >= 8) ReadPolityS34(r, p);
+                else EnsurePolityS34Defaults(p);
+                c.Polities.Add(p);
+            }
             n=r.ReadInt32(); for(int i=0;i<n;i++) c.Economies.Add(new CivilizationEconomyState { stableId=r.ReadInt32(), settlementId=r.ReadInt32(), food=r.ReadDouble(), wood=r.ReadDouble(), stone=r.ReadDouble(), goods=r.ReadDouble(), energy=r.ReadDouble(), foodSurplus=r.ReadDouble(), divisionLevel=r.ReadDouble(), exchangeMode=r.ReadByte() });
             n=r.ReadInt32(); for(int i=0;i<n;i++) c.Tech.Add(new TechProgressState { stableId=r.ReadInt32(), polityId=r.ReadInt32(), agriculture=r.ReadDouble(), hunt=r.ReadDouble(), defense=r.ReadDouble(), trade=r.ReadDouble(), faith=r.ReadDouble(), military=r.ReadDouble(), culture=r.ReadDouble() });
             n=r.ReadInt32(); for(int i=0;i<n;i++) c.Individuals.Add(new IndividualState { stableId=r.ReadInt32(), settlementId=r.ReadInt32(), ageMonths=r.ReadInt32(), health=r.ReadDouble(), occupation=r.ReadByte(), alive=r.ReadBool() });
             return c;
         }
+        private static void ReadPolityS34(DeterministicBinaryReader r, CivilizationPolityState p)
+        {
+            p.LegitimacySources = new LegitimacySource
+            {
+                Performance = r.ReadDouble(), Consensus = r.ReadDouble(),
+                Lineage = r.ReadDouble(), Institution = r.ReadDouble()
+            };
+            p.Impartiality = r.ReadDouble();
+            p.LawFamilyLocked = r.ReadBool();
+            int gCount = r.ReadInt32();
+            var eth = new EthnicComposition();
+            for (int i = 0; i < gCount; i++)
+            {
+                eth.Groups.Add(new EthnicGroup
+                {
+                    StableId = r.ReadInt32(), Name = r.ReadString(), LanguageFamily = r.ReadString(),
+                    PopulationShare = r.ReadDouble()
+                });
+            }
+            eth.Fractionalization = r.ReadDouble();
+            eth.Polarization = r.ReadDouble();
+            eth.EthnicInequality = r.ReadDouble();
+            eth.EnforceMvpFold();
+            p.Ethnicity = eth;
+            p.Military = new MilitaryState
+            {
+                Weariness = r.ReadDouble(),
+                Status = (WarStatus)r.ReadByte(),
+                OpponentPolityId = r.ReadInt32()
+            };
+        }
+        private static void EnsurePolityS34Defaults(CivilizationPolityState p)
+        {
+            if (p.LegitimacySources == null) p.LegitimacySources = new LegitimacySource();
+            if (p.Ethnicity == null) p.Ethnicity = EthnicComposition.CreateSingletonDominant("Band", "Unclassified");
+            else p.Ethnicity.EnforceMvpFold();
+            if (p.Military == null) p.Military = new MilitaryState();
+        }
         private static void WriteCivilizationHash(DeterministicBinaryWriter w, CivilizationState c)
         {
             c=c??new CivilizationState(); w.WriteInt32(c.LastSettledMonth); w.WriteDouble(DeterminismMath.Quantize(c.EcoImpactCoefficient,3));
             foreach(var s in SortedCopy(c.Settlements,x=>x.stableId)){w.WriteInt32(s.stableId);w.WriteDouble(DeterminismMath.Quantize(s.population,0));w.WriteByte((byte)s.tier);w.WriteDouble(DeterminismMath.Quantize(s.prosperity,3));}
-            foreach(var p in SortedCopy(c.Polities,x=>x.stableId)){w.WriteInt32(p.stableId);w.WriteDouble(DeterminismMath.Quantize(p.population,0));w.WriteDouble(DeterminismMath.Quantize(p.output,3));w.WriteDouble(DeterminismMath.Quantize(p.stability,3));w.WriteInt32(p.techTier);w.WriteInt32(p.lawStage);w.WriteByte((byte)p.governance);}
+            foreach(var p in SortedCopy(c.Polities,x=>x.stableId))
+            {
+                w.WriteInt32(p.stableId);w.WriteDouble(DeterminismMath.Quantize(p.population,0));w.WriteDouble(DeterminismMath.Quantize(p.output,3));w.WriteDouble(DeterminismMath.Quantize(p.stability,3));w.WriteInt32(p.techTier);w.WriteInt32(p.lawStage);w.WriteByte((byte)p.governance);
+                w.WriteByte((byte)p.lawFamily); w.WriteBool(p.LawFamilyLocked);
+                w.WriteDouble(DeterminismMath.Quantize(p.legitimacy,3)); w.WriteDouble(DeterminismMath.Quantize(p.militaryPower,3));
+                var src = p.LegitimacySources ?? new LegitimacySource();
+                w.WriteDouble(DeterminismMath.Quantize(src.Performance,3)); w.WriteDouble(DeterminismMath.Quantize(src.Consensus,3));
+                w.WriteDouble(DeterminismMath.Quantize(src.Lineage,3)); w.WriteDouble(DeterminismMath.Quantize(src.Institution,3));
+                var eth = p.Ethnicity ?? EthnicComposition.CreateSingletonDominant("Band","Unclassified");
+                eth.EnforceMvpFold();
+                w.WriteInt32(eth.Groups.Count);
+                for (int i = 0; i < eth.Groups.Count; i++)
+                {
+                    w.WriteInt32(eth.Groups[i].StableId); w.WriteString(eth.Groups[i].Name ?? "");
+                    w.WriteString(eth.Groups[i].LanguageFamily ?? "");
+                    w.WriteDouble(DeterminismMath.Quantize(eth.Groups[i].PopulationShare,3));
+                }
+                w.WriteDouble(DeterminismMath.Quantize(eth.Fractionalization,3));
+                w.WriteDouble(DeterminismMath.Quantize(eth.Polarization,3));
+                w.WriteDouble(DeterminismMath.Quantize(eth.EthnicInequality,3));
+                var mil = p.Military ?? new MilitaryState();
+                w.WriteDouble(DeterminismMath.Quantize(mil.Weariness,3)); w.WriteByte((byte)mil.Status); w.WriteInt32(mil.OpponentPolityId);
+            }
         }
 
         private static void WriteWorldMapState(DeterministicBinaryWriter w, WorldMapState map, int schemaVersion)

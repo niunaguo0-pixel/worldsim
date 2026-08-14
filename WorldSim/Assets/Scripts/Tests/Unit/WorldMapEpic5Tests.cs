@@ -135,6 +135,10 @@ namespace WorldSim.Tests.Unit
             Assert.IsNull(start.Config.LegalTraditionSeed);
             Assert.IsNull(start.GeoPolitical);
             Assert.AreEqual(1, start.World.Civilization.Settlements.Count);
+            Assert.AreEqual(LawFamily.CustomaryLaw, start.World.Civilization.Polities[0].lawFamily);
+            Assert.IsFalse(start.World.Civilization.Polities[0].LawFamilyLocked);
+            Assert.AreEqual(1, start.World.Civilization.Polities[0].Ethnicity.Groups.Count);
+            Assert.AreEqual("Band", start.World.Civilization.Polities[0].Ethnicity.Groups[0].Name);
         }
 
         [Test]
@@ -153,6 +157,12 @@ namespace WorldSim.Tests.Unit
             Assert.AreEqual(a.World.Civilization.Settlements[0].stableId,
                 b.World.Civilization.Settlements[0].stableId);
             Assert.AreEqual(LawFamily.SocialistLaw, a.World.Civilization.Polities[0].lawFamily);
+            Assert.IsTrue(a.World.Civilization.Polities[0].LawFamilyLocked);
+            var eth = a.World.Civilization.Polities[0].Ethnicity;
+            Assert.IsNotNull(eth);
+            Assert.AreEqual(1, eth.Groups.Count);
+            Assert.AreEqual(1.0, eth.Groups[0].PopulationShare, 1e-9);
+            Assert.AreEqual(0.0, eth.Fractionalization, 1e-9);
         }
 
         [Test]
@@ -201,7 +211,7 @@ namespace WorldSim.Tests.Unit
                 { TileId = 3000001, HasBiome = true, Biome = BiomeType.Wetland });
             byte[] bytes = WorldStateSerializer.Save(world);
             var loaded = WorldStateSerializer.Load(bytes);
-            Assert.AreEqual(7, WorldStateSerializer.SchemaVersion);
+            Assert.AreEqual(8, WorldStateSerializer.SchemaVersion);
             Assert.AreEqual("build", loaded.Map.GeoDataBuild);
             Assert.AreEqual(1, loaded.Map.StaticChunks.Count);
             Assert.AreEqual(BiomeType.Wetland, loaded.Map.DynamicOverrides[0].Biome);

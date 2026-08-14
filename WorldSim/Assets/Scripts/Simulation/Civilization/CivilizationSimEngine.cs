@@ -38,7 +38,7 @@ namespace WorldSim.Simulation.Civilization
             StepCulture(civ);                         // 9
             StepEthnicity(civ);                       // 10
             StepLaw(civ);                             // 11
-            StepPolitics(civ);                        // 12
+            StepPolitics(world, civ, month);          // 12
             StepMilitary(world, civ, month);          // 13
             StepEra(world, civ, month);               // 14
             AggregatePolities(civ);                   // 15
@@ -59,6 +59,15 @@ namespace WorldSim.Simulation.Civilization
             {
                 if (source.TryGetParameterValue("techUnlockBoost_" + tech.polityId, out double boost))
                     tech.agriculture = Q(tech.agriculture + boost);
+            }
+            // S3-4：玩家军事仅经 devBias_military_{settlementId} 偏移军力
+            foreach (var settlement in Sorted(civ.Settlements, x => x.stableId))
+            {
+                if (!source.TryGetParameterValue("devBias_military_" + settlement.stableId, out double bias))
+                    continue;
+                var polity = PolityFor(civ, settlement.polityId);
+                if (polity == null) continue;
+                polity.militaryPower = Q(Math.Max(0, polity.militaryPower + bias * 0.1));
             }
         }
 
@@ -165,24 +174,217 @@ namespace WorldSim.Simulation.Civilization
         private static void StepSociety(CivilizationState civ) { }
         private static void StepReligion(CivilizationState civ) { }
         private static void StepCulture(CivilizationState civ) { }
-        private static void StepEthnicity(CivilizationState civ) { } // MVP 单主导族群
-        private static void StepLaw(CivilizationState civ)
+
+        /// <summary>⑩ 族群：MVP 强制单主导折叠；ethnicInequality 恒 0 写入稳定度路径。</summary>
+        private static void StepEthnicity(CivilizationState civ)
         {
-            foreach (var p in civ.Polities) p.lawStage = Math.Min(5, p.lawStage + 1);
-        }
-        private static void StepPolitics(CivilizationState civ)
-        {
-            foreach (var p in civ.Polities)
+            foreach (var p in Sorted(civ.Polities, x => x.stableId))
             {
-                p.legitimacy = Q(Math.Min(1, p.legitimacy + 0.02 + p.lawStage * 0.002));
-                p.stability = Q(Math.Min(1, (p.stability + p.legitimacy) * 0.5));
-                p.governance = p.lawStage >= 3 ? GovernanceType.Kingdom : GovernanceType.Chiefdom;
+                if (p.Ethnicity == null)
+                    p.Ethnicity = EthnicComposition.CreateSingletonDominant("Band", "Unclassified");
+                p.Ethnicity.EnforceMvpFold();
+                p.Ethnicity.EthnicInequality = 0;
             }
         }
+
+        /// <summary>⑪ 法律：lawStage 推进 + 沙盒家族涌现（近代锁定）+ impartiality 供给。</summary>
+        private static void StepLaw(CivilizationState civ)
+        {
+            foreach (var p in Sorted(civ.Polities, x => x.stableId))
+            {
+                p.lawStage = Math.Min(5, p.lawStage + 1);
+                p.Impartiality = Q(p.lawStage / 5.0);
+                if (p.lawFamily == LawFamily.ReligiousLaw)
+                    p.lawFamily = LawFamily.CustomaryLaw; // 不进合法性路径
+                if (!p.LawFamilyLocked)
+                    p.lawFamily = EmergeSecularLawFamily(p);
+            }
+        }
+
+        /// <summary>沙盒涌现：近代前可演进；调用方在 StepPolitics/Era 后由 LockLawFamilies 锁定。</summary>
+        private static LawFamily EmergeSecularLawFamily(CivilizationPolityState p)
+        {
+            if (p.techTier >= 6) return LawFamily.SocialistLaw;
+            if (p.lawStage >= 4 && p.governance == GovernanceType.Kingdom) return LawFamily.CivilLaw;
+            if (p.lawStage >= 3 && p.hasWriting) return LawFamily.CommonLaw;
+            return LawFamily.CustomaryLaw;
+        }
+
+        /// <summary>⑫ 政治：四来源按 EraIndex 权重合成；制度项仅来自法律层。</summary>
+        private static void StepPolitics(WorldState world, CivilizationState civ, int month)
+        {
+            GetLegitimacyWeights(world.EraIndex, out double wp, out double wc, out double wl, out double wi);
+            foreach (var p in Sorted(civ.Polities, x => x.stableId))
+            {
+                if (p.LegitimacySources == null) p.LegitimacySources = new LegitimacySource();
+                double prosperity = AverageProsperity(civ, p.stableId);
+                double foodRatio = AverageFoodRatio(civ, p.stableId);
+                p.LegitimacySources.Performance = Q(Clamp01(0.5 * prosperity + 0.5 * foodRatio));
+                p.LegitimacySources.Consensus = Q(Clamp01(ConsensusFromGovernance(p.governance)));
+                p.LegitimacySources.Lineage = Q(Clamp01(LineageFromGovernance(p.governance)));
+                // institution ← lawStage + impartiality（唯一制度合法性来源）
+                p.LegitimacySources.Institution = Q(Clamp01(0.5 * (p.lawStage / 5.0) + 0.5 * p.Impartiality));
+
+                p.legitimacy = Q(Clamp01(
+                    p.LegitimacySources.Performance * wp
+                    + p.LegitimacySources.Consensus * wc
+                    + p.LegitimacySources.Lineage * wl
+                    + p.LegitimacySources.Institution * wi));
+
+                double ethPenalty = p.Ethnicity?.EthnicInequality ?? 0;
+                p.stability = Q(Clamp01((p.stability + p.legitimacy) * 0.5 - ethPenalty * 0.1
+                    - (p.Military?.Weariness ?? 0) * 0.05));
+
+                // MVP：不演进九治理形态，仅保持 lawStage 门槛的粗映射
+                if (p.governance != GovernanceType.CustomaryCouncil)
+                    p.governance = p.lawStage >= 3 ? GovernanceType.Kingdom : GovernanceType.Chiefdom;
+
+                if (p.legitimacy < 0.3 && p.stability < 0.4)
+                {
+                    world.Events.Add(new SimEvent(month, SimEventCategory.Civ, p.stableId,
+                        "civ.polity.turnover", p.legitimacy));
+                    p.stability = Q(Math.Min(1, p.stability + 0.15));
+                    p.legitimacy = Q(Math.Min(1, p.legitimacy + 0.1));
+                }
+            }
+
+            // 沙盒：EraIndex 进入 EarlyModern(≥1) 后锁定 LawFamily
+            if (world.EraIndex >= 1)
+            {
+                foreach (var p in Sorted(civ.Polities, x => x.stableId))
+                {
+                    if (p.LawFamilyLocked) continue;
+                    if (p.lawFamily == LawFamily.ReligiousLaw)
+                        p.lawFamily = LawFamily.CustomaryLaw;
+                    p.LawFamilyLocked = true;
+                }
+            }
+        }
+
+        private static void GetLegitimacyWeights(int eraIndex,
+            out double wp, out double wc, out double wl, out double wi)
+        {
+            int era = eraIndex < 0 ? 0 : (eraIndex > 4 ? 4 : eraIndex);
+            switch (era)
+            {
+                case 0: wp = 0.60; wc = 0.40; wl = 0.00; wi = 0.00; break; // 远古
+                case 1: wp = 0.40; wc = 0.20; wl = 0.40; wi = 0.00; break; // 古代
+                case 2: wp = 0.30; wc = 0.10; wl = 0.40; wi = 0.20; break; // 中古
+                case 3: wp = 0.30; wc = 0.20; wl = 0.20; wi = 0.30; break; // 近代
+                default: wp = 0.30; wc = 0.35; wl = 0.00; wi = 0.35; break; // 现代
+            }
+        }
+
+        private static double ConsensusFromGovernance(GovernanceType g)
+        {
+            switch (g)
+            {
+                case GovernanceType.CustomaryCouncil: return 0.85;
+                case GovernanceType.Chiefdom: return 0.55;
+                case GovernanceType.CityState: return 0.70;
+                default: return 0.40; // Kingdom
+            }
+        }
+
+        private static double LineageFromGovernance(GovernanceType g)
+        {
+            switch (g)
+            {
+                case GovernanceType.Kingdom: return 0.80;
+                case GovernanceType.Chiefdom: return 0.55;
+                case GovernanceType.CityState: return 0.35;
+                default: return 0.15; // CustomaryCouncil
+            }
+        }
+
+        private static double AverageProsperity(CivilizationState civ, int polityId)
+        {
+            double sum = 0; int n = 0;
+            foreach (var s in civ.Settlements)
+                if (s.polityId == polityId) { sum += s.prosperity; n++; }
+            return n == 0 ? 0.5 : sum / n;
+        }
+
+        private static double AverageFoodRatio(CivilizationState civ, int polityId)
+        {
+            double sum = 0; int n = 0;
+            foreach (var e in civ.Economies)
+            {
+                var s = SettlementFor(civ, e.settlementId);
+                if (s == null || s.polityId != polityId) continue;
+                sum += Clamp01(e.food / 40.0);
+                n++;
+            }
+            return n == 0 ? 0.5 : sum / n;
+        }
+
+        /// <summary>⑬ 军事：基线增长 + ≥2 Polity 简式 ratio 自动开战/结算；无开战指令 API。</summary>
         private static void StepMilitary(WorldState world, CivilizationState civ, int month)
         {
-            foreach (var p in civ.Polities) p.militaryPower = Q(p.militaryPower + 0.1);
+            foreach (var p in Sorted(civ.Polities, x => x.stableId))
+            {
+                if (p.Military == null) p.Military = new MilitaryState();
+                p.militaryPower = Q(Math.Max(0, p.militaryPower + 0.1));
+                if (p.Military.Status == WarStatus.Recovering)
+                {
+                    p.Military.Weariness = Q(Math.Max(0, p.Military.Weariness - 0.05));
+                    if (p.Military.Weariness <= 0.05)
+                    {
+                        p.Military.Status = WarStatus.Idle;
+                        p.Military.OpponentPolityId = 0;
+                        p.Military.Weariness = 0;
+                    }
+                }
+            }
+
+            var polities = Sorted(civ.Polities, x => x.stableId);
+            if (polities.Count < 2) return;
+
+            // 简式：按稳定 ID 序两两配对自动开战/结算
+            for (int i = 0; i + 1 < polities.Count; i += 2)
+            {
+                var a = polities[i];
+                var b = polities[i + 1];
+                if (a.Military == null) a.Military = new MilitaryState();
+                if (b.Military == null) b.Military = new MilitaryState();
+
+                if (a.Military.Status == WarStatus.Idle && b.Military.Status == WarStatus.Idle)
+                {
+                    a.Military.Status = WarStatus.AtWar;
+                    b.Military.Status = WarStatus.AtWar;
+                    a.Military.OpponentPolityId = b.stableId;
+                    b.Military.OpponentPolityId = a.stableId;
+                    world.Events.Add(new SimEvent(month, SimEventCategory.War, a.stableId,
+                        "civ.war.declared", b.stableId));
+                }
+
+                if (a.Military.Status != WarStatus.AtWar || b.Military.Status != WarStatus.AtWar)
+                    continue;
+
+                double powerA = Math.Max(1e-6, a.militaryPower);
+                double powerB = Math.Max(1e-6, b.militaryPower);
+                double ratio = powerA / powerB;
+                const double winThreshold = 1.5;
+                double casualty = Clamp01(Math.Abs(powerA - powerB) / Math.Max(powerA, powerB));
+                a.militaryPower = Q(Math.Max(0, a.militaryPower * (1 - casualty * 0.2)));
+                b.militaryPower = Q(Math.Max(0, b.militaryPower * (1 - casualty * 0.2)));
+                a.Military.Weariness = Q(Clamp01(a.Military.Weariness + 0.08));
+                b.Military.Weariness = Q(Clamp01(b.Military.Weariness + 0.08));
+
+                if (ratio > winThreshold || ratio < 1.0 / winThreshold)
+                {
+                    int winnerId = ratio > winThreshold ? a.stableId : b.stableId;
+                    world.Events.Add(new SimEvent(month, SimEventCategory.War, winnerId,
+                        "civ.war.resolved", ratio));
+                    a.Military.Status = WarStatus.Recovering;
+                    b.Military.Status = WarStatus.Recovering;
+                    a.stability = Q(Clamp01(a.stability - a.Military.Weariness * 0.1));
+                    b.stability = Q(Clamp01(b.stability - b.Military.Weariness * 0.1));
+                }
+            }
         }
+
+        private static double Clamp01(double x) => x < 0 ? 0 : (x > 1 ? 1 : x);
         private static void StepEra(WorldState world, CivilizationState civ, int month)
         {
             foreach (var p in civ.Polities)
@@ -245,7 +447,13 @@ namespace WorldSim.Simulation.Civilization
             var c = new CivilizationState();
             int tileId = ResolveDefaultTile(geography);
             c.Settlements.Add(new CivilizationSettlementState { stableId = 1, worldTileId = tileId, polityId = 100, population = 100, housingCapacity = 300, foodCapacity = 250, spaceCapacity = 500, prosperity = .5 });
-            c.Polities.Add(new CivilizationPolityState { stableId = 100, techTier = 1, stability = .5, legitimacy = .4, militaryPower = 1 });
+            c.Polities.Add(new CivilizationPolityState
+            {
+                stableId = 100, techTier = 1, stability = .5, legitimacy = .4, militaryPower = 1,
+                Ethnicity = EthnicComposition.CreateSingletonDominant("Band", "Unclassified"),
+                LegitimacySources = new LegitimacySource(),
+                Military = new MilitaryState()
+            });
             c.Economies.Add(new CivilizationEconomyState { stableId = 1, settlementId = 1, food = 30, wood = 10 });
             c.Tech.Add(new TechProgressState { stableId = 1, polityId = 100 });
             c.Individuals.Add(new IndividualState { stableId = 1, settlementId = 1, alive = true, health = 1 });

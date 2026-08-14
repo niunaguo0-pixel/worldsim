@@ -83,7 +83,11 @@ namespace WorldSim.Simulation.WorldMap
             world.Civilization.Polities.Add(new CivilizationPolityState
             {
                 stableId = 100, techTier = 0, stability = 0.5, legitimacy = 0.4,
-                governance = GovernanceType.Chiefdom, lawFamily = LawFamily.CustomaryLaw
+                governance = GovernanceType.Chiefdom, lawFamily = LawFamily.CustomaryLaw,
+                LawFamilyLocked = false,
+                Ethnicity = EthnicComposition.CreateSingletonDominant("Band", "Unclassified"),
+                LegitimacySources = new LegitimacySource(),
+                Military = new MilitaryState()
             });
             AddSupportState(world.Civilization, 1, 100);
         }
@@ -95,13 +99,20 @@ namespace WorldSim.Simulation.WorldMap
             int polityId = 1000;
             int settlementId = 10000;
             LawFamily law = config.LegalTraditionSeed?.ToLawFamily() ?? LawFamily.CustomaryLaw;
+            if (law == LawFamily.ReligiousLaw) law = LawFamily.CustomaryLaw; // 种子路径不产出宗教法
+            var ethnicity = ResolveDominantEthnicity(config.EthnicDistribution);
             foreach (var country in countries)
             {
                 var polity = new CivilizationPolityState
                 {
                     stableId = polityId, techTier = config.StartEra == StartEra.Modern ? 7 : 5,
                     lawStage = 4, stability = 0.6, legitimacy = 0.6, governance = GovernanceType.Kingdom,
-                    lawFamily = law, titleTier = TitleTier.King, scaleTier = ScaleTier.Regional
+                    lawFamily = law, LawFamilyLocked = true,
+                    titleTier = TitleTier.King, scaleTier = ScaleTier.Regional,
+                    Ethnicity = EthnicComposition.CreateSingletonDominant(
+                        ethnicity.Name, ethnicity.LanguageFamily),
+                    LegitimacySources = new LegitimacySource(),
+                    Military = new MilitaryState { Status = WarStatus.Idle }
                 };
                 world.Civilization.Polities.Add(polity);
                 var cities = new List<CityInit>(country.Cities);
@@ -123,6 +134,23 @@ namespace WorldSim.Simulation.WorldMap
                 }
                 polityId++;
             }
+        }
+
+        /// <summary>地缘种子取最大份额作唯一主导；无种子则默认单游群。</summary>
+        private static EthnicSeedEntry ResolveDominantEthnicity(RealEthnicDistribution distribution)
+        {
+            if (distribution == null || distribution.Groups == null || distribution.Groups.Count == 0)
+                return new EthnicSeedEntry("Unclassified", "Band", 1.0);
+            EthnicSeedEntry best = distribution.Groups[0];
+            for (int i = 1; i < distribution.Groups.Count; i++)
+            {
+                var g = distribution.Groups[i];
+                if (g.Share > best.Share
+                    || (g.Share == best.Share
+                        && string.CompareOrdinal(g.Name ?? "", best.Name ?? "") < 0))
+                    best = g;
+            }
+            return best;
         }
 
         private static void AddSupportState(CivilizationState state, int settlementId, int polityId)
