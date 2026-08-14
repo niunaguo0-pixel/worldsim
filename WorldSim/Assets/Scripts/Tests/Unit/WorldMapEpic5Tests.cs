@@ -220,7 +220,7 @@ namespace WorldSim.Tests.Unit
                 { TileId = 3000001, HasBiome = true, Biome = BiomeType.Wetland });
             byte[] bytes = WorldStateSerializer.Save(world);
             var loaded = WorldStateSerializer.Load(bytes);
-            Assert.AreEqual(8, WorldStateSerializer.SchemaVersion);
+            Assert.AreEqual(9, WorldStateSerializer.SchemaVersion);
             Assert.AreEqual("build", loaded.Map.GeoDataBuild);
             Assert.AreEqual(1, loaded.Map.StaticChunks.Count);
             Assert.AreEqual(BiomeType.Wetland, loaded.Map.DynamicOverrides[0].Biome);

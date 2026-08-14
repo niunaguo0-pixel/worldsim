@@ -57,7 +57,7 @@
 | B3 | Quantize + 哈希 + Gate-0 入 CI | ✅ V0-5/V0-9（全量 EditMode + 自托管） | 是（已闭环） | 工程 |
 | B4 | 真实地球管线 + region-presets 消费 | ⏳ 部分：V0-6 MVP 消费已做；完整 Natural Earth 管线 → Epic 5 | 是（完整管线） | Phase 4 |
 | B5 | 空间映射「绝不指定单国家族」红线 | ✅ V0-6 `RegionPresetRedLines` | 建议 | Phase 4 |
-| B6 | 核心层全开月级 pass 预算 profiler | 建议 | 否 | Phase 4 |
+| B6 | 核心层全开月级 pass 预算 profiler | 建议 | 否 | Phase 4：**T3 已落** `PerformanceBudgetTests`（中位 &lt;50ms） |
 | B7 | AI Navigation 不入模拟核心 | 建议 | 建议 | Phase 4 |
 | B8 | `com.unity.burst` 固定版本入 manifest + CI assert | ✅ V0-8 | 是（已闭环） | 工程 |
 

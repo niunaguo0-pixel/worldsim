@@ -42,6 +42,22 @@ namespace WorldSim.Presentation
         public float TargetDistance => _targetDistance;
         public Vector3 TargetFocus => _targetFocus;
 
+        /// <summary>
+        /// P3：把表现层相机提示柔和混入目标焦点/距离（不读不写 WorldState）。
+        /// blend∈[0,1] 为单帧混合强度。
+        /// </summary>
+        public void ApplyPresentationCameraHint(Vector3 focusHint, float distanceHint, float blend)
+        {
+            blend = Mathf.Clamp01(blend);
+            if (blend <= 0f) return;
+            _targetFocus = Vector3.Lerp(_targetFocus, focusHint, blend);
+            _targetDistance = Mathf.Lerp(
+                _targetDistance,
+                Mathf.Clamp(distanceHint, MinDistance, MaxDistance),
+                blend);
+            ApplyLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
+        }
+
         public void Bind(
             Camera targetCamera,
             Transform sandboxRoot,

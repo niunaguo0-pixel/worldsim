@@ -12,13 +12,13 @@ namespace WorldSim.Simulation.Core.Serialization
     using WorldSim.Simulation.Core.WorldGeography;
 
     /// <summary>
-    /// WorldState 全量二进制快照 (ADR-004 选项 1 / V0-4).
+    /// WorldState 全量二进制快照 (ADR-004 选项 1 / V0-4 / Epic 7).
     /// 显式小端自定义 writer; 集合排序后写; 含 RngRegistry 256-bit + InterventionLog + 时钟 + ModuleToggles.
-    /// LOD 分块 / delta 历史层在 Epic 7 补全; 本批切片态全量入档即可支撑 Gate-0 路径④.
+    /// Schema 9：LOD 分区 DynamicOverrides + 生态指标 delta；历史层增量见 HistoryDeltaCodec.
     /// </summary>
     public static class WorldStateSerializer
     {
-        public const int SchemaVersion = 8; // S3-4: 合法性四来源 / 族群折叠 / 军事最小态
+        public const int SchemaVersion = 9; // Epic 7 SV1: LOD 覆盖分区 + Indicators delta
         public const int Magic = 0x57534D31; // 'WSM1'
 
         public static byte[] Save(WorldState world)
@@ -29,11 +29,11 @@ namespace WorldSim.Simulation.Core.Serialization
             return w.ToArray();
         }
 
-        /// <summary>迁移/回归工具：导出 3–7 格式，验证 Schema 8 的向后读取路径。</summary>
+        /// <summary>迁移/回归工具：导出 3–8 格式，验证 Schema 9 的向后读取路径。</summary>
         public static byte[] SaveLegacy(WorldState world, int targetSchemaVersion)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
-            if (targetSchemaVersion < 3 || targetSchemaVersion > 7)
+            if (targetSchemaVersion < 3 || targetSchemaVersion > 8)
                 throw new ArgumentOutOfRangeException(nameof(targetSchemaVersion));
             using var w = new DeterministicBinaryWriter();
             WriteAll(w, world, targetSchemaVersion);
@@ -49,8 +49,8 @@ namespace WorldSim.Simulation.Core.Serialization
             if (magic != Magic)
                 throw new InvalidDataException($"Bad WorldState magic: 0x{magic:X8}");
             int ver = r.ReadInt32();
-            if (ver != 3 && ver != 4 && ver != 5 && ver != 6 && ver != 7 && ver != SchemaVersion)
-                throw new InvalidDataException($"Unsupported schemaVersion {ver}, expected {SchemaVersion}");
+            if (ver < 3 || ver > SchemaVersion)
+                throw new InvalidDataException($"Unsupported schemaVersion {ver}, expected 3..{SchemaVersion}");
 
             ulong seed = r.ReadUInt64();
             var world = new WorldState(seed);
@@ -82,7 +82,7 @@ namespace WorldSim.Simulation.Core.Serialization
             world.Polities = ReadPolities(r);
             world.Resources = ReadResources(r);
             if (ver >= 4)
-                world.Ecology = ReadEcology(r);
+                world.Ecology = ReadEcology(r, ver);
             if (ver >= 5)
                 world.Civilization = ReadCivilization(r, ver);
             if (ver >= 6)
@@ -217,7 +217,7 @@ namespace WorldSim.Simulation.Core.Serialization
             WriteSpecies(w, SortedCopy(world.Species, s => s.stableId));
             WritePolities(w, SortedCopy(world.Polities, p => p.stableId));
             WriteResources(w, SortedCopy(world.Resources, r => r.stableId));
-            if (schemaVersion >= 4) WriteEcology(w, world.Ecology);
+            if (schemaVersion >= 4) WriteEcology(w, world.Ecology, schemaVersion);
             if (schemaVersion >= 5) WriteCivilization(w, world.Civilization, schemaVersion);
             if (schemaVersion >= 6) WriteWorldMapState(w, world.Map, schemaVersion);
 
@@ -404,7 +404,7 @@ namespace WorldSim.Simulation.Core.Serialization
             return list;
         }
 
-        private static void WriteEcology(DeterministicBinaryWriter w, EcologyState eco)
+        private static void WriteEcology(DeterministicBinaryWriter w, EcologyState eco, int schemaVersion)
         {
             eco = eco ?? new EcologyState();
             w.WriteByte((byte)eco.CurrentSeason);
@@ -413,14 +413,14 @@ namespace WorldSim.Simulation.Core.Serialization
             WriteEcoSpecies(w, SortedCopy(eco.Species, x => x.stableId));
             WriteLinks(w, SortedCopy(eco.FoodChain, x => x.stableId));
             WriteEcoResources(w, SortedCopy(eco.Resources, x => x.stableId));
-            WriteIndicators(w, SortedCopy(eco.Indicators, x => x.stableId));
+            WriteIndicators(w, SortedCopy(eco.Indicators, x => x.stableId), schemaVersion);
         }
 
-        private static EcologyState ReadEcology(DeterministicBinaryReader r)
+        private static EcologyState ReadEcology(DeterministicBinaryReader r, int schemaVersion)
         {
             var e = new EcologyState { CurrentSeason = (Season)r.ReadByte(), LastSettledMonth = r.ReadInt32() };
             e.Regions = ReadRegions(r); e.Species = ReadEcoSpecies(r); e.FoodChain = ReadLinks(r);
-            e.Resources = ReadEcoResources(r); e.Indicators = ReadIndicators(r);
+            e.Resources = ReadEcoResources(r); e.Indicators = ReadIndicators(r, schemaVersion);
             return e;
         }
 
@@ -449,8 +449,57 @@ namespace WorldSim.Simulation.Core.Serialization
         private static List<FoodChainLink> ReadLinks(DeterministicBinaryReader r) { int n = r.ReadInt32(); var xs = new List<FoodChainLink>(n); for (int i = 0; i < n; i++) xs.Add(new FoodChainLink { stableId = r.ReadInt32(), predatorId = r.ReadInt32(), preyId = r.ReadInt32(), predationRate = r.ReadDouble(), dependencyRatio = r.ReadDouble() }); return xs; }
         private static void WriteEcoResources(DeterministicBinaryWriter w, List<RenewableResourceState> xs) { w.WriteInt32(xs.Count); foreach (var x in xs) { w.WriteInt32(x.stableId); w.WriteInt32(x.regionId); w.WriteByte((byte)x.kind); w.WriteDouble(x.currentAmount); w.WriteDouble(x.maxAmount); w.WriteDouble(x.regenRate); w.WriteDouble(x.harvestRate); WriteZone(w, x.homeostasis); w.WriteByte((byte)x.zone); w.WriteInt32(x.stressMonths); w.WriteByte((byte)x.phase); } }
         private static List<RenewableResourceState> ReadEcoResources(DeterministicBinaryReader r) { int n = r.ReadInt32(); var xs = new List<RenewableResourceState>(n); for (int i = 0; i < n; i++) xs.Add(new RenewableResourceState { stableId = r.ReadInt32(), regionId = r.ReadInt32(), kind = (ResourceKind)r.ReadByte(), currentAmount = r.ReadDouble(), maxAmount = r.ReadDouble(), regenRate = r.ReadDouble(), harvestRate = r.ReadDouble(), homeostasis = ReadZone(r), zone = (EcologyZone)r.ReadByte(), stressMonths = r.ReadInt32(), phase = (PhaseState)r.ReadByte() }); return xs; }
-        private static void WriteIndicators(DeterministicBinaryWriter w, List<EcologicalIndicatorState> xs) { w.WriteInt32(xs.Count); foreach (var x in xs) { w.WriteInt32(x.stableId); w.WriteInt32(x.regionId); w.WriteString(x.code); w.WriteDouble(x.currentValue); w.WriteDouble(x.previousValue); w.WriteByte((byte)x.zone); w.WriteInt32(x.stressMonths); w.WriteString(x.warningCode); } }
-        private static List<EcologicalIndicatorState> ReadIndicators(DeterministicBinaryReader r) { int n = r.ReadInt32(); var xs = new List<EcologicalIndicatorState>(n); for (int i = 0; i < n; i++) xs.Add(new EcologicalIndicatorState { stableId = r.ReadInt32(), regionId = r.ReadInt32(), code = r.ReadString(), currentValue = r.ReadDouble(), previousValue = r.ReadDouble(), zone = (EcologyZone)r.ReadByte(), stressMonths = r.ReadInt32(), warningCode = r.ReadString() }); return xs; }
+        private static void WriteIndicators(DeterministicBinaryWriter w, List<EcologicalIndicatorState> xs, int schemaVersion)
+        {
+            w.WriteInt32(xs.Count);
+            foreach (var x in xs)
+            {
+                w.WriteInt32(x.stableId);
+                w.WriteInt32(x.regionId);
+                w.WriteString(x.code);
+                if (schemaVersion >= 9)
+                {
+                    double delta = DeterminismMath.Quantize(x.currentValue - x.previousValue, 3);
+                    w.WriteDouble(delta);
+                    w.WriteDouble(x.previousValue);
+                }
+                else
+                {
+                    w.WriteDouble(x.currentValue);
+                    w.WriteDouble(x.previousValue);
+                }
+                w.WriteByte((byte)x.zone);
+                w.WriteInt32(x.stressMonths);
+                w.WriteString(x.warningCode);
+            }
+        }
+
+        private static List<EcologicalIndicatorState> ReadIndicators(DeterministicBinaryReader r, int schemaVersion)
+        {
+            int n = r.ReadInt32();
+            var xs = new List<EcologicalIndicatorState>(n);
+            for (int i = 0; i < n; i++)
+            {
+                int stableId = r.ReadInt32();
+                int regionId = r.ReadInt32();
+                string code = r.ReadString();
+                double a = r.ReadDouble();
+                double previous = r.ReadDouble();
+                double current = schemaVersion >= 9 ? previous + a : a;
+                xs.Add(new EcologicalIndicatorState
+                {
+                    stableId = stableId,
+                    regionId = regionId,
+                    code = code,
+                    currentValue = current,
+                    previousValue = previous,
+                    zone = (EcologyZone)r.ReadByte(),
+                    stressMonths = r.ReadInt32(),
+                    warningCode = r.ReadString()
+                });
+            }
+            return xs;
+        }
         private static void WriteEcologyHash(DeterministicBinaryWriter w, EcologyState eco)
         {
             eco = eco ?? new EcologyState();
@@ -611,17 +660,10 @@ namespace WorldSim.Simulation.Core.Serialization
                 w.WriteString(chunk.RelativePath ?? "");
                 w.WriteString(chunk.Checksum ?? "");
             }
-            var changes = new List<WorldTileOverride>(map.DynamicOverrides ?? new List<WorldTileOverride>());
-            changes.Sort((a, b) => a.TileId.CompareTo(b.TileId));
-            w.WriteInt32(changes.Count);
-            foreach (var item in changes)
-            {
-                w.WriteInt32(item.TileId);
-                w.WriteBool(item.HasElevation);
-                w.WriteDouble(item.ElevationMeters);
-                w.WriteBool(item.HasBiome);
-                w.WriteByte((byte)item.Biome);
-            }
+            if (schemaVersion >= 9)
+                LodOverrideCodec.WritePartitioned(w, map.DynamicOverrides);
+            else
+                LodOverrideCodec.WriteFlat(w, map.DynamicOverrides);
         }
 
         private static WorldMapState ReadWorldMapState(DeterministicBinaryReader r, int schemaVersion)
@@ -650,14 +692,9 @@ namespace WorldSim.Simulation.Core.Serialization
                     ChunkId = r.ReadString(), Lod = (MapLodLevel)r.ReadByte(),
                     RelativePath = r.ReadString(), Checksum = r.ReadString()
                 });
-            count = r.ReadInt32();
-            for (int i = 0; i < count; i++)
-                map.DynamicOverrides.Add(new WorldTileOverride
-                {
-                    TileId = r.ReadInt32(), HasElevation = r.ReadBool(),
-                    ElevationMeters = r.ReadDouble(), HasBiome = r.ReadBool(),
-                    Biome = (BiomeType)r.ReadByte()
-                });
+            map.DynamicOverrides = schemaVersion >= 9
+                ? LodOverrideCodec.ReadPartitioned(r)
+                : LodOverrideCodec.ReadFlat(r);
             return map;
         }
 

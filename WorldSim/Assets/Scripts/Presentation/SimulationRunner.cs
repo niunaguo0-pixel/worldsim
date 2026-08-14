@@ -25,12 +25,21 @@ namespace WorldSim.Presentation
         private readonly TimePresentationModel _timePresentation = new TimePresentationModel();
         private TimeViewSnapshot _timeSnapshot;
         private CameraLodController _cameraLod;
+        private WorldMapLodStreamer _mapLodStreamer;
+        private readonly PresentationWorldView _worldView = new PresentationWorldView();
+        private GameObject _settlementVisual;
+        private GameObject _resourceVisual;
+        private WorldViewSnapshot _viewSnapshot;
 
         public WorldState World => _world;
         public SimOrchestrator Orchestrator => _orchestrator;
         public InterventionSystem Interventions => _interventions;
         public TimeViewSnapshot TimeSnapshot => _timeSnapshot;
         public CameraLodController CameraLod => _cameraLod;
+        /// <summary>Epic 7 SV2：读档/开局远域 Low 装载器；可为 null。</summary>
+        public WorldMapLodStreamer MapLodStreamer => _mapLodStreamer;
+        /// <summary>Epic 6 P3：边界间插值后的只读 WorldView。</summary>
+        public WorldViewSnapshot WorldView => _viewSnapshot;
 
         private void Awake()
         {
@@ -47,7 +56,8 @@ namespace WorldSim.Presentation
                     StartRegionRadiusDeg = 8
                 };
                 string geoRoot = Path.Combine(Application.streamingAssetsPath, "Geo", "v1");
-                WorldMapFactory.Build(geoRoot, mapConfig, _world);
+                var build = WorldMapFactory.Build(geoRoot, mapConfig, _world);
+                _mapLodStreamer = build.LodStreamer;
                 mapSnapshot = WorldMapViewSnapshot.Capture(_world.Geography, _world.Map.GeoDataBuild);
             }
             catch (Exception ex)
@@ -72,6 +82,8 @@ namespace WorldSim.Presentation
             }
 
             SandboxBindings sandbox = EnsureVisibleSandbox(mapSnapshot);
+            _settlementVisual = sandbox.Settlement;
+            _resourceVisual = sandbox.ResourceVisual;
             DioramaLightingBootstrap.EnsureKeyLight();
             _cameraLod = gameObject.GetComponent<CameraLodController>();
             if (_cameraLod == null) _cameraLod = gameObject.AddComponent<CameraLodController>();
@@ -81,6 +93,9 @@ namespace WorldSim.Presentation
                 sandbox.Settlement.GetComponent<Renderer>(),
                 sandbox.SettlementLabel,
                 sandbox.AggregateStatistics);
+
+            _viewSnapshot = _worldView.Sync(_world, WorldMapPresenter.SphereRadius);
+            ApplyPresentationVisuals(_viewSnapshot);
 
             var input = gameObject.GetComponent<PlayableInputController>();
             if (input == null) input = gameObject.AddComponent<PlayableInputController>();
@@ -99,6 +114,40 @@ namespace WorldSim.Presentation
             if (_orchestrator == null) return;
             _orchestrator.Update(Time.deltaTime);
             RefreshTimeSnapshot();
+            if (_world != null)
+            {
+                _viewSnapshot = _worldView.Sync(_world, WorldMapPresenter.SphereRadius);
+                ApplyPresentationVisuals(_viewSnapshot);
+            }
+        }
+
+        /// <summary>P3：把插值结果推到表现物体/相机；绝不写回 WorldState。</summary>
+        private void ApplyPresentationVisuals(WorldViewSnapshot view)
+        {
+            if (_settlementVisual != null)
+            {
+                _settlementVisual.transform.position = new Vector3(view.EntityPosX, view.EntityPosY, view.EntityPosZ);
+                float s = Mathf.Clamp(0.35f + (float)(view.Population / 8000.0), 0.35f, 1.8f);
+                _settlementVisual.transform.localScale = new Vector3(s, s, s);
+            }
+
+            if (_resourceVisual != null)
+            {
+                float r = Mathf.Max(0.2f, view.ResourceVisualAmount * 0.35f);
+                _resourceVisual.transform.localScale = new Vector3(r, r * 0.5f, r);
+                _resourceVisual.transform.position = new Vector3(
+                    view.EntityPosX + 0.6f,
+                    view.EntityPosY * 0.5f,
+                    view.EntityPosZ);
+            }
+
+            if (_cameraLod != null && !_timeSnapshot.IsPaused)
+            {
+                _cameraLod.ApplyPresentationCameraHint(
+                    new Vector3(view.CameraFocusX, view.CameraFocusY, view.CameraFocusZ),
+                    view.CameraDistance,
+                    blend: 0.08f);
+            }
         }
 
         public void SetPaused(bool paused)
@@ -137,22 +186,22 @@ namespace WorldSim.Presentation
         }
 
         /// <summary>
-        /// 生产存读档路径 (Task 4 Important 2): 反序列化快照后 Geography 为 null (transient),
-        /// 必须显式重建才能让依赖系统 (如 CivilizationSimEngine 水邻增长) 正常工作。
-        /// 此方法把 Load + WorldMapFactory.RebuildGeography 接线成一步, 供端到端存读档调用。
-        /// 重建后重新挂载 SimOrchestrator 与 InterventionSystem, 保证运行时 settler 接回。
-        /// Task 5 修复: 新 InterventionSystem 实例必须重新 Bind 给 InterventionFxBridge,
-        /// 否则 PlayMode 存读档后 FX bridge 仍指向旧实例, 干预不再触发落点/渐变提示。
+        /// 生产存读档路径 (Task 4 Important 2 / Epic 7 SV2): 反序列化后 Geography 为 null (transient),
+        /// 必须显式重建。SV2：先 High+焦点 Mid，远域 Low 异步，不阻塞逻辑 tick。
+        /// Replay 测试仍应调用 WorldMapFactory.RebuildGeography（阻塞齐远域）。
         /// </summary>
         public void LoadFromSnapshot(byte[] snapshot)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
             _world = WorldStateSerializer.Load(snapshot);
             string geoRoot = Path.Combine(Application.streamingAssetsPath, "Geo", "v1");
-            // Important 2: RebuildGeography 从已持久化的 StaticChunks + Config 重读 Low 全量与
-            // 起始区域 High, 重建只读 Geography, 防止依赖系统 NRE 或静默回退 (水邻增长被跳过)。
             if (_world.Map != null && _world.Map.StaticChunks != null && _world.Map.StaticChunks.Count > 0)
-                WorldMapFactory.RebuildGeography(_world, geoRoot);
+            {
+                var rebuild = WorldMapFactory.RebuildGeographyDeferred(_world, geoRoot);
+                _mapLodStreamer = rebuild.LodStreamer;
+            }
+            else
+                _mapLodStreamer = null;
             _orchestrator = new SimOrchestrator(_world);
             if (attachInterventionSystem)
                 _interventions = InterventionSystem.AttachToSlice(_world);
@@ -170,6 +219,9 @@ namespace WorldSim.Presentation
             var hud = gameObject.GetComponent<PlayableMonthLoopHud>();
             if (hud != null)
                 hud.Bind(this, this, this, gameObject.GetComponent<InterventionFxBridge>(), _cameraLod, input);
+            _worldView.Reset();
+            _viewSnapshot = _worldView.Sync(_world, WorldMapPresenter.SphereRadius);
+            ApplyPresentationVisuals(_viewSnapshot);
             RefreshTimeSnapshot();
         }
 
@@ -210,6 +262,19 @@ namespace WorldSim.Presentation
             }
             settlement.transform.SetParent(root.transform, true);
 
+            GameObject resourceVisual = GameObject.Find("WorldSim_ResourceVisual");
+            if (resourceVisual == null)
+            {
+                resourceVisual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                resourceVisual.name = "WorldSim_ResourceVisual";
+                resourceVisual.transform.position = new Vector3(0.6f, WorldMapPresenter.SphereRadius * 0.5f, 0f);
+                resourceVisual.transform.localScale = new Vector3(0.35f, 0.2f, 0.35f);
+                var rr = resourceVisual.GetComponent<Renderer>();
+                if (rr != null)
+                    rr.sharedMaterial = NprMaterialFactory.CreateSettlementMaterial();
+            }
+            resourceVisual.transform.SetParent(root.transform, true);
+
             GameObject settlementLabel = GameObject.Find("Settlement_Alpha_Label");
             if (settlementLabel == null)
             {
@@ -240,7 +305,7 @@ namespace WorldSim.Presentation
             }
             aggregateStatistics.transform.SetParent(root.transform, true);
 
-            return new SandboxBindings(root, settlement, settlementLabel, aggregateStatistics);
+            return new SandboxBindings(root, settlement, resourceVisual, settlementLabel, aggregateStatistics);
         }
 
         private sealed class SandboxBindings
@@ -248,17 +313,20 @@ namespace WorldSim.Presentation
             public SandboxBindings(
                 GameObject root,
                 GameObject settlement,
+                GameObject resourceVisual,
                 GameObject settlementLabel,
                 GameObject aggregateStatistics)
             {
                 Root = root;
                 Settlement = settlement;
+                ResourceVisual = resourceVisual;
                 SettlementLabel = settlementLabel;
                 AggregateStatistics = aggregateStatistics;
             }
 
             public GameObject Root { get; }
             public GameObject Settlement { get; }
+            public GameObject ResourceVisual { get; }
             public GameObject SettlementLabel { get; }
             public GameObject AggregateStatistics { get; }
         }

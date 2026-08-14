@@ -39,10 +39,10 @@ using WorldSim.Simulation.Core.WorldGeography;
         }
 
         /// <summary>
-        /// 存档加载后重建 Geography：先同步 High+焦点 Mid，再等待远域 Low 完成，
-        /// 保证读档续跑与 Replay 腿看到完整远域（逻辑 tick 本身不做 IO）。
+        /// Epic 7 SV2：存档加载后重建 Geography（High + 焦点 Mid 同步；远域 Low 异步）。
+        /// 立即返回，不阻塞逻辑 tick；需要完整远域时调用 result.LodStreamer.EnsureFarFieldLoaded()。
         /// </summary>
-        public static WorldGeography RebuildGeography(WorldState world, string geoRoot)
+        public static WorldMapBuildResult RebuildGeographyDeferred(WorldState world, string geoRoot)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (world.Map == null || world.Map.StaticChunks == null || world.Map.StaticChunks.Count == 0)
@@ -60,9 +60,24 @@ using WorldSim.Simulation.Core.WorldGeography;
             var geography = new WorldGeography(critical, world.Map.DynamicOverrides);
             var streamer = new WorldMapLodStreamer();
             streamer.BeginDeferredFarField(manifest, geoRoot, geography);
-            streamer.EnsureFarFieldLoaded();
             world.Geography = geography;
-            return geography;
+            return new WorldMapBuildResult
+            {
+                Manifest = manifest,
+                Geography = geography,
+                LodStreamer = streamer
+            };
+        }
+
+        /// <summary>
+        /// 存档加载后重建 Geography：先同步 High+焦点 Mid，再等待远域 Low 完成，
+        /// 保证读档续跑与 Replay 腿看到完整远域（逻辑 tick 本身不做 IO）。
+        /// </summary>
+        public static WorldGeography RebuildGeography(WorldState world, string geoRoot)
+        {
+            var result = RebuildGeographyDeferred(world, geoRoot);
+            result.LodStreamer.EnsureFarFieldLoaded();
+            return result.Geography;
         }
 
         private static GeoBundleManifest ReadManifestAndVerify(string geoRoot, WorldInitConfig config)
