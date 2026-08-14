@@ -11,6 +11,16 @@ namespace WorldSim.Simulation.WorldMap
     {
         public static byte[] Save(WorldState world) => WorldStateSerializer.Save(world);
 
+        /// <summary>SV1：历史层 delta，供 autosave 尾部追加；不改主快照月哈希。</summary>
+        public static byte[] SaveHistoryDelta(WorldState world, int sinceMonthInclusive)
+        {
+            if (world == null) throw new ArgumentNullException(nameof(world));
+            return HistoryDeltaCodec.Encode(world.Events, sinceMonthInclusive);
+        }
+
+        public static int ApplyHistoryDelta(WorldState world, byte[] delta) =>
+            HistoryDeltaCodec.Apply(world, delta);
+
         /// <summary>读档：反序列化 + High/焦点 Mid 同步；远域 Low 异步，不阻塞返回。</summary>
         public static WorldMapBuildResult LoadDeferred(byte[] snapshot, string geoRoot)
         {
