@@ -1,12 +1,12 @@
 ---
 项目名: WorldSim
 文档名: Phase 3 出口控制清单（Control Checklist）
-版本: v1.4.0
+版本: v1.5.0
 日期: 2026-08-14
 作者: 程基岩 / 游承峰（阶段门）
 阶段: Phase 3 出口 PASS → Phase 4 预制作 OPEN
 关联: worldsim-architecture.md / adr/ADR-001~004 / architecture-review.md / production/phase4-gate.md
-变更摘要: v1.4.0（2026-08-14）——Sprint 04 **OPEN**（`production/sprint-04-plan.md`）。v1.3.0——Sprint 03 CLOSED。v1.2.0——Sprint 02 CLOSED / Sprint 03 OPEN。
+变更摘要: v1.5.0（2026-08-14）——Sprint 04 **CLOSED**（PR #12 / `production/sprint-04-plan.md`）。v1.4.0——Sprint 04 OPEN。v1.3.0——Sprint 03 CLOSED。
 ---
 
 # Phase 3 出口控制清单（Control Checklist）
@@ -100,10 +100,11 @@
 | Phase 3 出口 | **PASS** |
 | Phase 4 预制作 | **OPEN** |
 | 入口条件复核 | 2026-08-14（§D.1–D.9 全 ✅） |
-| 当前 Sprint | **Sprint 04 OPEN** — 地球消费 + 存档 LOD + S3-3/5（见 `production/sprint-04-plan.md`） |
+| 当前 Sprint | **Sprint 05 待开** — S3-4 + P2/P4 + T3/T4（S5-3/4 已落地则只补缺口） |
 | Sprint 01 | **CLOSED** — Gate-0 已绿（见 `production/sprint-01-plan.md`） |
 | Sprint 02 | **CLOSED** — VS-8 Standard（PR #7 / `production/sprint-02-plan.md`） |
 | Sprint 03 | **CLOSED** — S2/S3 月账 + P3（PR #9 / `production/sprint-03-plan.md`） |
+| Sprint 04 | **CLOSED** — 地球消费 + 存档 LOD + S3-3/5（PR #12 / `production/sprint-04-plan.md`） |
 | Runner | `worldsim-pc` online；登录任务 `WorldSim-GitHub-Actions-Runner`；`core.autocrlf=false` |
 | 权威阶段门记录 | `production/phase4-gate.md` |
 | 分支 Checks | tip 须 V0-8+V0-9 **success（2/2）**；合入后等绿；禁止默认 `--admin` |
