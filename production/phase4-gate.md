@@ -1,11 +1,11 @@
 ---
 项目名: WorldSim
 文档名: Phase 4 预制作阶段门记录
-版本: v1.4.0
+版本: v1.5.0
 日期: 2026-08-14
 作者: 游承峰（主理人）/ 程基岩（工程）
 阶段: Phase 4 — 预制作 OPEN
-关联: docs/architecture/control-checklist.md / production/sprint-01-plan.md / production/sprint-02-plan.md / production/sprint-03-plan.md / production/sprint-04-plan.md
+关联: docs/architecture/control-checklist.md / production/sprint-01-plan.md / production/sprint-02-plan.md / production/sprint-03-plan.md / production/sprint-04-plan.md / production/sprint-05-plan.md
 状态: 生效
 ---
 
@@ -21,7 +21,7 @@
 | Sprint 02（VS-8 可访问性 Standard） | **CLOSED** | 2026-08-14 |
 | Sprint 03（S2/S3 月账 + P3） | **CLOSED** | 2026-08-14 |
 | Sprint 04（地球消费 + 存档 LOD + S3-3/5） | **CLOSED** | 2026-08-14 |
-| Sprint 05（S3-4 + P2/P4 + T3/T4） | **待开** | — |
+| Sprint 05（S3-4 + P2/P4 + T3/T4） | **OPEN** | 2026-08-14 |
 
 ## 2. PASS 证据
 
@@ -35,6 +35,8 @@
   - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31789661741 （PR #10 Sprint 03 文档结项后 main）
   - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31795841296 （PR #12 Sprint 04）
   - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31796139708 （PR #12 合并后 main）
+  - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31796782985 （PR #13 Sprint 04 文档结项）
+  - https://github.com/niunaguo0-pixel/worldsim/actions/runs/31797483914 （PR #13 合并后 main）
 - Workflow：`.github/workflows/gate0.yml`（V0-8 ubuntu + V0-9 self-hosted；`GATE0_MIN_TESTS=130`）。
 
 ### 2.2 控制清单入口条件
@@ -87,12 +89,25 @@ U1–U4 已于 2026-08-12 接受。
 
 证据：PR #12 → `main`@`38850fb`；run https://github.com/niunaguo0-pixel/worldsim/actions/runs/31795841296 。详情见 `production/sprint-04-plan.md`。
 
-## 7. Sprint 05 待开
+## 7. Sprint 05 OPEN（S3-4 + P2/P4 + T3/T4 / A5-1 ~ A5-6）
 
-下一冲刺：Epic 3 **S3-4** + Epic 5 S5-3/4（代码已大部分落地，只补缺口）+ Epic 6 P2/P4 + Epic 8 T3/T4。出口：核心层全开；性能预算；双开局已有则不重做；相机/叙事联动。权威计划待开文档门后写入 `production/sprint-05-plan.md`。
+权威计划：`production/sprint-05-plan.md`。
+
+| Story | 状态 |
+|-------|------|
+| A5-1 S3-4 核心层全开（默认可玩 v2 + 多聚落） | 待做 |
+| A5-2 S5-3/SV2 缺口 + S5-4 核验（不重做双开局） | 待做 |
+| A5-3 P2 NPR 可玩接线（只读 WorldView） | 待做 |
+| A5-4 P4 相机 LOD（不回写逻辑态） | 待做 |
+| A5-5 T3/T4 月级 &lt;50ms + 同平台 Fix 切换 | 待做 |
+| A5-6 Gate-0 回归 | 待做 |
+
+代码分支（文档门合入后另开）：`cursor/sprint05-core-layer`。
+
+不做：新 geo、S5-3 Build 契约重写、S5-4 双开局重做、经济制度谱新枚举、Mac CI runner、粒子预算 UI、AX-2。
 
 ## 8. 备注
 
-- Epic 2/3 Must（S2-1/2、S3-1/2）+ P3 已在 Sprint 03 收口；S3-3/5 已在 Sprint 04 收口；S3-4 留 Sprint 5。
+- Epic 2/3 Must + P3 已在 Sprint 03 收口；S3-3/5 已在 Sprint 04 收口；S3-4 / P2/P4 / T3/T4 在 Sprint 05。
 - Runner：`C:\actions-runner\worldsim`；`worldsim-pc` online。
 - **分支检查铁律**：推送/PR/合并须 V0-8+V0-9 均 success（2/2）；禁止默认 `--admin`。

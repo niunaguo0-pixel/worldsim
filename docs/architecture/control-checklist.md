@@ -1,12 +1,12 @@
 ---
 项目名: WorldSim
 文档名: Phase 3 出口控制清单（Control Checklist）
-版本: v1.5.0
+版本: v1.6.0
 日期: 2026-08-14
 作者: 程基岩 / 游承峰（阶段门）
 阶段: Phase 3 出口 PASS → Phase 4 预制作 OPEN
 关联: worldsim-architecture.md / adr/ADR-001~004 / architecture-review.md / production/phase4-gate.md
-变更摘要: v1.5.0（2026-08-14）——Sprint 04 **CLOSED**（PR #12 / `production/sprint-04-plan.md`）。v1.4.0——Sprint 04 OPEN。v1.3.0——Sprint 03 CLOSED。
+变更摘要: v1.6.0（2026-08-14）——Sprint 05 **OPEN**（`production/sprint-05-plan.md`）。v1.5.0——Sprint 04 CLOSED。v1.4.0——Sprint 04 OPEN。
 ---
 
 # Phase 3 出口控制清单（Control Checklist）
@@ -100,7 +100,7 @@
 | Phase 3 出口 | **PASS** |
 | Phase 4 预制作 | **OPEN** |
 | 入口条件复核 | 2026-08-14（§D.1–D.9 全 ✅） |
-| 当前 Sprint | **Sprint 05 待开** — S3-4 + P2/P4 + T3/T4（S5-3/4 已落地则只补缺口） |
+| 当前 Sprint | **Sprint 05 OPEN** — S3-4 + P2/P4 + T3/T4（S5-3/4 只补缺口；见 `production/sprint-05-plan.md`） |
 | Sprint 01 | **CLOSED** — Gate-0 已绿（见 `production/sprint-01-plan.md`） |
 | Sprint 02 | **CLOSED** — VS-8 Standard（PR #7 / `production/sprint-02-plan.md`） |
 | Sprint 03 | **CLOSED** — S2/S3 月账 + P3（PR #9 / `production/sprint-03-plan.md`） |
