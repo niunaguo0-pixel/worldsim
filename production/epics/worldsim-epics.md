@@ -8,16 +8,16 @@
 输入文档:
   - docs/architecture/worldsim-architecture.md v1.0.0
   - docs/architecture/adr/ADR-001~004（已接受）
-  - docs/architecture/control-checklist.md v1.1.0（Phase 3 PASS / Phase 4 OPEN）
+  - docs/architecture/control-checklist.md v1.5.0（Phase 3 PASS / Phase 4 OPEN）
   - docs/architecture/architecture-review.md（CONCERNS 收敛为 B2–B4）
-  - production/phase4-gate.md v1.3.0
+  - production/phase4-gate.md v1.4.0
   - production/sprint-02-plan.md（已结项）
   - production/sprint-03-plan.md（已结项）
-  - production/sprint-04-plan.md（OPEN）
+  - production/sprint-04-plan.md（已结项）
   - design/gdd/time-progression.md (S4) / civilization-system.md (S3) / world-map-generator.md (S5)
   - design/gdd/data/region-presets.json（schemaVersion 1.0）
   - docs/unity-setup-complete.md（Unity 6000.0.81f1 / CLI）
-状态: Phase 4 进行中 — Epic 0 Done；Sprint 02–03 CLOSED；Sprint 04 OPEN
+状态: Phase 4 进行中 — Epic 0 Done；Sprint 02–04 CLOSED；Sprint 05 待开
 ---
 
 # WorldSim — Phase 4 预制作 Epic / Story 拆分
@@ -26,7 +26,7 @@
 > **不写设计 / 美术 / UX 规格**——所有 Story 均为工程实现项，验收标准对齐 GDD 需求 ID 与架构/ADR 契约。
 > 测试：**可执行测试**在 `WorldSim/Assets/Scripts/Tests/`；契约与 CI 在 `tests/`（`tests/contracts/determinism-contract.md`、`tests/ci/`、`.github/workflows/gate0.yml`）。`tests/unit`/`tests/gate0` 仅占位说明，无双源 `.cs`。
 >
-> **2026-08-14 对账**：Epic 0 = **Done**；Sprint 02 VS-8 = **CLOSED**（PR #7）；Sprint 03 S2/S3+P3 = **CLOSED**（PR #9）。Epic 2/3 Must 已收口；**Sprint 04 OPEN** — Epic 5 消费 geo-v1 + Epic 7 SV1 接入 + S3-3/5（`production/sprint-04-plan.md`）。
+> **2026-08-14 对账**：Epic 0 = **Done**；Sprint 02 VS-8 = **CLOSED**（PR #7）；Sprint 03 S2/S3+P3 = **CLOSED**（PR #9）；Sprint 04 = **CLOSED**（PR #12）。Epic 2/3 Must + S3-3/5 已收口；S5-1 消费 + S5-2 + SV1 接入已收（Schema 10）。下一冲刺 **Sprint 05 待开** — S3-4 + P2/P4 + T3/T4（S5-3/4 已落地则只补缺口）。
 
 ---
 
@@ -61,17 +61,18 @@
 | **Epic 0** | **确定性垂直切片（Gate-0 门）** | SimOrchestrator + S4 双频混合结算 + 四路 Replay + region-presets 消费 + CI 门禁 | 无（地基） | **Sprint 1（Must）** | **Done** — Sprint 01 结项 |
 | Epic 1 | S1 干预系统 | IInterventionTarget 注册 / 异步 pending / InterventionLog / 紧急干预 | Epic 0（确定性核心） | Sprint 2 | **代码已部分落地**；Sprint 02 主攻 VS-8，非重做干预 |
 | Epic 2 | S2 生态模拟引擎 | WorldTile 生态态 / 11 步月结 / 地貌季节 / 灾害预警 | Epic 0 | Sprint 3 | **Sprint 03 CLOSED** — Must S2-1/2 已收口（PR #9） |
-| Epic 3 | S3 文明发展 | 聚落成长+尺度层级 / 16 步月结 / 经济科技个体 / 国家聚合 | Epic 0, Epic 2 | Sprint 3–4 | **Sprint 03 CLOSED Must**；S3-3/5 → Sprint 04 OPEN；S3-4 → Sprint 5 |
+| Epic 3 | S3 文明发展 | 聚落成长+尺度层级 / 16 步月结 / 经济科技个体 / 国家聚合 | Epic 0, Epic 2 | Sprint 3–4 | **Sprint 03 CLOSED Must**；S3-3/5 已收（PR #12）；S3-4 → Sprint 5 |
 | Epic 4 | S4 时间表现层 | 速度控件 / 时间轴 HUD / 尺度跃迁联动（时间核心已在 Epic 0） | Epic 0 | Sprint 2 | **代码已部分落地**（Formal HUD / 变速） |
-| Epic 5 | S5 世界地图（完整管线） | Natural Earth 导入 / 生物群系 / LOD 分块 / 双开局模式（region 消费在 Epic 0） | Epic 0 | Sprint 4 | **导入/S5-3/S5-4 已落地**；Sprint 04 做 S5-1 消费 + S5-2 |
+| Epic 5 | S5 世界地图（完整管线） | Natural Earth 导入 / 生物群系 / LOD 分块 / 双开局模式（region 消费在 Epic 0） | Epic 0 | Sprint 4 | **导入/S5-3/S5-4 已落地**；S5-1 消费 + S5-2 已收（PR #12） |
 | Epic 6 | 表现层（Runtime/Presentation/Camera） | SimulationRunner 胶水 / NPR 渲染 / 表现插值 / 相机 LOD | Epic 0 | Sprint 2–5 | VS-8 已收；**P3 Civ/Eco 采样已收**（PR #9） |
-| Epic 7 | 存档（S10，完整） | LOD 分块序列化 / delta 增量 / 异步延迟装载（快照往返已在 Epic 0） | Epic 0 | Sprint 4 | **codec 已有**（Schema 9）；Sprint 04 做 SV1 接入存读档 |
+| Epic 7 | 存档（S10，完整） | LOD 分块序列化 / delta 增量 / 异步延迟装载（快照往返已在 Epic 0） | Epic 0 | Sprint 4 | **SV1 接入已收**（Schema 10 / PR #12）；SV2 打磨 → Sprint 5 |
 | Epic 8 | 测试基础设施（持续） | 单元/集成/性能回归；Gate-0 门禁维护；确定性契约演进 | 贯穿 | Sprint 1+ 持续 | 进行中 |
 
 > **说明**：Epic 0 内的 `序列化往返` 与 `真实地球 region 消费` 是 Gate-0 路径④与 B4 的最小兑现；Epic 7 / Epic 5 再补全「完整 LOD 分块 / 全分辨率数据管线」。
 > **Sprint 02**：`production/sprint-02-plan.md` — 已结项。  
 > **Sprint 03**：`production/sprint-03-plan.md` — 已结项。  
-> **Sprint 04**：`production/sprint-04-plan.md` — **OPEN**（S5-1 消费 / S5-2 / SV1 接入 / S3-3/5）。
+> **Sprint 04**：`production/sprint-04-plan.md` — 已结项（PR #12）。  
+> **Sprint 05**：待开（S3-4 + P2/P4 + T3/T4；S5-3/4 已落地则只补缺口）。
 ---
 
 ## 2. Epic 0 — 确定性垂直切片（Gate-0 门）【Sprint 1 · Must】
@@ -231,6 +232,7 @@
 ### Story S3-3 — 经济/科技/个体层
 - **优先级**：Should ｜ **映射**：S3 §2.2/2.3/2.6
 - **验收标准**：`Economy`（五种资源 + 分工 depth + 交换形态演进）；`TechNode` 七主干线累积解锁；`Individual` 连续生命周期（ageMonths、死亡/继承视作开关，Sprint 5 深化）。
+- **状态**：Sprint 04 已收（PR #12）。
 
 ### Story S3-4 — 政治/法律/族群/军事子系统（核心层）
 - **优先级**：Should ｜ **映射**：S3 §2.4/2.9/2.11/2.10 / R11/R12
@@ -240,6 +242,7 @@
 ### Story S3-5 — 国家/政体聚合（Σ 聚落）
 - **优先级**：Should ｜ **映射**：S3 §2.12 / 架构 §7.4（成本绑定聚落数而非人口数）
 - **验收标准**：`Polity.totalPopulation = Σ settlements.population`；聚合统计不逐人模拟；TitleTier × ScaleTier × DominionMode 三轴；红线：不指定民族/法律。
+- **状态**：Sprint 04 已收（PR #12）。
 
 ---
 
@@ -267,10 +270,12 @@
 - **优先级**：Must ｜ **映射**：B4 / S5 §2.1 / WM2
 - **验收标准**：Natural Earth 1:50m 海岸线/河湖 + 低精度高程（ETOPO1/NASADEM 简化）+ 简化 Köppen 气候 → `WorldTile[,]`（equirectangular 投影，latIdx/lonIdx）；缺失数据以邻近插值/纬度气候默认填充，标 `lod=Low`。
 - **测试证据**：单测投影映射正确性 + 抽样 biome 与真实吻合（≥80% 抽样，S5 V1）。
+- **状态**：导入已落地；Sprint 04 消费路径已收（PR #12）。
 
 ### Story S5-2 — 生物群系推导 + 选址可行性 + 自然边界
 - **优先级**：Should ｜ **映射**：S5 §2.5 / S3 §2.1
 - **验收标准**：`biome = f(elevation, latitude, climate)` 映射表；选址判定（邻近 water/坡度阈值/可居群系）；河流/山脉作为自然边界；沿海 `hasCoast` 解锁海军。
+- **状态**：Sprint 04 已收（PR #12）。
 
 ### Story S5-3 — LOD 分块（High/Mid/Low）+ 异步延迟装载
 - **优先级**：Should ｜ **映射**：WM2 / 架构 §6.4 / ADR-004（LOD 分块）
@@ -309,6 +314,7 @@
 ### Story SV1 — LOD 分块序列化 + delta 增量
 - **优先级**：Should ｜ **映射**：ADR-004 / 架构 §6.3–6.4 / WM2
 - **验收标准**：High 区逐 tile 全量，Mid/Low 聚合压缩；历史层/高频生态指标 delta 追加；`schemaVersion` 迁移预留。
+- **状态**：Sprint 04 已收（Schema 10 / PR #12）。
 
 ### Story SV2 — 异步延迟装载（不阻塞逻辑）
 - **优先级**：Could ｜ **映射**：架构 §6.4
@@ -332,8 +338,8 @@
 | **Sprint 1（Gate-0 垂直切片）** | **Epic 0 全 Must（V0-1~V0-6, V0-8, V0-9）** | Gate-0 CI 全绿（四路 ≥120 月哈希逐月一致）；region-presets 被消费；真实地球 MVP 区域可初始化 |
 | Sprint 2 | Epic 4（S4-1）+ Epic 1（S1-1/2）+ Epic 6（P1）+ Epic 8（T1/T2 启动） | 单聚落可暂停/变速/干预，UI 可见时间轴；干预参数可注册与延迟生效 |
 | Sprint 3 | Epic 2（S2-1/2）+ Epic 3（S3-1/2）+ Epic 6（P3） | 月级大账跑完整 S2(11)+S3(16) 流水线；表现插值不回写；确定性仍绿 |
-| Sprint 4 | Epic 5（S5-1/2）+ Epic 7（SV1）+ Epic 3（S3-3/5） | 全分辨率真实地球网格；完整存档 LOD 分块；国家聚合 |
-| Sprint 5 | Epic 3（S3-4）+ Epic 5（S5-3/4）+ Epic 6（P2/P4）+ Epic 8（T3/T4） | 核心层全开；性能预算验证；双开局模式；叙事/相机联动 |
+| Sprint 4 | Epic 5（S5-1/2）+ Epic 7（SV1）+ Epic 3（S3-3/5） | 全分辨率真实地球网格；完整存档 LOD 分块；国家聚合 — **已结项（PR #12）** |
+| Sprint 5 | Epic 3（S3-4）+ Epic 5（S5-3/4 只补缺口）+ Epic 6（P2/P4）+ Epic 8（T3/T4） | 核心层全开；性能预算验证；双开局已有则不重做；叙事/相机联动 — **待开** |
 
 > Sprint 1 **必须是 Gate-0 垂直切片**——主理人指令硬性要求先跑通确定性核心再铺系统。任何 Sprint 1 范围蔓延（提前做 S2/S3 完整机制）都违反 R13 P0 精神。
 
@@ -360,7 +366,7 @@
 - **负责 Story**：**V0-6（Must，切片内最小兑现：消费 region-presets.json + MVP 区域精算）** + **Epic 5 S5-1（Must，全分辨率管线）** + S5-3（LOD 分块）。
 - **依赖**：V0-6 无前置（仅读 JSON + 简化真实数据）；S5-1 依赖 Epic 0 的 `WorldTile` 结构与 `IWorldGeography`。
 - **验收标准**：`region-presets.json`(schemaVersion 1.0, 6 预设) 被消费 → `WorldInitConfig`（center/radius/ethnicSeed/legalTraditionSeed 偏置）；MVP 区域 High 精度初始化；B5 红线（绝不指定单国家族）在导入器单测覆盖；S5-1 全分辨率 Natural Earth 导入 + LOD 分块。
-- **排期**：V0-6 在 **Sprint 1（与 Gate-0 同批，B4 入口条件）**；S5-1/S5-3 在 **Sprint 4**。
+- **排期**：V0-6 在 **Sprint 1（与 Gate-0 同批，B4 入口条件）**；S5-1 消费 / S5-3 已在 **Sprint 4** 收口。
 
 > **B2/B3/B4 关系**：B3（确定性门禁）是三者内核，B2（版本锁）是 B3 可复现的前提，B4（真实地球）是 MVP 真实地图的入口。三者都在 Sprint 1 启动，B2/B3 于 Sprint 1 出口闭环，B4 的「消费契约」于 Sprint 1 闭环、「完整管线」于 Sprint 4 完成。
 
