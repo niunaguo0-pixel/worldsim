@@ -47,10 +47,10 @@ namespace WorldSim.UI
             if (!IsVisible) return;
 
             float w = Mathf.Min(520f, Screen.width - 40f);
-            float h = Mathf.Min(560f, Screen.height - 40f);
+            float h = Mathf.Min(720f, Screen.height - 40f);
             Rect area = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             GUILayout.BeginArea(area, "WorldSim · New Game", GUI.skin.window);
-            GUILayout.Label("开局设置（地理 4 项 + 目标 1 项）");
+            GUILayout.Label("开局设置（地理 4 + 目标 1 + 模块开关）");
 
             GUILayout.Space(6);
             GUILayout.Label("① 起始时代");
@@ -109,6 +109,17 @@ namespace WorldSim.UI
             GoalButton(GoalMode.MilestonePolity, "里程碑");
             GoalButton(GoalMode.Custom, "自定义");
             GUILayout.EndHorizontal();
+
+            GUILayout.Space(4);
+            GUILayout.Label("⑥ 模块化开关（S7 · MVP 默认关）");
+            foreach (var def in WorldSim.ModularToggle.ModuleCatalog.PlayerFacing)
+            {
+                if (!_draft.ModuleSelections.ContainsKey(def.Id))
+                    _draft.ModuleSelections[def.Id] = def.DefaultEnabled;
+                _draft.ModuleSelections[def.Id] = GUILayout.Toggle(
+                    _draft.ModuleSelections[def.Id],
+                    def.DisplayNameZh + " — " + def.DescriptionZh);
+            }
 
             GUILayout.Space(8);
             GUILayout.Label(_status);

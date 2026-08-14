@@ -1,10 +1,14 @@
 namespace WorldSim.Presentation
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using UnityEngine;
+    using WorldSim.ModularToggle;
+    using WorldSim.Simulation.Civilization;
     using WorldSim.Simulation.Core;
     using WorldSim.Simulation.Core.Serialization;
+    using WorldSim.Simulation.Ecology;
     using WorldSim.Simulation.Intervention;
     using WorldSim.Simulation.Time;
     using WorldSim.Simulation.WorldMap;
@@ -61,17 +65,24 @@ namespace WorldSim.Presentation
                 StartRegionCenterLon = 44,
                 StartRegionRadiusDeg = 8
             };
-            StartWorld(mapConfig, worldSeed, useFormalHud: false);
+            StartWorld(mapConfig, worldSeed, useFormalHud: false, moduleSelections: null);
         }
 
         /// <summary>S8 New Game / 测试共用入口：按配置装配世界与表现层。</summary>
-        public void StartWorld(WorldInitConfig mapConfig, ulong seed, bool useFormalHud)
+        public void StartWorld(
+            WorldInitConfig mapConfig,
+            ulong seed,
+            bool useFormalHud,
+            IReadOnlyDictionary<string, bool> moduleSelections = null)
         {
             if (mapConfig == null) throw new ArgumentNullException(nameof(mapConfig));
             if (_started) return;
 
             worldSeed = seed;
             _world = WorldState.CreateMinimalSlice(seed, speedMultiplier: 1);
+            ModularToggleService.ApplyPreset(_world, ModulePreset.MvpMinimal);
+            ModularToggleService.ApplyPlayerFacing(_world, moduleSelections);
+
             WorldMapViewSnapshot mapSnapshot;
             try
             {
@@ -92,6 +103,11 @@ namespace WorldSim.Presentation
 
             if (attachInterventionSystem)
                 _interventions = InterventionSystem.AttachToSlice(_world);
+
+            // S7：可玩开局挂正式生态/文明引擎；子系统开关尊重 New Game 面板
+            EcologySimEngine.AttachTo(_world);
+            CivilizationSimEngine.AttachTo(_world, applyAttachedSubsystemDefaults: false);
+            ModularToggleService.ApplyPlayerFacing(_world, moduleSelections);
 
             RefreshTimeSnapshot();
 

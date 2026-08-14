@@ -9,6 +9,7 @@
     "WorldSim.Simulation.Ecology",
     "WorldSim.Simulation.Civilization",
     "WorldSim.Narrative",
+    "WorldSim.ModularToggle",
     "WorldSim.Presentation",
     "WorldSim.UI",
     "UnityEngine.TestRunner",

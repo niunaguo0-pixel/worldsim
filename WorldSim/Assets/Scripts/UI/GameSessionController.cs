@@ -36,7 +36,7 @@ namespace WorldSim.UI
             _goalMode = draft.GoalMode;
             if (_runner == null) return;
 
-            _runner.StartWorld(config, draft.WorldSeed, useFormalHud: true);
+            _runner.StartWorld(config, draft.WorldSeed, useFormalHud: true, draft.ModuleSelections);
 
             var fx = _runner.GetComponent<InterventionFxBridge>();
             var input = _runner.GetComponent<PlayableInputController>();

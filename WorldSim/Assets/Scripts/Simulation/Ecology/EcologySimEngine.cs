@@ -2,6 +2,7 @@ namespace WorldSim.Simulation.Ecology
 {
     using System;
     using System.Collections.Generic;
+    using WorldSim.ModularToggle;
     using WorldSim.Simulation.Core;
     using WorldSim.Simulation.Core.Ecology;
     using WorldSim.Simulation.Core.Math;
@@ -21,7 +22,8 @@ namespace WorldSim.Simulation.Ecology
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (world.Ecology == null || world.Ecology.Species.Count == 0)
                 world.Ecology = CreateMinimalState(world.Geography);
-            world.ModuleToggles["ecology.v2"] = true;
+            ModularToggleService.EnsureKeys(world);
+            world.ModuleToggles[ModuleIds.EcologyV2] = true;
             var engine = new EcologySimEngine();
             world.EcologySettler = engine;
             return engine;

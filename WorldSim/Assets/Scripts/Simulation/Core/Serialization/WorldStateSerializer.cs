@@ -185,6 +185,17 @@ namespace WorldSim.Simulation.Core.Serialization
             w.WriteInt32(world.Time.monthIndex);
             w.WriteInt32(world.EraIndex);
 
+            // S7：模块开关影响结算路径，须进入稳定月哈希
+            var toggleKeys = new List<string>(world.ModuleToggles.Keys);
+            toggleKeys.Sort(StringComparer.Ordinal);
+            w.WriteInt32(toggleKeys.Count);
+            for (int i = 0; i < toggleKeys.Count; i++)
+            {
+                string k = toggleKeys[i];
+                w.WriteString(k ?? "");
+                w.WriteBool(world.ModuleToggles[k]);
+            }
+
             return DeterminismMath.DeterminismHash(w.ToArray());
         }
 

@@ -73,7 +73,7 @@
 4. ✅ `WorldSim.Simulation.*` asmdef + CI `check-sim-asmdef`
 5. ✅ `WorldSim.Editor.BuildScript.cs`（ADR-003；`BuildWin64` headless）
 6. ✅ region-presets 导入/消费（V0-6）；StreamingAssets 与 design 由 `assert-region-presets-synced.ps1` 守住
-7. ⏳ 模块化开关框架（S7）完整配置 — 切片仅有 `ModuleToggles` 字典
+7. ✅ 模块化开关框架（S7）完整配置 — `WorldSim.ModularToggle` 目录/预设 + New Game 面板 + 文明子步骤门控
 8. ⏳ NPR 微缩沙盘渲染原型 — 美术侧，非 Epic 0
 9. ✅ `com.unity.burst@1.8.30` 直依 + `assert-burst-pinned`（lock 中他包写的 ≥1.8.29 仅为下限，解析为 1.8.30）
 

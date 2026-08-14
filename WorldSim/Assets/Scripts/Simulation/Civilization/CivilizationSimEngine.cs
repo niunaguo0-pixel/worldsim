@@ -2,6 +2,7 @@ namespace WorldSim.Simulation.Civilization
 {
     using System;
     using System.Collections.Generic;
+    using WorldSim.ModularToggle;
     using WorldSim.Simulation.Core;
     using WorldSim.Simulation.Core.Civilization;
     using WorldSim.Simulation.Core.Ecology;
@@ -11,12 +12,29 @@ namespace WorldSim.Simulation.Civilization
     /// <summary>S3 固定十六步文明月结；关闭 civilization.v2 时完全不参与 Gate-0 桩路径。</summary>
     public sealed class CivilizationSimEngine : IMonthlyCivilizationSettler
     {
-        public static CivilizationSimEngine AttachTo(WorldState world)
+        /// <param name="applyAttachedSubsystemDefaults">
+        /// true（默认）：挂载时打开科技/政治等子系统，保持 Epic3 既有测试行为。
+        /// false：尊重已写入的 ModuleToggles（供 New Game MVP 模块面板）。
+        /// </param>
+        public static CivilizationSimEngine AttachTo(WorldState world, bool applyAttachedSubsystemDefaults = true)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (world.Civilization == null || world.Civilization.Settlements.Count == 0)
                 world.Civilization = CreateMinimalState(world.Geography);
-            world.ModuleToggles["civilization.v2"] = true;
+            ModularToggleService.EnsureKeys(world);
+            world.ModuleToggles[ModuleIds.CivilizationV2] = true;
+            if (applyAttachedSubsystemDefaults)
+            {
+                ModularToggleService.Set(world, ModuleIds.TechTree, true);
+                ModularToggleService.Set(world, ModuleIds.SettlementMulti, true);
+                ModularToggleService.Set(world, ModuleIds.PoliticsStructure, true);
+                ModularToggleService.Set(world, ModuleIds.ReligionSystem, true);
+                ModularToggleService.Set(world, ModuleIds.CultureSystem, true);
+                ModularToggleService.Set(world, ModuleIds.LawSystem, true);
+                ModularToggleService.Set(world, ModuleIds.EthnicitySystem, true);
+                ModularToggleService.Set(world, ModuleIds.MilitarySystem, true);
+            }
+
             var engine = new CivilizationSimEngine();
             world.CivilizationSettler = engine;
             return engine;
@@ -32,14 +50,21 @@ namespace WorldSim.Simulation.Civilization
             StepIndividuals(world, civ, month);       // 3
             StepEconomy(civ);                         // 4
             StepSettlements(world, civ);              // 5
-            StepTechnology(civ);                      // 6
-            StepSociety(civ);                         // 7
-            StepReligion(civ);                        // 8
-            StepCulture(civ);                         // 9
-            StepEthnicity(civ);                       // 10
-            StepLaw(civ);                             // 11
-            StepPolitics(world, civ, month);          // 12
-            StepMilitary(world, civ, month);          // 13
+            if (IsModuleEnabled(world, ModuleIds.TechTree))
+                StepTechnology(civ);                  // 6
+            StepSociety(civ);                         // 7 MVP 骨架常开
+            if (IsModuleEnabled(world, ModuleIds.ReligionSystem))
+                StepReligion(civ);                    // 8
+            if (IsModuleEnabled(world, ModuleIds.CultureSystem))
+                StepCulture(civ);                     // 9
+            if (IsModuleEnabled(world, ModuleIds.EthnicitySystem))
+                StepEthnicity(civ);                   // 10
+            if (IsModuleEnabled(world, ModuleIds.LawSystem))
+                StepLaw(civ);                         // 11
+            if (IsModuleEnabled(world, ModuleIds.PoliticsStructure))
+                StepPolitics(world, civ, month);      // 12
+            if (IsModuleEnabled(world, ModuleIds.MilitarySystem))
+                StepMilitary(world, civ, month);      // 13
             StepEra(world, civ, month);               // 14
             AggregatePolities(civ);                   // 15
             EmitEvents(world, civ, month);            // 16
@@ -81,7 +106,7 @@ namespace WorldSim.Simulation.Civilization
 
         private static void StepIndividuals(WorldState world, CivilizationState civ, int month)
         {
-            bool inheritanceEnabled = IsModuleEnabled(world, "generation.inheritance");
+            bool inheritanceEnabled = IsModuleEnabled(world, ModuleIds.GenerationInheritance);
             int nextStableId = inheritanceEnabled ? NextIndividualStableId(civ) : 0;
             foreach (var individual in Sorted(civ.Individuals, x => x.stableId))
             {
@@ -339,6 +364,8 @@ namespace WorldSim.Simulation.Civilization
 
             var polities = Sorted(civ.Polities, x => x.stableId);
             if (polities.Count < 2) return;
+            // 多聚落/多政体战事受 settlement.multi 门控
+            if (!IsModuleEnabled(world, ModuleIds.SettlementMulti)) return;
 
             // 简式：按稳定 ID 序两两配对自动开战/结算
             for (int i = 0; i + 1 < polities.Count; i += 2)
@@ -420,7 +447,8 @@ namespace WorldSim.Simulation.Civilization
         private static CivilizationEconomyState EconomyFor(CivilizationState c, int id) { foreach (var x in c.Economies) if (x.settlementId == id) return x; return null; }
         private static CivilizationPolityState PolityFor(CivilizationState c, int id) { foreach (var x in c.Polities) if (x.stableId == id) return x; return null; }
         private static CivilizationSettlementState SettlementFor(CivilizationState c, int id) { foreach (var x in c.Settlements) if (x.stableId == id) return x; return null; }
-        private static bool IsModuleEnabled(WorldState world, string key) => world.ModuleToggles.TryGetValue(key, out bool enabled) && enabled;
+        private static bool IsModuleEnabled(WorldState world, string key) =>
+            ModularToggleService.IsEnabled(world, key);
         private static int GenerationOf(WorldState world, int individualId)
         {
             int generation = 0;

@@ -6,7 +6,10 @@
     "WorldSim.Simulation.Time",
     "WorldSim.Simulation.Intervention",
     "WorldSim.Simulation.WorldMap",
+    "WorldSim.Simulation.Ecology",
+    "WorldSim.Simulation.Civilization",
     "WorldSim.Narrative",
+    "WorldSim.ModularToggle",
     "Unity.InputSystem"
   ],
   "includePlatforms": [],

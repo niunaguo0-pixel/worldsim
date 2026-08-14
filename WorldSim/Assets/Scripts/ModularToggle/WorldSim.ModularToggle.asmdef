@@ -1,10 +1,8 @@
 {
-  "name": "WorldSim.Simulation.Civilization",
-  "rootNamespace": "WorldSim.Simulation.Civilization",
+  "name": "WorldSim.ModularToggle",
+  "rootNamespace": "WorldSim.ModularToggle",
   "references": [
-    "WorldSim.Simulation.Core",
-    "WorldSim.ModularToggle",
-    "Unity.Mathematics"
+    "WorldSim.Simulation.Core"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

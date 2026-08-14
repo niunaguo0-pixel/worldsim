@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $simRoot = Join-Path $root "WorldSim\Assets\Scripts\Simulation"
 $narrativeRoot = Join-Path $root "WorldSim\Assets\Scripts\Narrative"
+$modularRoot = Join-Path $root "WorldSim\Assets\Scripts\ModularToggle"
 if (-not (Test-Path $simRoot)) {
     Write-Error "Simulation root not found: $simRoot"
 }
@@ -52,6 +53,12 @@ if (Test-Path $narrativeRoot) {
     $nar = Test-NoEngineBoundary $narrativeRoot "WorldSim.Narrative"
     $allFailures += $nar.Failures
     Write-Host "PASS: $($nar.Label) 零 UnityEngine / noEngineReferences=true ($($nar.CsCount) cs, $($nar.AsmdefCount) asmdef)"
+}
+
+if (Test-Path $modularRoot) {
+    $mod = Test-NoEngineBoundary $modularRoot "WorldSim.ModularToggle"
+    $allFailures += $mod.Failures
+    Write-Host "PASS: $($mod.Label) 零 UnityEngine / noEngineReferences=true ($($mod.CsCount) cs, $($mod.AsmdefCount) asmdef)"
 }
 
 if ($allFailures.Count -gt 0) {
