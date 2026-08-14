@@ -72,8 +72,9 @@ namespace WorldSim.Tests.Unit
                 var controller = host.AddComponent<CameraLodController>();
                 controller.Bind(camera, null, null, null, null);
 
-                // InitialDistance=14 → Civilization；迟滞下需越过 11-0.75 才进 Settlement
-                controller.Zoom(-3f); // 14 - 8.4 = 5.6 → clamp 6 → Settlement
+                // InitialDistance=14 → Civilization；ZoomStep=2.8
+                // Individual≤6，Settlement≤11；Zoom(-2) → 14-5.6=8.4 → Settlement
+                controller.Zoom(-2f);
                 Assert.AreEqual(CameraLodLevel.Settlement, controller.CurrentLod);
                 Assert.AreEqual(120, controller.MeshLonSegments);
             }

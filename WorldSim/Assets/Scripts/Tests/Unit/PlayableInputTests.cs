@@ -73,7 +73,7 @@ namespace WorldSim.Tests.Unit
                 var controller = host.AddComponent<CameraLodController>();
                 controller.Bind(camera, null, null, null, null);
                 controller.Zoom(1f);
-                Assert.AreEqual(15.6f, controller.TargetDistance, 0.0001f);
+                Assert.AreEqual(16.8f, controller.TargetDistance, 0.0001f);
                 Assert.AreEqual(CameraLodLevel.Civilization, controller.CurrentLod);
             }
             finally
