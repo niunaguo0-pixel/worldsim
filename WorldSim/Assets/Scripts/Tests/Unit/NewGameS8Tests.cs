@@ -84,6 +84,34 @@ namespace WorldSim.Tests.Unit
         }
 
         [Test]
+        public void Assemble_ModernUnsupportedBorderYear_Throws()
+        {
+            var catalog = RegionPresetLoader.LoadFromFile(PresetsPath());
+            var draft = new NewGameDraft
+            {
+                StartEra = StartEra.Modern,
+                PresetKey = "fertile_crescent",
+                BorderYear = 1945
+            };
+            Assert.Throws<System.NotSupportedException>(() => NewGameAssembler.Assemble(draft, catalog));
+        }
+
+        [Test]
+        public void Assemble_Modern_CarriesBorderView()
+        {
+            var catalog = RegionPresetLoader.LoadFromFile(PresetsPath());
+            var draft = new NewGameDraft
+            {
+                StartEra = StartEra.Modern,
+                PresetKey = "fertile_crescent",
+                BorderYear = 2026,
+                BorderView = BorderView.SovereigntyClaims
+            };
+            WorldInitConfig cfg = NewGameAssembler.Assemble(draft, catalog);
+            Assert.AreEqual(BorderView.SovereigntyClaims, cfg.BorderView);
+        }
+
+        [Test]
         public void DescribeMode_ReflectsStartMode()
         {
             var geo = new WorldInitConfig { StartMode = StartMode.ModernGeopolitics, BorderYear = 1945 };

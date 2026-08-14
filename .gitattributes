@@ -1,0 +1,5 @@
+# Geo bundle checksums are SHA-256 over exact bytes; force LF (no CRLF smudge).
+WorldSim/Assets/StreamingAssets/Geo/**/*.tsv text eol=lf
+WorldSim/Assets/StreamingAssets/Geo/**/*.txt text eol=lf
+WorldSim/Assets/StreamingAssets/Geo/**/*.md text eol=lf
+WorldSim/Assets/StreamingAssets/Geo/**/*.gz binary

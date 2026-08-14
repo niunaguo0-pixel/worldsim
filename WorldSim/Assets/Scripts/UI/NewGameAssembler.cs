@@ -9,6 +9,8 @@ namespace WorldSim.UI
     /// </summary>
     public static class NewGameAssembler
     {
+        public static readonly int[] SupportedBorderYears = { 2026 };
+        /// <summary>UI 展示建议年；仅 SupportedBorderYears 可装配（历史快照未提交）。</summary>
         public static readonly int[] SuggestedBorderYears = { 2026, 1945, 1914 };
 
         public static WorldInitConfig Assemble(NewGameDraft draft, RegionPresetCatalog catalog)
@@ -21,17 +23,27 @@ namespace WorldSim.UI
             WorldInitConfig cfg = RegionPresetLoader.ConsumeKey(catalog, draft.PresetKey);
             cfg.StartEra = draft.StartEra;
             cfg.BorderYear = draft.BorderYear;
+            cfg.BorderView = draft.BorderView;
             cfg.NormalizeDerivedMode();
 
             if (cfg.StartMode == StartMode.ModernGeopolitics)
             {
+                if (!IsSupportedBorderYear(cfg.BorderYear))
+                    throw new NotSupportedException(
+                        "borderYear " + cfg.BorderYear + " is not in committed geo-v1; supported: 2026.");
                 if (!draft.UsePresetLegalBias)
                     cfg.LegalTraditionSeed = new LegalTraditionSeed { Bias = draft.LegalBiasOverride };
-                // UsePresetLegalBias：保留 Consume 时从预设映射的 LegalTraditionSeed
             }
 
             RegionPresetRedLines.ValidateInitConfig(cfg);
             return cfg;
+        }
+
+        public static bool IsSupportedBorderYear(int year)
+        {
+            for (int i = 0; i < SupportedBorderYears.Length; i++)
+                if (SupportedBorderYears[i] == year) return true;
+            return false;
         }
 
         public static string DescribeMode(WorldInitConfig cfg)

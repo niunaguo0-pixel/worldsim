@@ -55,7 +55,7 @@
 | B1 | ADR-002 选项 2 确认 | ✅ 已解决 | 原：是 | 用户 |
 | B2 | CI 锁定同 Unity + 同 Burst | ✅ V0-8（`version-pins.json` + Burst 1.8.30 直依） | 是（已闭环） | 工程 |
 | B3 | Quantize + 哈希 + Gate-0 入 CI | ✅ V0-5/V0-9（全量 EditMode + 自托管） | 是（已闭环） | 工程 |
-| B4 | 真实地球管线 + region-presets 消费 | ⏳ 部分：V0-6 MVP 消费已做；完整 Natural Earth 管线 → Epic 5 | 是（完整管线） | Phase 4 |
+| B4 | 真实地球管线 + region-presets 消费 | ✅ Epic 5：geo-v1 全源管线 + S5-3 LOD + S5-4 双开局接入可玩 StartWorld（区域裁剪地缘种子） | 是（已闭环） | Phase 4 |
 | B5 | 空间映射「绝不指定单国家族」红线 | ✅ V0-6 `RegionPresetRedLines` | 建议 | Phase 4 |
 | B6 | 核心层全开月级 pass 预算 profiler | 建议 | 否 | Phase 4：**T3 已落** `PerformanceBudgetTests`（中位 &lt;50ms） |
 | B7 | AI Navigation 不入模拟核心 | 建议 | 建议 | Phase 4 |
@@ -69,7 +69,7 @@
 
 1. ✅ A 类 Gate-0（G0-1~G0-8）代码通过；CI 接 `gate0.yml`（需自托管 Windows runner 预装 Unity 6000.0.81f1）
 2. ✅ B 类 ADR（U1–U4）用户确认
-3. ⏳ C 类：B1/B2/B3/B8 ✅；**B4 完整地球管线**仍待 Epic 5（MVP region-presets 已可消费）
+3. ✅ C 类：B1/B2/B3/B8/B4 ✅（完整地球管线 + 双开局可玩接入）
 4. ✅ `WorldSim.Simulation.*` asmdef + CI `check-sim-asmdef`
 5. ✅ `WorldSim.Editor.BuildScript.cs`（ADR-003；`BuildWin64` headless）
 6. ✅ region-presets 导入/消费（V0-6）；StreamingAssets 与 design 由 `assert-region-presets-synced.ps1` 守住
