@@ -14,10 +14,12 @@
   - design/art/asset-spec.md v1.0.0
   - design/art/art-bible.md v1.0.2
   - docs/art/accessibility-grade.md v1.1.0
-状态: 定稿（待 Phase 4 出口评审）
+状态: 已结项（2026-08-14）— Gate-0 已绿；Phase 4 预制作 OPEN
 ---
 
 # Phase 4 预制作 · 首个冲刺计划（Sprint 01）
+
+> **结项说明（2026-08-14）**：本冲刺（Epic 0 / V0-1~V0-9）已在代码与 CI 兑现，Gate-0 全绿。阶段门记录见 `production/phase4-gate.md`。下一冲刺见 `production/sprint-02-plan.md`（VS-8 可访问性 Standard）。
 
 ## 1. 目标（Why）
 
@@ -97,4 +99,6 @@ Sprint 01 是 WorldSim 的**确定性 Gate-0 垂直切片**：在不碰完整 S1
 
 ## 9. 下一步动作
 
-批准本冲刺计划后，程基岩（engineering-lead）即可启动 V0-1（asmdef 边界）→ V0-2（数学基座）→ V0-3（双频结算）流水线。其余成员（design-strategist / art-director / audio-director）待 Gate-0 通过后再进入系统实现与资产生产。
+**已完成（2026-08-14）**：V0-1→V0-9 流水线与 Gate-0 CI 已闭环。
+
+**下一动作**：执行 `production/sprint-02-plan.md`（VS-8 可访问性 Standard 收口）。工程分支建议：`cursor/sprint02-vs8-access`。

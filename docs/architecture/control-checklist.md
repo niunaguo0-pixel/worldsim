@@ -1,17 +1,18 @@
 ---
 项目名: WorldSim
 文档名: Phase 3 出口控制清单（Control Checklist）
-版本: v1.0.4
-日期: 2026-08-12
-作者: 程基岩
-阶段: Phase 3 — 技术搭建（出口门）
-关联: worldsim-architecture.md / adr/ADR-001~004 / architecture-review.md
-变更摘要: v1.0.4（P1/P2 文档）——契约 §2.3 对齐 ComputeMonthlyHash；epics/架构/HTML 去掉过时 Burst/128-bit/窄 filter/xxHash 口径；本地 `run-gate0-local` 含 presets 同步且 min=33；gate0 Windows job 改用 `shell: powershell`（自托管常无 pwsh）。**未**改 runner 装服务（仍手动 run.cmd）。v1.0.3——EraGate/Schema3/BuildScript/双源清理。
+版本: v1.1.0
+日期: 2026-08-14
+作者: 程基岩 / 游承峰（阶段门）
+阶段: Phase 3 出口 PASS → Phase 4 预制作 OPEN
+关联: worldsim-architecture.md / adr/ADR-001~004 / architecture-review.md / production/phase4-gate.md
+变更摘要: v1.1.0（2026-08-14）——Phase 3 出口正式 **PASS**；Phase 4 预制作 **OPEN**；新增 §F 状态；Sprint 01（Gate-0）结项，Sprint 02=VS-8 可访问性 Standard。v1.0.4——契约/epics/HTML 口径与 gate0 powershell；runner 备注后改登录自启。
 ---
 
 # Phase 3 出口控制清单（Control Checklist）
 
 > 本清单是 Phase 3 技术搭建的**出口门**：进入 Phase 4 预制作前，下列四类项须全部满足。
+> **2026-08-14 判定：PASS** — 已进入 Phase 4 预制作（见 `production/phase4-gate.md`）。
 > 优先级：P0（Gate-0 确定性）> ADR 用户确认 > 架构评审阻塞项清零 > Phase 4 入口条件就绪。
 
 ---
@@ -89,3 +90,17 @@
 - [x] `docs/architecture/control-checklist.md`（本文）
 - [x] Epic 0 代码：V0-1~V0-9（含 V0-7 Could）
 - [x] `.github/workflows/gate0.yml` + `tests/ci/*`
+
+---
+
+## F. Phase 4 状态（2026-08-14）
+
+| 项 | 值 |
+|----|-----|
+| Phase 3 出口 | **PASS** |
+| Phase 4 预制作 | **OPEN** |
+| 入口条件复核 | 2026-08-14（§D.1–D.9 全 ✅） |
+| 当前 Sprint | **Sprint 02** — VS-8 可访问性 Standard 收口（见 `production/sprint-02-plan.md`） |
+| Sprint 01 | **CLOSED** — Gate-0 已绿（见 `production/sprint-01-plan.md` / `production/phase4-gate.md`） |
+| Runner | `worldsim-pc` online；登录任务 `WorldSim-GitHub-Actions-Runner`；`core.autocrlf=false` |
+| 权威阶段门记录 | `production/phase4-gate.md` |
