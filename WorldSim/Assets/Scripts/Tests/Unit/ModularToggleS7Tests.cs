@@ -77,12 +77,14 @@ namespace WorldSim.Tests.Unit
         {
             var world = WorldState.CreateMinimalSlice(712);
             ModularToggleService.ApplyPreset(world, ModulePreset.MvpMinimal);
+            // 目录默认：ecology.v2 / civilization.v2 = true；玩家面板不能改引擎轨。
+            Assert.IsTrue(ModularToggleService.IsEnabled(world, ModuleIds.EcologyV2));
             ModularToggleService.ApplyPlayerFacing(world, new System.Collections.Generic.Dictionary<string, bool>
             {
-                { ModuleIds.EcologyV2, true },
+                { ModuleIds.EcologyV2, false },
                 { ModuleIds.TechTree, true }
             });
-            Assert.IsFalse(ModularToggleService.IsEnabled(world, ModuleIds.EcologyV2));
+            Assert.IsTrue(ModularToggleService.IsEnabled(world, ModuleIds.EcologyV2));
             Assert.IsTrue(ModularToggleService.IsEnabled(world, ModuleIds.TechTree));
         }
     }

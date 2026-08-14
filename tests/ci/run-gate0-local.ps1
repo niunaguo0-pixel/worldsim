@@ -60,6 +60,6 @@ $failed = [int]$tr.failed + [int]$tr.errors
 # 4 个 RealGeo 测试 Ignore, 故 CI 基线 = 本地 152 - 4 = 148。
 # (Task 6 评审修复: 删除与 RealData_KoppenProbesMeetEightyPercentThreshold 重复的
 #  FixedBiomeProbes_MeetEightyPercent, 本地 153 -> 152, CI 基线 149 -> 148。)
-$min = 239
+$min = 247
 if ($failed -gt 0 -or [int]$tr.total -lt $min) { exit 1 }
 exit 0

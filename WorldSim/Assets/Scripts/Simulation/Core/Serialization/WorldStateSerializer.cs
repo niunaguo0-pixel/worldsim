@@ -18,7 +18,7 @@ namespace WorldSim.Simulation.Core.Serialization
     /// </summary>
     public static class WorldStateSerializer
     {
-        public const int SchemaVersion = 9; // Epic 7 SV1: LOD 覆盖分区 + Indicators delta
+        public const int SchemaVersion = 9; // Epic 7 SV1 LOD；指标字段写量化绝对值（避免 delta 不可逆）
         public const int Magic = 0x57534D31; // 'WSM1'
 
         public static byte[] Save(WorldState world)
@@ -467,21 +467,13 @@ namespace WorldSim.Simulation.Core.Serialization
             {
                 w.WriteInt32(x.stableId);
                 w.WriteInt32(x.regionId);
-                w.WriteString(x.code);
-                if (schemaVersion >= 9)
-                {
-                    double delta = DeterminismMath.Quantize(x.currentValue - x.previousValue, 3);
-                    w.WriteDouble(delta);
-                    w.WriteDouble(x.previousValue);
-                }
-                else
-                {
-                    w.WriteDouble(x.currentValue);
-                    w.WriteDouble(x.previousValue);
-                }
+                w.WriteString(x.code ?? "");
+                // schema≥9 曾用 delta，但 Quantize(delta) 不可逆；统一写量化绝对值保证往返。
+                w.WriteDouble(DeterminismMath.Quantize(x.currentValue, 3));
+                w.WriteDouble(DeterminismMath.Quantize(x.previousValue, 3));
                 w.WriteByte((byte)x.zone);
                 w.WriteInt32(x.stressMonths);
-                w.WriteString(x.warningCode);
+                w.WriteString(x.warningCode ?? "");
             }
         }
 
@@ -494,9 +486,8 @@ namespace WorldSim.Simulation.Core.Serialization
                 int stableId = r.ReadInt32();
                 int regionId = r.ReadInt32();
                 string code = r.ReadString();
-                double a = r.ReadDouble();
+                double current = r.ReadDouble();
                 double previous = r.ReadDouble();
-                double current = schemaVersion >= 9 ? previous + a : a;
                 xs.Add(new EcologicalIndicatorState
                 {
                     stableId = stableId,
@@ -622,7 +613,7 @@ namespace WorldSim.Simulation.Core.Serialization
             foreach(var s in SortedCopy(c.Settlements,x=>x.stableId)){w.WriteInt32(s.stableId);w.WriteDouble(DeterminismMath.Quantize(s.population,0));w.WriteByte((byte)s.tier);w.WriteDouble(DeterminismMath.Quantize(s.prosperity,3));}
             foreach(var p in SortedCopy(c.Polities,x=>x.stableId))
             {
-                w.WriteInt32(p.stableId);w.WriteDouble(DeterminismMath.Quantize(p.population,0));w.WriteDouble(DeterminismMath.Quantize(p.output,3));w.WriteDouble(DeterminismMath.Quantize(p.stability,3));w.WriteInt32(p.techTier);w.WriteInt32(p.lawStage);w.WriteByte((byte)p.governance);
+                w.WriteInt32(p.stableId);w.WriteDouble(DeterminismMath.Quantize(p.population,0));w.WriteDouble(DeterminismMath.Quantize(p.output,3));w.WriteDouble(DeterminismMath.Quantize(p.stability,3));w.WriteInt32(p.techTier);w.WriteInt32(p.lawStage);w.WriteInt32(p.divisionDepth);w.WriteByte((byte)p.governance);
                 w.WriteByte((byte)p.lawFamily); w.WriteBool(p.LawFamilyLocked);
                 w.WriteDouble(DeterminismMath.Quantize(p.legitimacy,3)); w.WriteDouble(DeterminismMath.Quantize(p.militaryPower,3));
                 var src = p.LegitimacySources ?? new LegitimacySource();
@@ -642,6 +633,12 @@ namespace WorldSim.Simulation.Core.Serialization
                 w.WriteDouble(DeterminismMath.Quantize(eth.EthnicInequality,3));
                 var mil = p.Military ?? new MilitaryState();
                 w.WriteDouble(DeterminismMath.Quantize(mil.Weariness,3)); w.WriteByte((byte)mil.Status); w.WriteInt32(mil.OpponentPolityId);
+            }
+            foreach (var t in SortedCopy(c.Tech, x => x.stableId))
+            {
+                w.WriteInt32(t.stableId);
+                w.WriteDouble(DeterminismMath.Quantize(t.faith, 3));
+                w.WriteDouble(DeterminismMath.Quantize(t.culture, 3));
             }
         }
 

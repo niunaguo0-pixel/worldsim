@@ -4,7 +4,9 @@ using System.Linq;
 using WorldSim.Simulation.Civilization;
 using WorldSim.Simulation.Core;
 using WorldSim.Simulation.Core.Civilization;
+using WorldSim.Simulation.Core.Ecology;
 using WorldSim.Simulation.Core.Serialization;
+using WorldSim.Simulation.Ecology;
 using WorldSim.Simulation.Intervention;
 using WorldSim.Simulation.Time;
 using WorldSim.Simulation.WorldMap;
@@ -20,6 +22,55 @@ namespace WorldSim.Tests.Unit
         {
             var s = new CivilizationSettlementState { housingCapacity = 100, foodCapacity = 80, spaceCapacity = 120 };
             Assert.AreEqual(80, CivilizationSimEngine.CarryingCapacity(s));
+        }
+
+        [Test]
+        public void SettlementTier_ClassifiesVillageTownCityMetro()
+        {
+            Assert.AreEqual(SettlementTier.Village, CivilizationSimEngine.ClassifySettlementTier(100));
+            Assert.AreEqual(SettlementTier.Town, CivilizationSimEngine.ClassifySettlementTier(500));
+            Assert.AreEqual(SettlementTier.City, CivilizationSimEngine.ClassifySettlementTier(2000));
+            Assert.AreEqual(SettlementTier.Metro, CivilizationSimEngine.ClassifySettlementTier(10000));
+        }
+
+        [Test]
+        public void SocietyReligionCulture_AreHashable_AndAdvance()
+        {
+            var world = WorldState.CreateMinimalSlice(0xA3401UL);
+            CivilizationSimEngine.AttachTo(world);
+            double faithBefore = world.Civilization.Tech[0].faith;
+            double cultureBefore = world.Civilization.Tech[0].culture;
+            RunMonths(world, 1);
+            Assert.Greater(world.Civilization.Tech[0].faith, faithBefore);
+            Assert.Greater(world.Civilization.Tech[0].culture, cultureBefore);
+            Assert.GreaterOrEqual(world.Civilization.Polities[0].divisionDepth, 0);
+        }
+
+        [Test]
+        public void LawBeforePolitics_SwapOrder_ForksMonthlyHash()
+        {
+            var normal = WorldState.CreateMinimalSlice(0xA3411UL);
+            var swapped = WorldState.CreateMinimalSlice(0xA3411UL);
+            CivilizationSimEngine.AttachTo(normal);
+            CivilizationSimEngine.AttachTo(swapped);
+            // 直接走引擎钩子，绕过 LastSettledMonth 双跑
+            CivilizationSimEngine.SettleMonthForTest(normal, month: 0, lawBeforePolitics: true);
+            CivilizationSimEngine.SettleMonthForTest(swapped, month: 0, lawBeforePolitics: false);
+            Assert.AreNotEqual(
+                WorldStateSerializer.ComputeMonthlyHash(normal),
+                WorldStateSerializer.ComputeMonthlyHash(swapped));
+        }
+
+        [Test]
+        public void HarvestPressure_WritesEcologyHarvestRate()
+        {
+            var world = WorldState.CreateMinimalSlice(0xA3421UL);
+            EcologySimEngine.AttachTo(world);
+            CivilizationSimEngine.AttachTo(world);
+            world.Civilization.Economies[0].wood = 50;
+            world.Civilization.Economies[0].foodSurplus = 20;
+            CivilizationSimEngine.SettleMonthForTest(world, 0, lawBeforePolitics: true);
+            Assert.Greater(world.Ecology.Resources.First(r => r.kind == ResourceKind.Forest).harvestRate, 0.0);
         }
 
         [Test]

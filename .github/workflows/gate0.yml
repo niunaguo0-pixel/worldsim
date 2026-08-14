@@ -20,7 +20,7 @@ env:
   BURST_VERSION_PIN: "1.8.30"
   PROJECT_PATH: "WorldSim"
   # 至少应覆�?Gate0Determinism 四路 + 单元确定性套件（本地基线�?34�?2�?
-  GATE0_MIN_TESTS: "110"
+  GATE0_MIN_TESTS: "118"
 jobs:
   pin-versions:
     name: V0-8 �?Pins + G0-1 asmdef

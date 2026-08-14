@@ -137,7 +137,7 @@ namespace WorldSim.Presentation
             _latest = default;
         }
 
-        /// <summary>从 WorldState 只读采样；不修改任何逻辑字段。</summary>
+        /// <summary>从 WorldState 只读采样；优先 Civ/Eco v2，缺省回退 Slice 桩。不修改任何逻辑字段。</summary>
         public static PresentationLogicSample Capture(WorldState world, float sphereRadius = 5f)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
@@ -145,7 +145,24 @@ namespace WorldSim.Presentation
             double population = 0.0;
             double primaryPop = 0.0;
             int primaryId = 0;
-            if (world.Settlements != null && world.Settlements.Count > 0)
+            bool usedCiv = false;
+            if (world.Civilization?.Settlements != null && world.Civilization.Settlements.Count > 0)
+            {
+                usedCiv = true;
+                primaryId = world.Civilization.Settlements[0].stableId;
+                primaryPop = world.Civilization.Settlements[0].population;
+                for (int i = 0; i < world.Civilization.Settlements.Count; i++)
+                {
+                    var s = world.Civilization.Settlements[i];
+                    population += s.population;
+                    if (s.stableId < primaryId)
+                    {
+                        primaryId = s.stableId;
+                        primaryPop = s.population;
+                    }
+                }
+            }
+            else if (world.Settlements != null && world.Settlements.Count > 0)
             {
                 primaryId = world.Settlements[0].stableId;
                 primaryPop = world.Settlements[0].population;
@@ -161,7 +178,17 @@ namespace WorldSim.Presentation
             }
 
             double food = 0.0;
-            if (world.Resources != null)
+            if (world.Civilization?.Economies != null && world.Civilization.Economies.Count > 0)
+            {
+                for (int i = 0; i < world.Civilization.Economies.Count; i++)
+                    food += world.Civilization.Economies[i].food;
+            }
+            else if (world.Ecology?.Resources != null && world.Ecology.Resources.Count > 0)
+            {
+                for (int i = 0; i < world.Ecology.Resources.Count; i++)
+                    food += world.Ecology.Resources[i].currentAmount;
+            }
+            else if (world.Resources != null)
             {
                 for (int i = 0; i < world.Resources.Count; i++)
                 {
@@ -176,6 +203,7 @@ namespace WorldSim.Presentation
             float x = (float)(Math.Sin(yaw) * 0.15);
             float z = (float)(Math.Cos(yaw) * 0.15);
             float resourceVisual = (float)Math.Max(0.15, Math.Min(2.5, food / 100.0));
+            if (usedCiv) resourceVisual = (float)Math.Max(0.15, Math.Min(2.5, food / 40.0));
 
             return new PresentationLogicSample
             {
