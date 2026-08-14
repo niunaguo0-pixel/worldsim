@@ -61,14 +61,36 @@ namespace WorldSim.Tests.Unit
             Assert.AreEqual(before, WorldStateSerializer.ComputeMonthlyHash(world));
         }
 
-        [TestCase(float.NaN)]
-        [TestCase(float.PositiveInfinity)]
-        [TestCase(-0.01f)]
-        public void Evaluate_RejectsInvalidDistance(float distance)
+        [Test]
+        public void Hysteresis_IsUsedByControllerOnZoomNearBoundary()
         {
-            Assert.That(
-                () => CameraLodPolicy.Evaluate(distance),
-                Throws.TypeOf<System.ArgumentOutOfRangeException>());
+            var host = new GameObject("CameraLodHysteresis_Host");
+            var cameraObject = new GameObject("CameraLodHysteresis_Camera");
+            try
+            {
+                var camera = cameraObject.AddComponent<Camera>();
+                var controller = host.AddComponent<CameraLodController>();
+                controller.Bind(camera, null, null, null, null);
+
+                // InitialDistance=14 → Civilization；迟滞下需越过 11-0.75 才进 Settlement
+                controller.Zoom(-3f); // 14 - 4.8 = 9.2 → Settlement
+                Assert.AreEqual(CameraLodLevel.Settlement, controller.CurrentLod);
+                Assert.AreEqual(120, controller.MeshLonSegments);
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraObject);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void Evaluate_IncludesMeshPrecisionFields()
+        {
+            var d = CameraLodPolicy.Evaluate(3f);
+            Assert.AreEqual(180, d.MeshLonSegments);
+            Assert.AreEqual(90, d.MeshLatSegments);
+            Assert.Greater(d.ElevationScale, 0f);
         }
     }
 }

@@ -32,8 +32,8 @@ namespace WorldSim.Presentation
     }
 
     /// <summary>
-    /// 真实地球球形表现：生成 UV 球面 mesh，按经纬度采样真实生物群系顶点色与高程位移；
-    /// 缩远时自动自转，缩近时停止自转以便观察地表细节。
+    /// P2/P4：NPR 微缩沙盘地球（美术圣经色板 + URP NPR Shader）；
+    /// 相机 LOD 驱动 mesh 精度切换（只读快照，不写 WorldState）。
     /// </summary>
     public sealed class WorldMapPresenter : MonoBehaviour
     {
@@ -42,13 +42,19 @@ namespace WorldSim.Presentation
         public const float RotationDegreesPerSecond = 6f;
         public const float RotationStopDistance = 9f;
 
+        private WorldMapViewSnapshot _snapshot;
+        private MeshFilter _meshFilter;
+        private CameraLodLevel _appliedLod = (CameraLodLevel)(-1);
         private float _currentRotationSpeed;
         private bool _autoRotate = true;
+        private bool _allowAutoRotate = true;
 
         /// <summary>当前相机距离，由 CameraLodController 写入；距离小则停转。</summary>
         public float CameraDistance { get; set; } = RotationStopDistance + 1f;
 
-        public GameObject Build(WorldMapViewSnapshot snapshot)
+        public CameraLodLevel AppliedRenderLod => _appliedLod;
+
+        public static GameObject Build(WorldMapViewSnapshot snapshot)
         {
             if (snapshot == null || !snapshot.BundleAvailable)
                 return BuildErrorPlaceholder(snapshot?.Error ?? "Geo bundle unavailable");
@@ -56,22 +62,58 @@ namespace WorldSim.Presentation
             var root = new GameObject("WorldSim_RealEarthMap");
             var filter = root.AddComponent<MeshFilter>();
             var renderer = root.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = new Material(Shader.Find("Sprites/Default")
-                ?? Shader.Find("Universal Render Pipeline/Unlit")
-                ?? Shader.Find("Standard"));
-            filter.sharedMesh = BuildSphereMesh(snapshot);
+            renderer.sharedMaterial = NprMaterialFactory.CreateEarthMaterial();
             var presenter = root.AddComponent<WorldMapPresenter>();
+            presenter._snapshot = snapshot;
+            presenter._meshFilter = filter;
             presenter._autoRotate = true;
+            var decision = CameraLodPolicy.ForLevel(CameraLodLevel.Individual);
+            filter.sharedMesh = BuildSphereMesh(
+                snapshot, decision.MeshLonSegments, decision.MeshLatSegments, decision.ElevationScale);
+            presenter._appliedLod = decision.Level;
+            presenter._allowAutoRotate = decision.AllowAutoRotate;
             return root;
         }
 
-        /// <summary>生成 UV 球面 mesh：纬度环 × 经度段，顶点色来自真实生物群系，Y 位移来自高程。</summary>
-        public Mesh BuildSphereMesh(WorldMapViewSnapshot snapshot)
+        /// <summary>P4：按相机 LOD 决策重建 mesh 精度；同档不重建。</summary>
+        public void ApplyRenderLod(CameraLodDecision decision)
         {
+            if (_snapshot == null || !_snapshot.BundleAvailable) return;
+            if (_meshFilter == null)
+                _meshFilter = GetComponent<MeshFilter>();
+            if (_meshFilter == null) return;
+            if (_appliedLod == decision.Level) return;
+
+            var old = _meshFilter.sharedMesh;
+            _meshFilter.sharedMesh = BuildSphereMesh(
+                _snapshot, decision.MeshLonSegments, decision.MeshLatSegments, decision.ElevationScale);
+            if (old != null)
+                DestroyImmediate(old);
+            _appliedLod = decision.Level;
+            _allowAutoRotate = decision.AllowAutoRotate;
+        }
+
+        public static Mesh BuildSphereMesh(WorldMapViewSnapshot snapshot) =>
+            BuildSphereMesh(
+                snapshot,
+                WorldMapViewSnapshot.Width,
+                WorldMapViewSnapshot.Height,
+                ElevationScale);
+
+        /// <summary>从全分辨率快照降采样生成 UV 球面；顶点色来自 NPR 色板。</summary>
+        public static Mesh BuildSphereMesh(
+            WorldMapViewSnapshot snapshot,
+            int lonSegments,
+            int latSegments,
+            float elevationScale)
+        {
+            if (snapshot == null || snapshot.Tiles == null)
+                throw new ArgumentNullException(nameof(snapshot));
+            lonSegments = Math.Max(4, lonSegments);
+            latSegments = Math.Max(2, latSegments);
+
             const int width = WorldMapViewSnapshot.Width;
             const int height = WorldMapViewSnapshot.Height;
-            int latSegments = height;
-            int lonSegments = width;
             int vertexCount = (latSegments + 1) * (lonSegments + 1);
             var vertices = new Vector3[vertexCount];
             var colors = new Color[vertexCount];
@@ -83,12 +125,11 @@ namespace WorldSim.Presentation
                 double latRad = lat * Math.PI / 180.0;
                 float cosLat = (float)Math.Cos(latRad);
                 float sinLat = (float)Math.Sin(latRad);
-                int sy = Math.Min(height - 1, row == 0 ? 0 : row - 1);
-                if (row == latSegments) sy = height - 1;
+                int sy = SampleY(row, latSegments, height);
 
                 for (int col = 0; col <= lonSegments; col++)
                 {
-                    int sx = col == lonSegments ? 0 : col;
+                    int sx = col == lonSegments ? 0 : SampleX(col, lonSegments, width);
                     double lon = -180.0 + (double)sx / width * 360.0;
                     double lonRad = lon * Math.PI / 180.0;
                     float cosLon = (float)Math.Cos(lonRad);
@@ -96,7 +137,7 @@ namespace WorldSim.Presentation
 
                     var tile = snapshot.Tiles[sy * width + sx];
                     float elev = tile.IsLand
-                        ? (float)Math.Max(0.0, tile.ElevationMeters / 9000.0) * ElevationScale
+                        ? (float)Math.Max(0.0, tile.ElevationMeters / 9000.0) * elevationScale
                         : 0f;
                     float r = SphereRadius + elev;
 
@@ -104,7 +145,7 @@ namespace WorldSim.Presentation
                         r * cosLat * cosLon,
                         r * sinLat,
                         r * cosLat * sinLon);
-                    colors[row * (lonSegments + 1) + col] = ColorFor(tile);
+                    colors[row * (lonSegments + 1) + col] = NprDioramaPalette.ColorForTile(tile);
                     uv[row * (lonSegments + 1) + col] = new Vector2(
                         (float)col / lonSegments, (float)row / latSegments);
                 }
@@ -126,7 +167,7 @@ namespace WorldSim.Presentation
                 }
             }
 
-            var mesh = new Mesh { name = "WorldSim_RealEarthSphere" };
+            var mesh = new Mesh { name = "WorldSim_NprEarthSphere" };
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             mesh.vertices = vertices;
             mesh.colors = colors;
@@ -139,7 +180,7 @@ namespace WorldSim.Presentation
 
         private void Update()
         {
-            bool shouldRotate = _autoRotate && CameraDistance > RotationStopDistance;
+            bool shouldRotate = _autoRotate && _allowAutoRotate && CameraDistance > RotationStopDistance;
             float targetSpeed = shouldRotate ? RotationDegreesPerSecond : 0f;
             _currentRotationSpeed = Mathf.Lerp(
                 _currentRotationSpeed, targetSpeed,
@@ -148,23 +189,14 @@ namespace WorldSim.Presentation
                 transform.Rotate(Vector3.up, _currentRotationSpeed * Time.unscaledDeltaTime, Space.World);
         }
 
-        private static Color ColorFor(WorldTileData tile)
+        private static int SampleX(int col, int lonSegments, int width) =>
+            Math.Min(width - 1, (int)Math.Round((double)col / lonSegments * width));
+
+        private static int SampleY(int row, int latSegments, int height)
         {
-            if (!tile.IsLand) return new Color(0.08f, 0.25f, 0.46f);
-            switch (tile.Biome)
-            {
-                case BiomeType.Ice: return new Color(0.85f, 0.92f, 0.95f);
-                case BiomeType.Tundra: return new Color(0.60f, 0.66f, 0.58f);
-                case BiomeType.BorealForest: return new Color(0.16f, 0.35f, 0.22f);
-                case BiomeType.TemperateForest: return new Color(0.24f, 0.48f, 0.25f);
-                case BiomeType.Grassland: return new Color(0.52f, 0.64f, 0.28f);
-                case BiomeType.Desert: return new Color(0.78f, 0.64f, 0.34f);
-                case BiomeType.Savanna: return new Color(0.66f, 0.58f, 0.24f);
-                case BiomeType.TropicalRainforest: return new Color(0.08f, 0.38f, 0.18f);
-                case BiomeType.Alpine: return new Color(0.48f, 0.45f, 0.42f);
-                case BiomeType.Wetland: return new Color(0.18f, 0.48f, 0.43f);
-                default: return Color.magenta;
-            }
+            if (row <= 0) return 0;
+            if (row >= latSegments) return height - 1;
+            return Math.Min(height - 1, (int)Math.Round((double)row / latSegments * (height - 1)));
         }
 
         private static GameObject BuildErrorPlaceholder(string error)

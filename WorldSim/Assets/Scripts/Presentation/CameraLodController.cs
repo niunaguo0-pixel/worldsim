@@ -31,11 +31,14 @@ namespace WorldSim.Presentation
         private float _distanceVelocity;
         private bool _initialized;
         private CameraLodDecision _decision;
+        private CameraLodLevel _lodLevel = CameraLodLevel.Civilization;
         private Vector2 _lastPointer;
 
         public CameraLodLevel CurrentLod => _decision.Level;
         public string CurrentLodLabel => _decision.Label;
         public bool ReduceMotion => _decision.ReduceMotion;
+        public int MeshLonSegments => _decision.MeshLonSegments;
+        public int MeshLatSegments => _decision.MeshLatSegments;
         public float TargetDistance => _targetDistance;
         public Vector3 TargetFocus => _targetFocus;
 
@@ -59,7 +62,7 @@ namespace WorldSim.Presentation
         public void Zoom(float steps)
         {
             _targetDistance = Mathf.Clamp(_targetDistance + steps * ZoomStep, MinDistance, MaxDistance);
-            ApplyLod(CameraLodPolicy.Evaluate(_targetDistance));
+            ApplyLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
         }
 
         /// <summary>以沙盘平面世界坐标平移焦点。</summary>
@@ -74,7 +77,7 @@ namespace WorldSim.Presentation
             Vector3 rootPosition = _sandboxRoot != null ? _sandboxRoot.position : Vector3.zero;
             _targetFocus = rootPosition + Vector3.up * 0.5f;
             _targetDistance = InitialDistance;
-            ApplyLod(CameraLodPolicy.Evaluate(_targetDistance));
+            ApplyLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
         }
 
         private void Update()
@@ -99,7 +102,11 @@ namespace WorldSim.Presentation
                 ? _sandboxRoot.GetComponentInChildren<WorldMapPresenter>()
                 : null;
             if (earth != null)
+            {
                 earth.CameraDistance = _distance;
+                // 平滑距离跨过迟滞边界时同步 mesh 精度
+                ApplyLod(CameraLodPolicy.EvaluateWithHysteresis(_distance, _lodLevel));
+            }
         }
 
         private void PollInput(float dt)
@@ -166,13 +173,15 @@ namespace WorldSim.Presentation
             _camera.transform.position = _focus + ViewDirection * _distance;
             _camera.transform.LookAt(_focus);
             _initialized = true;
-            ApplyLod(CameraLodPolicy.Evaluate(_targetDistance));
+            _lodLevel = CameraLodPolicy.Evaluate(_targetDistance).Level;
+            ApplyLod(CameraLodPolicy.ForLevel(_lodLevel));
             return true;
         }
 
         private void ApplyLod(CameraLodDecision decision)
         {
             _decision = decision;
+            _lodLevel = decision.Level;
             if (_entityDetailRenderer != null)
                 _entityDetailRenderer.enabled = decision.ShowEntityDetails;
             if (_settlementLabel != null)
@@ -186,6 +195,12 @@ namespace WorldSim.Presentation
                         ? "世代概览 · 聚合统计"
                         : "文明聚合统计";
             }
+
+            var earth = _sandboxRoot != null
+                ? _sandboxRoot.GetComponentInChildren<WorldMapPresenter>()
+                : null;
+            if (earth != null)
+                earth.ApplyRenderLod(decision);
         }
     }
 }

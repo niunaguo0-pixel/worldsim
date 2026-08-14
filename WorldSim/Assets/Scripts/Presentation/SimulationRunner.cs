@@ -72,6 +72,7 @@ namespace WorldSim.Presentation
             }
 
             SandboxBindings sandbox = EnsureVisibleSandbox(mapSnapshot);
+            DioramaLightingBootstrap.EnsureKeyLight();
             _cameraLod = gameObject.GetComponent<CameraLodController>();
             if (_cameraLod == null) _cameraLod = gameObject.AddComponent<CameraLodController>();
             _cameraLod.Bind(
@@ -190,7 +191,7 @@ namespace WorldSim.Presentation
                 ?? GameObject.Find("WorldSim_GeoBundleError");
             if (ground == null)
             {
-                ground = new WorldMapPresenter().Build(mapSnapshot);
+                ground = WorldMapPresenter.Build(mapSnapshot);
                 ground.transform.position = Vector3.zero;
             }
             ground.transform.SetParent(root.transform, true);
@@ -205,11 +206,7 @@ namespace WorldSim.Presentation
                 settlement.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
                 var r = settlement.GetComponent<Renderer>();
                 if (r != null)
-                {
-                    r.material = new Material(Shader.Find("Universal Render Pipeline/Lit")
-                        ?? Shader.Find("Standard"));
-                    r.material.color = new Color(0.95f, 0.55f, 0.15f);
-                }
+                    r.sharedMaterial = NprMaterialFactory.CreateSettlementMaterial();
             }
             settlement.transform.SetParent(root.transform, true);
 

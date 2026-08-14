@@ -25,7 +25,7 @@ namespace WorldSim.Tests.Unit
             };
             WorldMapFactory.Build(root, cfg, world);
             var snapshot = WorldMapViewSnapshot.Capture(world.Geography, world.Map.GeoDataBuild);
-            var mesh = new WorldMapPresenter().BuildSphereMesh(snapshot);
+            var mesh = WorldMapPresenter.BuildSphereMesh(snapshot);
             Assert.AreEqual(181 * 91, mesh.vertexCount, "Sphere mesh vertex budget must be 181*91");
             Assert.AreEqual(180 * 90 * 2, mesh.triangles.Length / 3, "Sphere mesh triangle count must be 180*90*2");
             Object.DestroyImmediate(mesh);
@@ -54,7 +54,7 @@ namespace WorldSim.Tests.Unit
         public void MissingBundleSnapshot_UsesExplicitErrorPlaceholder()
         {
             var snapshot = new WorldMapViewSnapshot { BundleAvailable = false, Error = "missing-test" };
-            GameObject go = new WorldMapPresenter().Build(snapshot);
+            GameObject go = WorldMapPresenter.Build(snapshot);
             Assert.AreEqual("WorldSim_GeoBundleError", go.name);
             Assert.IsNotNull(go.transform.Find("WorldSim_GeoBundleError_Label"));
             Object.DestroyImmediate(go);
