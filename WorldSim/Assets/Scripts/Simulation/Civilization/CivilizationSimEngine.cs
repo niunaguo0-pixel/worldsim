@@ -42,6 +42,18 @@ namespace WorldSim.Simulation.Civilization
 
         public void SettleMonth(WorldState world, int month)
         {
+            SettleMonthOrdered(world, month, lawBeforePolitics: true);
+        }
+
+        /// <summary>测试钩子：交换 ⑪法律 / ⑫政治 顺序必须导致月哈希分叉。</summary>
+        public static void SettleMonthForTest(WorldState world, int month, bool lawBeforePolitics)
+        {
+            var engine = new CivilizationSimEngine();
+            engine.SettleMonthOrdered(world, month, lawBeforePolitics);
+        }
+
+        private void SettleMonthOrdered(WorldState world, int month, bool lawBeforePolitics)
+        {
             var civ = world.Civilization;
             if (civ == null || civ.LastSettledMonth == month) return;
             // 1-16 顺序为确定性契约；各关闭模块保留稳定空步骤。
@@ -52,21 +64,32 @@ namespace WorldSim.Simulation.Civilization
             StepSettlements(world, civ);              // 5
             if (IsModuleEnabled(world, ModuleIds.TechTree))
                 StepTechnology(civ);                  // 6
-            StepSociety(civ);                         // 7 MVP 骨架常开
+            StepSociety(civ);                         // 7
             if (IsModuleEnabled(world, ModuleIds.ReligionSystem))
                 StepReligion(civ);                    // 8
             if (IsModuleEnabled(world, ModuleIds.CultureSystem))
                 StepCulture(civ);                     // 9
             if (IsModuleEnabled(world, ModuleIds.EthnicitySystem))
                 StepEthnicity(civ);                   // 10
-            if (IsModuleEnabled(world, ModuleIds.LawSystem))
-                StepLaw(civ);                         // 11
-            if (IsModuleEnabled(world, ModuleIds.PoliticsStructure))
-                StepPolitics(world, civ, month);      // 12
+            if (lawBeforePolitics)
+            {
+                if (IsModuleEnabled(world, ModuleIds.LawSystem))
+                    StepLaw(civ);                     // 11
+                if (IsModuleEnabled(world, ModuleIds.PoliticsStructure))
+                    StepPolitics(world, civ, month);  // 12
+            }
+            else
+            {
+                if (IsModuleEnabled(world, ModuleIds.PoliticsStructure))
+                    StepPolitics(world, civ, month);  // swapped
+                if (IsModuleEnabled(world, ModuleIds.LawSystem))
+                    StepLaw(civ);
+            }
             if (IsModuleEnabled(world, ModuleIds.MilitarySystem))
                 StepMilitary(world, civ, month);      // 13
             StepEra(world, civ, month);               // 14
             AggregatePolities(civ);                   // 15
+            ApplyHarvestPressureToEcology(world, civ); // harvestRate←S3（下月生态采伐）
             EmitEvents(world, civ, month);            // 16
             civ.LastSettledMonth = month;
         }
@@ -99,9 +122,22 @@ namespace WorldSim.Simulation.Civilization
         private static void ApplyEcologyModifiers(WorldState world, CivilizationState civ)
         {
             if (world.Ecology == null || world.Ecology.Indicators.Count == 0) return;
-            double health = world.Ecology.Indicators[0].currentValue;
-            foreach (var e in civ.Economies)
-                e.food = Q(Math.Max(0, e.food * (0.5 + health * 0.5)));
+            double foodChain = IndicatorByCode(world.Ecology, "food-chain-health");
+            double resources = IndicatorByCode(world.Ecology, "resource-abundance");
+            double terrain = IndicatorByCode(world.Ecology, "terrain-stability");
+            // ② 真实化：综合食物链/资源/地貌，而不只吃 Indicators[0]
+            double health = Q((foodChain * 0.5) + (resources * 0.3) + (terrain * 0.2));
+            civ.EcoImpactCoefficient = Q(Math.Max(0.25, Math.Min(1.5, 0.5 + health * 0.5)));
+            foreach (var e in Sorted(civ.Economies, x => x.stableId))
+                e.food = Q(Math.Max(0, e.food * civ.EcoImpactCoefficient));
+        }
+
+        private static double IndicatorByCode(EcologyState eco, string code)
+        {
+            for (int i = 0; i < eco.Indicators.Count; i++)
+                if (string.Equals(eco.Indicators[i].code, code, StringComparison.Ordinal))
+                    return eco.Indicators[i].currentValue;
+            return eco.Indicators.Count > 0 ? eco.Indicators[0].currentValue : 0.5;
         }
 
         private static void StepIndividuals(WorldState world, CivilizationState civ, int month)
@@ -166,22 +202,36 @@ namespace WorldSim.Simulation.Civilization
             {
                 var e = EconomyFor(civ, s.stableId);
                 double cc = CarryingCapacity(s);
+                // 食物盈余驱动成长；承载力为硬顶。
                 double growth = e != null && e.foodSurplus > 0 ? 0.015 : -0.01;
                 if (world.Geography != null)
                 {
                     var tile = world.Geography.GetTile(s.worldTileId);
+                    // 选址约束：非陆地/陡坡惩罚；近水奖励；缓坡额外奖励。
                     if (!tile.IsLand || tile.Slope > 20) growth -= 0.05;
-                    else if (world.Geography.HasWaterNearby(s.worldTileId)) growth += 0.003;
+                    else
+                    {
+                        if (world.Geography.HasWaterNearby(s.worldTileId)) growth += 0.003;
+                        if (tile.Slope < 8) growth += 0.002;
+                    }
                 }
                 if (s.population > cc) growth -= 0.04;
-                s.population = Q(Math.Max(0, s.population * (1 + growth)));
+                s.population = Q(Math.Max(0, Math.Min(cc, s.population * (1 + growth))));
                 s.prosperity = Q(Math.Max(0, Math.Min(1, s.prosperity + growth)));
-                s.tier = s.population >= 10000 ? SettlementTier.Metro : s.population >= 2000 ? SettlementTier.City :
-                    s.population >= 500 ? SettlementTier.Town : SettlementTier.Village;
+                // 村→镇→市→都市圈（GDD 分档；阈值可测）
+                s.tier = ClassifySettlementTier(s.population);
                 s.agricultureZone = s.tier >= SettlementTier.Village;
                 s.housingZone = s.tier >= SettlementTier.Town;
                 s.storageZone = s.tier >= SettlementTier.City;
             }
+        }
+
+        public static SettlementTier ClassifySettlementTier(double population)
+        {
+            if (population >= 10000) return SettlementTier.Metro;
+            if (population >= 2000) return SettlementTier.City;
+            if (population >= 500) return SettlementTier.Town;
+            return SettlementTier.Village;
         }
 
         private static void StepTechnology(CivilizationState civ)
@@ -196,9 +246,67 @@ namespace WorldSim.Simulation.Civilization
             }
         }
 
-        private static void StepSociety(CivilizationState civ) { }
-        private static void StepReligion(CivilizationState civ) { }
-        private static void StepCulture(CivilizationState civ) { }
+        /// <summary>⑦ 社会：分工深度随经济分工水平推进（可哈希）。</summary>
+        private static void StepSociety(CivilizationState civ)
+        {
+            foreach (var p in Sorted(civ.Polities, x => x.stableId))
+            {
+                double division = 0.0;
+                int n = 0;
+                foreach (var e in civ.Economies)
+                {
+                    var s = SettlementFor(civ, e.settlementId);
+                    if (s == null || s.polityId != p.stableId) continue;
+                    division += e.divisionLevel;
+                    n++;
+                }
+                double avg = n == 0 ? 0.0 : division / n;
+                p.divisionDepth = Math.Min(5, Math.Max(0, (int)Math.Floor(avg)));
+                p.stability = Q(Clamp01(p.stability + avg * 0.002));
+            }
+        }
+
+        /// <summary>⑧ 宗教：信仰进度缓慢累积（写入 Tech.faith，入哈希）。</summary>
+        private static void StepReligion(CivilizationState civ)
+        {
+            foreach (var t in Sorted(civ.Tech, x => x.stableId))
+                t.faith = Q(Math.Min(1.0, t.faith + 0.01));
+        }
+
+        /// <summary>⑨ 文化：文化进度 + 聚落繁荣微幅联动。</summary>
+        private static void StepCulture(CivilizationState civ)
+        {
+            foreach (var t in Sorted(civ.Tech, x => x.stableId))
+            {
+                t.culture = Q(Math.Min(1.0, t.culture + 0.01));
+                foreach (var s in Sorted(civ.Settlements, x => x.stableId))
+                {
+                    if (s.polityId != t.polityId) continue;
+                    s.prosperity = Q(Clamp01(s.prosperity + 0.001));
+                }
+            }
+        }
+
+        /// <summary>S3→S2：把文明采伐压力写入生态 harvestRate（下月生态结算消费）。</summary>
+        private static void ApplyHarvestPressureToEcology(WorldState world, CivilizationState civ)
+        {
+            if (world.Ecology == null || world.Ecology.Resources.Count == 0) return;
+            double woodDemand = 0.0;
+            double foodPressure = 0.0;
+            foreach (var e in Sorted(civ.Economies, x => x.stableId))
+            {
+                woodDemand += Math.Max(0.0, e.wood * 0.02);
+                foodPressure += Math.Max(0.0, e.foodSurplus * 0.01);
+            }
+            double impact = Math.Max(0.25, civ.EcoImpactCoefficient);
+            foreach (var r in Sorted(world.Ecology.Resources, x => x.stableId))
+            {
+                if (r.kind == ResourceKind.Forest)
+                    r.harvestRate = Q(woodDemand * impact);
+                else if (r.kind == ResourceKind.Fishery)
+                    r.harvestRate = Q(Math.Max(0.0, foodPressure * impact * 0.5));
+            }
+        }
 
         /// <summary>⑩ 族群：MVP 强制单主导折叠；ethnicInequality 恒 0 写入稳定度路径。</summary>
         private static void StepEthnicity(CivilizationState civ)

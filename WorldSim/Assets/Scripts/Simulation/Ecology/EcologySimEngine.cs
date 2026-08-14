@@ -128,7 +128,20 @@ namespace WorldSim.Simulation.Ecology
             {
                 var r = regions[i];
                 if (r.terrainPhase == PhaseState.Collapsed) continue;
-                r.terrainEvolution = Q(Math.Min(1.0, r.terrainEvolution + 0.002));
+                // ⑦ 触发：森林资源进入应力/相变时加速地貌演变；否则慢推。
+                double step = 0.002;
+                var resources = Sorted(eco.Resources, x => x.stableId);
+                for (int j = 0; j < resources.Count; j++)
+                {
+                    var res = resources[j];
+                    if (res.regionId != r.stableId || res.kind != ResourceKind.Forest) continue;
+                    if (res.zone == EcologyZone.Stress) step = 0.01;
+                    if (res.zone == EcologyZone.PhaseTransition || res.phase != PhaseState.None)
+                        step = 0.02;
+                }
+                r.terrainEvolution = Q(Math.Min(1.0, r.terrainEvolution + step));
+                if (r.terrainEvolution >= 1.0 && r.terrainPhase == PhaseState.None)
+                    r.terrainPhase = PhaseState.Degraded;
             }
         }
 
@@ -139,15 +152,7 @@ namespace WorldSim.Simulation.Ecology
             {
                 var x = indicators[i];
                 x.previousValue = x.currentValue;
-                double stable = 0.0;
-                int count = 0;
-                foreach (var s in eco.Species)
-                {
-                    if (s.regionId != x.regionId) continue;
-                    count++;
-                    stable += s.zone == EcologyZone.Stable ? 1.0 : s.zone == EcologyZone.Stress ? 0.5 : 0.0;
-                }
-                x.currentValue = Q(count == 0 ? 0.0 : stable / count);
+                x.currentValue = Q(ComputeIndicatorValue(eco, x));
                 x.zone = x.currentValue < 0.25 ? EcologyZone.PhaseTransition :
                     x.currentValue < 0.75 ? EcologyZone.Stress : EcologyZone.Stable;
                 x.stressMonths = x.zone == EcologyZone.Stable ? 0 : x.stressMonths + 1;
@@ -155,6 +160,88 @@ namespace WorldSim.Simulation.Ecology
                     x.stressMonths >= 3 ? "ecology.warning.emergency" :
                     x.zone == EcologyZone.Stress ? "ecology.warning.stress" : "";
             }
+        }
+
+        private static double ComputeIndicatorValue(EcologyState eco, EcologicalIndicatorState x)
+        {
+            switch (x.code ?? "")
+            {
+                case "biodiversity":
+                    return BiodiversityScore(eco, x.regionId);
+                case "resource-abundance":
+                    return ResourceAbundanceScore(eco, x.regionId);
+                case "terrain-stability":
+                    return TerrainStabilityScore(eco, x.regionId);
+                case "climate-stability":
+                    return ClimateStabilityScore(eco, x.regionId);
+                case "food-chain-health":
+                default:
+                    return FoodChainHealthScore(eco, x.regionId);
+            }
+        }
+
+        private static double FoodChainHealthScore(EcologyState eco, int regionId)
+        {
+            double stable = 0.0;
+            int count = 0;
+            foreach (var s in eco.Species)
+            {
+                if (s.regionId != regionId) continue;
+                count++;
+                stable += s.zone == EcologyZone.Stable ? 1.0 : s.zone == EcologyZone.Stress ? 0.5 : 0.0;
+            }
+            return count == 0 ? 0.0 : stable / count;
+        }
+
+        private static double BiodiversityScore(EcologyState eco, int regionId)
+        {
+            int alive = 0;
+            int total = 0;
+            foreach (var s in eco.Species)
+            {
+                if (s.regionId != regionId) continue;
+                total++;
+                if (s.population > Epsilon && s.phase != PhaseState.Collapsed) alive++;
+            }
+            return total == 0 ? 0.0 : (double)alive / total;
+        }
+
+        private static double ResourceAbundanceScore(EcologyState eco, int regionId)
+        {
+            double sum = 0.0;
+            int count = 0;
+            foreach (var r in eco.Resources)
+            {
+                if (r.regionId != regionId) continue;
+                count++;
+                sum += SafeRatio(r.currentAmount, Math.Max(Epsilon, r.maxAmount));
+            }
+            return count == 0 ? 0.0 : sum / count;
+        }
+
+        private static double TerrainStabilityScore(EcologyState eco, int regionId)
+        {
+            for (int i = 0; i < eco.Regions.Count; i++)
+            {
+                if (eco.Regions[i].stableId != regionId) continue;
+                var r = eco.Regions[i];
+                if (r.terrainPhase == PhaseState.Collapsed) return 0.0;
+                if (r.terrainPhase == PhaseState.Degraded) return 0.35;
+                return Math.Max(0.0, 1.0 - r.terrainEvolution);
+            }
+            return 0.0;
+        }
+
+        private static double ClimateStabilityScore(EcologyState eco, int regionId)
+        {
+            for (int i = 0; i < eco.Regions.Count; i++)
+            {
+                if (eco.Regions[i].stableId != regionId) continue;
+                var r = eco.Regions[i];
+                double drift = Math.Abs(r.rainfallModifier) + Math.Abs(r.temperatureModifier);
+                return Math.Max(0.0, 1.0 - drift * 0.05);
+            }
+            return 0.0;
         }
 
         private static void EmitWarnings(WorldState world, EcologyState eco, int month)
@@ -265,7 +352,12 @@ namespace WorldSim.Simulation.Ecology
             state.FoodChain.Add(new FoodChainLink { stableId = 101, predatorId = 12, preyId = 11, predationRate = .03, dependencyRatio = 1 });
             state.Resources.Add(new RenewableResourceState { stableId = 200, regionId = 1, kind = ResourceKind.Forest, currentAmount = 70, maxAmount = 100, regenRate = 3, homeostasis = z });
             state.Resources.Add(new RenewableResourceState { stableId = 201, regionId = 1, kind = ResourceKind.Fishery, currentAmount = 65, maxAmount = 100, regenRate = 2, homeostasis = z });
+            // ⑩ 五指标（GDD §2.7）：食物链 / 生物多样性 / 资源丰度 / 地貌稳定 / 气候稳定
             state.Indicators.Add(new EcologicalIndicatorState { stableId = 300, regionId = 1, code = "food-chain-health", currentValue = 1 });
+            state.Indicators.Add(new EcologicalIndicatorState { stableId = 301, regionId = 1, code = "biodiversity", currentValue = 1 });
+            state.Indicators.Add(new EcologicalIndicatorState { stableId = 302, regionId = 1, code = "resource-abundance", currentValue = 1 });
+            state.Indicators.Add(new EcologicalIndicatorState { stableId = 303, regionId = 1, code = "terrain-stability", currentValue = 1 });
+            state.Indicators.Add(new EcologicalIndicatorState { stableId = 304, regionId = 1, code = "climate-stability", currentValue = 1 });
             return state;
         }
 

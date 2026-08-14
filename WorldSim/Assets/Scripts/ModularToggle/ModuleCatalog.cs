@@ -8,8 +8,8 @@ namespace WorldSim.ModularToggle
     {
         private static readonly ModuleDefinition[] Definitions =
         {
-            new ModuleDefinition(ModuleIds.EcologyV2, "生态引擎 v2", "正式 S2 生态月结", false, ModuleCategory.Ecology, false),
-            new ModuleDefinition(ModuleIds.CivilizationV2, "文明引擎 v2", "正式 S3 十六步月结", false, ModuleCategory.Civilization, false),
+            new ModuleDefinition(ModuleIds.EcologyV2, "生态引擎 v2", "正式 S2 生态月结", true, ModuleCategory.Ecology, false),
+            new ModuleDefinition(ModuleIds.CivilizationV2, "文明引擎 v2", "正式 S3 十六步月结", true, ModuleCategory.Civilization, false),
             new ModuleDefinition(ModuleIds.GenerationInheritance, "世代传承", "个体死亡后继承与世代里程碑", false, ModuleCategory.Time, true),
             new ModuleDefinition(ModuleIds.TechTree, "科技树", "科技积累与解锁步进", false, ModuleCategory.Civilization, true),
             new ModuleDefinition(ModuleIds.SettlementMulti, "多聚落", "多聚落扩张与跨聚落战事", false, ModuleCategory.Civilization, true),

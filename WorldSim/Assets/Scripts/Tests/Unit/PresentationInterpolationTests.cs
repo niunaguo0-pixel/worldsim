@@ -165,5 +165,27 @@ namespace WorldSim.Tests.Unit
             view.Sync(world);
             Assert.AreEqual(hash, WorldStateSerializer.ComputeMonthlyHash(world));
         }
+
+        [Test]
+        public void Capture_PrefersCivilizationAndEcologyV2OverSliceStubs()
+        {
+            var world = WorldState.CreateMinimalSlice(17);
+            world.Settlements.Clear();
+            world.Settlements.Add(new SettlementStub { stableId = 99, name = "Slice", population = 1 });
+            world.Resources.Clear();
+            world.Resources.Add(new ResourceStub { stableId = 1, name = "Food", currentAmount = 1 });
+
+            WorldSim.Simulation.Ecology.EcologySimEngine.AttachTo(world);
+            WorldSim.Simulation.Civilization.CivilizationSimEngine.AttachTo(world);
+            world.Civilization.Settlements[0].population = 777;
+            world.Civilization.Economies[0].food = 123;
+
+            var sample = PresentationWorldView.Capture(world);
+            Assert.AreEqual(777.0, sample.TotalPopulation, 1e-9);
+            Assert.AreEqual(123.0, sample.FoodReserve, 1e-9);
+            ulong before = WorldStateSerializer.ComputeMonthlyHash(world);
+            PresentationWorldView.Capture(world);
+            Assert.AreEqual(before, WorldStateSerializer.ComputeMonthlyHash(world));
+        }
     }
 }

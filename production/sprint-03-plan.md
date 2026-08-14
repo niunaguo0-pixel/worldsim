@@ -12,7 +12,7 @@
   - design/gdd/ecology-sim-engine.md §4.3
   - design/gdd/civilization-system.md §4.3
   - tests/contracts/determinism-contract.md
-状态: Sprint 03 OPEN（文档门；代码另开 `cursor/sprint03-monthly-ledger`）
+状态: Sprint 03 实现中（代码分支 `cursor/sprint03-monthly-ledger`）
 ---
 
 # Phase 4 预制作 · Sprint 03（月账满流水线）

@@ -1,4 +1,6 @@
 using NUnit.Framework;
+using System;
+using System.Linq;
 using WorldSim.Simulation.Core;
 using WorldSim.Simulation.Core.Ecology;
 using WorldSim.Simulation.Core.Serialization;
@@ -18,7 +20,62 @@ namespace WorldSim.Tests.Unit
             Assert.DoesNotThrow(() => state.Species[0].homeostasis.Validate());
             var bad = state.Species[0].homeostasis;
             bad.StableLower = 0.9;
-            Assert.Throws<System.ArgumentOutOfRangeException>(() => bad.Validate());
+            Assert.Throws<ArgumentOutOfRangeException>(() => bad.Validate());
+        }
+
+        [Test]
+        public void Homeostasis_PerturbedPopulation_ReturnsTowardEquilibrium_OrderIndependent()
+        {
+            var z = EcologySimEngine.CreateMinimalState().Species[0].homeostasis;
+            z.Validate();
+            double a = 0.2;
+            double b = 0.9;
+            double ra1 = a + (z.EquilibriumPoint - a) * z.SelfRepairRate * z.StressDecayFactor;
+            double ra2 = ra1 + (z.EquilibriumPoint - ra1) * z.SelfRepairRate;
+            double rb1 = b + (z.EquilibriumPoint - b) * z.SelfRepairRate;
+            double rb2 = rb1 + (z.EquilibriumPoint - rb1) * z.SelfRepairRate;
+            Assert.Greater(ra2, a);
+            Assert.Less(Math.Abs(ra2 - z.EquilibriumPoint), Math.Abs(a - z.EquilibriumPoint));
+            Assert.Less(Math.Abs(rb2 - z.EquilibriumPoint), Math.Abs(b - z.EquilibriumPoint));
+        }
+
+        [Test]
+        public void CreateMinimalState_ExposesFiveEcologicalIndicators()
+        {
+            var eco = EcologySimEngine.CreateMinimalState();
+            Assert.AreEqual(5, eco.Indicators.Count);
+            CollectionAssert.AreEquivalent(
+                new[] { "food-chain-health", "biodiversity", "resource-abundance", "terrain-stability", "climate-stability" },
+                eco.Indicators.Select(i => i.code).ToArray());
+        }
+
+        [Test]
+        public void TerrainStep_AcceleratesWhenForestIsStressed()
+        {
+            var stressed = WorldState.CreateMinimalSlice(0xEC020030UL);
+            var healthy = WorldState.CreateMinimalSlice(0xEC020030UL);
+            EcologySimEngine.AttachTo(stressed);
+            EcologySimEngine.AttachTo(healthy);
+            stressed.Ecology.Resources[0].currentAmount = 5; // Forest → stress after resource step
+            healthy.Ecology.Resources[0].currentAmount = 90;
+            stressed.EcologySettler.SettleMonth(stressed, 0);
+            healthy.EcologySettler.SettleMonth(healthy, 0);
+            Assert.Greater(
+                stressed.Ecology.Regions[0].terrainEvolution,
+                healthy.Ecology.Regions[0].terrainEvolution);
+        }
+
+        [Test]
+        public void Indicators_UpdateAllFive_AndEmitWarningsOnStress()
+        {
+            var world = WorldState.CreateMinimalSlice(0xEC020031UL);
+            EcologySimEngine.AttachTo(world);
+            foreach (var s in world.Ecology.Species) s.population = 0;
+            var orch = new SimOrchestrator(world);
+            orch.AdvanceGameTime(TimeDriver.MONTH_SECONDS);
+            Assert.AreEqual(5, world.Ecology.Indicators.Count);
+            Assert.IsTrue(world.Ecology.Indicators.Any(i => !string.IsNullOrEmpty(i.warningCode)));
+            Assert.Greater(world.Events.Count, 0);
         }
 
         [Test]
@@ -80,7 +137,6 @@ namespace WorldSim.Tests.Unit
             orch.SetSpeedMultiplier(speed);
             while (world.Time.monthIndex < 12)
             {
-                // 手工边界推进使用相同游戏时间；速度档由 UI Update 路径缩放现实 dt。
                 orch.AdvanceGameTime(TimeDriver.WEEK_SECONDS);
                 if (world.Time.monthIndex == saveAt)
                 {
