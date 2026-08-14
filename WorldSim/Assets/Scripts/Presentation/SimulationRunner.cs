@@ -88,7 +88,7 @@ namespace WorldSim.Presentation
             _cameraLod = gameObject.GetComponent<CameraLodController>();
             if (_cameraLod == null) _cameraLod = gameObject.AddComponent<CameraLodController>();
             _cameraLod.Bind(
-                Camera.main,
+                EnsureMainCamera(),
                 sandbox.Root.transform,
                 sandbox.Settlement.GetComponent<Renderer>(),
                 sandbox.SettlementLabel,
@@ -141,12 +141,12 @@ namespace WorldSim.Presentation
                     view.EntityPosZ);
             }
 
-            if (_cameraLod != null && !_timeSnapshot.IsPaused)
+            if (_cameraLod != null && !_timeSnapshot.IsPaused && !_cameraLod.IsUserDrivingCamera)
             {
                 _cameraLod.ApplyPresentationCameraHint(
                     new Vector3(view.CameraFocusX, view.CameraFocusY, view.CameraFocusZ),
                     view.CameraDistance,
-                    blend: 0.08f);
+                    blend: 0.04f);
             }
         }
 
@@ -331,6 +331,40 @@ namespace WorldSim.Presentation
             public GameObject AggregateStatistics { get; }
         }
 
+        private static Camera EnsureMainCamera()
+        {
+            Camera cam = Camera.main;
+            if (cam != null) return cam;
+
+            var existing = GameObject.Find("Main Camera");
+            if (existing != null)
+            {
+                cam = existing.GetComponent<Camera>();
+                if (cam == null) cam = existing.AddComponent<Camera>();
+            }
+            else
+            {
+                var go = new GameObject("Main Camera");
+                cam = go.AddComponent<Camera>();
+                go.AddComponent<AudioListener>();
+                existing = go;
+            }
+
+            try
+            {
+                existing.tag = "MainCamera";
+            }
+            catch (UnityException)
+            {
+                // 标签未定义时仍可用显式绑定的 Camera 引用
+            }
+
+            cam.clearFlags = CameraClearFlags.Skybox;
+            cam.nearClipPlane = 0.1f;
+            cam.farClipPlane = 200f;
+            return cam;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoBootstrapIfMissing()
         {
@@ -339,6 +373,7 @@ namespace WorldSim.Presentation
 #else
             if (UnityEngine.Object.FindObjectOfType<SimulationRunner>() != null) return;
 #endif
+            EnsureMainCamera();
             var go = new GameObject("WorldSim_PlayableLoop");
             go.AddComponent<SimulationRunner>();
         }

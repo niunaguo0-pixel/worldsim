@@ -35,8 +35,8 @@ namespace WorldSim.Tests.Unit
 
                 controller.Zoom(1f);
 
-                // InitialDistance=14, ZoomStep=1.6 → 15.6；落在 Civilization 档
-                Assert.AreEqual(15.6f, controller.TargetDistance, 0.0001f);
+                // InitialDistance=14, ZoomStep=2.8 → 16.8；落在 Civilization 档
+                Assert.AreEqual(16.8f, controller.TargetDistance, 0.0001f);
                 Assert.AreEqual(CameraLodLevel.Civilization, controller.CurrentLod);
                 Assert.IsTrue(controller.ReduceMotion);
             }
@@ -73,7 +73,7 @@ namespace WorldSim.Tests.Unit
                 controller.Bind(camera, null, null, null, null);
 
                 // InitialDistance=14 → Civilization；迟滞下需越过 11-0.75 才进 Settlement
-                controller.Zoom(-3f); // 14 - 4.8 = 9.2 → Settlement
+                controller.Zoom(-3f); // 14 - 8.4 = 5.6 → clamp 6 → Settlement
                 Assert.AreEqual(CameraLodLevel.Settlement, controller.CurrentLod);
                 Assert.AreEqual(120, controller.MeshLonSegments);
             }

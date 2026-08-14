@@ -53,65 +53,72 @@ namespace WorldSim.Presentation
 
         private void PollKeyboard()
         {
-            var keyboard = Keyboard.current;
-            if (keyboard == null) return;
-
             var snapshot = _timeSource.TimeSnapshot;
+            var keyboard = Keyboard.current;
 
-            if (keyboard.spaceKey.wasPressedThisFrame)
+            if (WasPressed(keyboard, Key.Space, KeyCode.Space))
             {
                 _timeControls.SetPaused(!snapshot.IsPaused);
                 _status = snapshot.IsPaused ? "已继续" : "已暂停";
             }
-            else if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
+            else if (WasPressed(keyboard, Key.Digit1, KeyCode.Alpha1) ||
+                     WasPressed(keyboard, Key.Numpad1, KeyCode.Keypad1))
             {
                 _timeControls.SetSpeedMultiplier(1);
                 _status = "速度 1×";
             }
-            else if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame)
+            else if (WasPressed(keyboard, Key.Digit2, KeyCode.Alpha2) ||
+                     WasPressed(keyboard, Key.Numpad2, KeyCode.Keypad2))
             {
                 _timeControls.SetSpeedMultiplier(2);
                 _status = "速度 2×";
             }
-            else if (keyboard.digit5Key.wasPressedThisFrame || keyboard.numpad5Key.wasPressedThisFrame)
+            else if (WasPressed(keyboard, Key.Digit5, KeyCode.Alpha5) ||
+                     WasPressed(keyboard, Key.Numpad5, KeyCode.Keypad5))
             {
                 _timeControls.SetSpeedMultiplier(5);
                 _status = "速度 5×";
             }
-            else if (keyboard.digit0Key.wasPressedThisFrame || keyboard.numpad0Key.wasPressedThisFrame ||
-                     keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
+            else if (WasPressed(keyboard, Key.Digit0, KeyCode.Alpha0) ||
+                     WasPressed(keyboard, Key.Numpad0, KeyCode.Keypad0) ||
+                     WasPressed(keyboard, Key.Digit4, KeyCode.Alpha4) ||
+                     WasPressed(keyboard, Key.Numpad4, KeyCode.Keypad4))
             {
                 _timeControls.SetSpeedMultiplier(20);
                 _status = "速度 20×";
             }
-            else if (keyboard.iKey.wasPressedThisFrame)
+            else if (WasPressed(keyboard, Key.I, KeyCode.I))
             {
                 _interveneMode = !_interveneMode;
                 _status = _interveneMode
                     ? "干预模式 ON · " + CurrentPreset.Label + " · Enter 施放"
                     : "干预模式 OFF";
             }
-            else if (_interveneMode && (keyboard.eKey.wasPressedThisFrame || keyboard.rightBracketKey.wasPressedThisFrame))
+            else if (_interveneMode &&
+                     (WasPressed(keyboard, Key.E, KeyCode.E) ||
+                      WasPressed(keyboard, Key.RightBracket, KeyCode.RightBracket)))
             {
                 _interveneIndex = PlayableControlMap.CycleInterveneIndex(
                     _interveneIndex, 1, PlayableControlMap.IntervenePresets.Length);
                 _status = "干预 → " + CurrentPreset.Label;
             }
-            else if (_interveneMode && (keyboard.qKey.wasPressedThisFrame || keyboard.leftBracketKey.wasPressedThisFrame))
+            else if (_interveneMode &&
+                     (WasPressed(keyboard, Key.Q, KeyCode.Q) ||
+                      WasPressed(keyboard, Key.LeftBracket, KeyCode.LeftBracket)))
             {
                 _interveneIndex = PlayableControlMap.CycleInterveneIndex(
                     _interveneIndex, -1, PlayableControlMap.IntervenePresets.Length);
                 _status = "干预 → " + CurrentPreset.Label;
             }
-            else if (_interveneMode && keyboard.enterKey.wasPressedThisFrame)
+            else if (_interveneMode && WasPressed(keyboard, Key.Enter, KeyCode.Return))
             {
                 ConfirmIntervene();
             }
-            else if (keyboard.escapeKey.wasPressedThisFrame)
+            else if (WasPressed(keyboard, Key.Escape, KeyCode.Escape))
             {
                 CancelModes();
             }
-            else if (keyboard.hKey.wasPressedThisFrame)
+            else if (WasPressed(keyboard, Key.H, KeyCode.H))
             {
                 _showHelp = !_showHelp;
                 _status = _showHelp ? "帮助已打开" : "帮助已关闭";
@@ -121,9 +128,22 @@ namespace WorldSim.Presentation
         private void PollMouseCancel()
         {
             var mouse = Mouse.current;
-            if (mouse == null) return;
-            if (mouse.rightButton.wasPressedThisFrame)
+            if (mouse != null)
+            {
+                if (mouse.rightButton.wasPressedThisFrame)
+                    CancelModes();
+                return;
+            }
+
+            if (Input.GetMouseButtonDown(1))
                 CancelModes();
+        }
+
+        private static bool WasPressed(Keyboard keyboard, Key key, KeyCode legacy)
+        {
+            if (keyboard != null)
+                return keyboard[key].wasPressedThisFrame;
+            return Input.GetKeyDown(legacy);
         }
 
         public void ConfirmIntervene()

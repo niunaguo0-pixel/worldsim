@@ -126,6 +126,34 @@ namespace WorldSim.Tests.Unit
         }
 
         [Test]
+        public void CameraHint_YieldsToUserPanAndZoom()
+        {
+            var host = new GameObject("P3_UserCamHost");
+            var camGo = new GameObject("P3_UserCam");
+            try
+            {
+                var cam = camGo.AddComponent<Camera>();
+                var controller = host.AddComponent<CameraLodController>();
+                controller.Bind(cam, null, null, null, null);
+
+                float beforeDistance = controller.TargetDistance;
+                Vector3 beforeFocus = controller.TargetFocus;
+                controller.Zoom(2f);
+                controller.Pan(new Vector2(1.5f, -0.8f));
+                Assert.IsTrue(controller.IsUserDrivingCamera);
+
+                controller.ApplyPresentationCameraHint(new Vector3(0f, 0.5f, 0f), beforeDistance, blend: 1f);
+                Assert.AreNotEqual(beforeDistance, controller.TargetDistance);
+                Assert.AreNotEqual(beforeFocus.x, controller.TargetFocus.x);
+            }
+            finally
+            {
+                Object.DestroyImmediate(camGo);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void AdvancingOrchestrator_WithWorldView_KeepsMonthlyHashStableAcrossPresentationOnlyReads()
         {
             var world = WorldState.CreateMinimalSlice(13);
