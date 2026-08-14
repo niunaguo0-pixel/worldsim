@@ -36,10 +36,15 @@ namespace WorldSim.Presentation
         private Vector2 _lastPointer;
         private float _userDriveUntilUnscaled;
         private bool _dragging;
+        private CameraLodDecision _pendingLod;
+        private bool _hasPendingLod;
+        private float _lodFadeRemaining;
+        private CameraLodLevel _displayedLodLevel = CameraLodLevel.Civilization;
 
         public CameraLodLevel CurrentLod => _decision.Level;
         public string CurrentLodLabel => _decision.Label;
-        public bool ReduceMotion => _decision.ReduceMotion;
+        public bool ReduceMotion => AccessibilitySettings.ReduceMotion || _decision.ReduceMotion;
+        public float LodFadeRemaining => _lodFadeRemaining;
         public int MeshLonSegments => _decision.MeshLonSegments;
         public int MeshLatSegments => _decision.MeshLatSegments;
         public float TargetDistance => _targetDistance;
@@ -61,7 +66,7 @@ namespace WorldSim.Presentation
                 _targetDistance,
                 Mathf.Clamp(distanceHint, MinDistance, MaxDistance),
                 blend);
-            ApplyLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
+            RequestLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
         }
 
         public void Bind(
@@ -88,7 +93,7 @@ namespace WorldSim.Presentation
             // 滚轮缩放跟手：立刻贴近目标，避免「慢慢放到」
             _distance = Mathf.Lerp(_distance, _targetDistance, 0.85f);
             _distanceVelocity = 0f;
-            ApplyLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
+            RequestLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
         }
 
         /// <summary>以沙盘平面世界坐标平移焦点。</summary>
@@ -105,7 +110,7 @@ namespace WorldSim.Presentation
             Vector3 rootPosition = _sandboxRoot != null ? _sandboxRoot.position : Vector3.zero;
             _targetFocus = rootPosition + Vector3.up * 0.5f;
             _targetDistance = InitialDistance;
-            ApplyLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
+            RequestLod(CameraLodPolicy.EvaluateWithHysteresis(_targetDistance, _lodLevel));
         }
 
         private void Update()
@@ -113,8 +118,9 @@ namespace WorldSim.Presentation
             if (!TryInitialize()) return;
             PollInput(Time.unscaledDeltaTime);
 
-            _focus = Vector3.SmoothDamp(_focus, _targetFocus, ref _focusVelocity, PositionSmoothTime);
+            _focus = Vector3.SmoothDamp(_focus, _targetFocus, ref _focusVelocity, PositionSmoothTime * AccessibilitySettings.CameraSmoothMultiplier);
             float distanceSmooth = IsUserDrivingCamera ? ZoomSmoothTime : PositionSmoothTime;
+            distanceSmooth *= AccessibilitySettings.CameraSmoothMultiplier;
             _distance = Mathf.SmoothDamp(_distance, _targetDistance, ref _distanceVelocity, distanceSmooth);
 
             Vector3 desiredPosition = _focus + ViewDirection * _distance;
@@ -122,7 +128,7 @@ namespace WorldSim.Presentation
             _camera.transform.rotation = Quaternion.Slerp(
                 _camera.transform.rotation,
                 Quaternion.LookRotation(_focus - desiredPosition, Vector3.up),
-                1f - Mathf.Exp(-12f * Time.unscaledDeltaTime));
+                1f - Mathf.Exp(-12f * Time.unscaledDeltaTime / AccessibilitySettings.CameraSmoothMultiplier));
 
             if (_camera.orthographic)
                 _camera.orthographicSize = Mathf.Max(1.5f, _distance * 0.55f);
@@ -134,8 +140,10 @@ namespace WorldSim.Presentation
             {
                 earth.CameraDistance = _distance;
                 // 平滑距离跨过迟滞边界时同步 mesh 精度
-                ApplyLod(CameraLodPolicy.EvaluateWithHysteresis(_distance, _lodLevel));
+                RequestLod(CameraLodPolicy.EvaluateWithHysteresis(_distance, _lodLevel));
             }
+
+            TickLodCrossFade(Time.unscaledDeltaTime);
         }
 
         private void PollInput(float dt)
@@ -274,14 +282,54 @@ namespace WorldSim.Presentation
             _camera.transform.LookAt(_focus);
             _initialized = true;
             _lodLevel = CameraLodPolicy.Evaluate(_targetDistance).Level;
-            ApplyLod(CameraLodPolicy.ForLevel(_lodLevel));
+            _displayedLodLevel = _lodLevel;
+            CommitLod(CameraLodPolicy.ForLevel(_lodLevel));
             return true;
         }
 
-        private void ApplyLod(CameraLodDecision decision)
+        /// <summary>
+        /// asset-spec §7.4 ⑤：减少动态 ON 时 LOD 切换走 cross-fade 时长，禁止立刻 pop。
+        /// </summary>
+        private void RequestLod(CameraLodDecision decision)
+        {
+            _lodLevel = decision.Level;
+            if (decision.Level == _displayedLodLevel && !_hasPendingLod)
+            {
+                CommitLod(decision);
+                return;
+            }
+
+            float fade = AccessibilitySettings.LodCrossFadeSeconds;
+            if (fade <= 0.001f || decision.Level == _displayedLodLevel)
+            {
+                _hasPendingLod = false;
+                _lodFadeRemaining = 0f;
+                CommitLod(decision);
+                return;
+            }
+
+            // 禁止 pop：先保持当前显示档，延后提交新档
+            _pendingLod = decision;
+            _hasPendingLod = true;
+            if (_lodFadeRemaining <= 0f)
+                _lodFadeRemaining = fade;
+            _decision = decision; // 标签/决策可读新档，视觉延后
+        }
+
+        private void TickLodCrossFade(float dt)
+        {
+            if (!_hasPendingLod) return;
+            _lodFadeRemaining -= Mathf.Max(0f, dt);
+            if (_lodFadeRemaining > 0f) return;
+            _hasPendingLod = false;
+            CommitLod(_pendingLod);
+        }
+
+        private void CommitLod(CameraLodDecision decision)
         {
             _decision = decision;
             _lodLevel = decision.Level;
+            _displayedLodLevel = decision.Level;
             if (_entityDetailRenderer != null)
                 _entityDetailRenderer.enabled = decision.ShowEntityDetails;
             if (_settlementLabel != null)

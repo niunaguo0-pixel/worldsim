@@ -24,9 +24,11 @@ namespace WorldSim.Presentation
         private bool _visible;
         private Transform _worldAnchor;
         private Camera _camera;
+        private float _baseOutline = 2.5f;
 
         public bool IsVisible => _visible;
         public string CurrentLabel => _label != null ? _label.text : "";
+        public float CurrentPulseAmplitude => AccessibilitySettings.CrisisPulseAmplitude;
 
         public static As2HazardOverlay EnsureOn(GameObject host)
         {
@@ -95,8 +97,9 @@ namespace WorldSim.Presentation
             if (_outline == null)
                 _outline = cardGo.gameObject.AddComponent<Outline>();
             _outline.effectColor = Stroke;
-            // ~2px 屏幕等效描边（双极兜底的深褐极）
-            _outline.effectDistance = new Vector2(2.5f, -2.5f);
+            // ~2px 屏幕等效描边（双极兜底的深褐极）；减少动态时加粗
+            _baseOutline = 2.5f;
+            _outline.effectDistance = new Vector2(_baseOutline, -_baseOutline);
             _outline.useGraphicAlpha = true;
 
             var textTf = cardGo.Find("Label");
@@ -146,6 +149,8 @@ namespace WorldSim.Presentation
         private void LateUpdate()
         {
             if (!_visible || _card == null) return;
+            ApplyPulseAndStroke();
+
             if (_camera == null)
                 _camera = Camera.main;
             if (_camera == null || _worldAnchor == null) return;
@@ -159,6 +164,34 @@ namespace WorldSim.Presentation
 
             _card.gameObject.SetActive(true);
             _card.position = screen + new Vector3(0f, 48f, 0f);
+        }
+
+        /// <summary>
+        /// AX-1：默认正弦平滑脉冲；减少动态 ON 时幅度=0（静态朱砂 + 加粗描边）。
+        /// </summary>
+        private void ApplyPulseAndStroke()
+        {
+            float amp = AccessibilitySettings.CrisisPulseAmplitude;
+            float pulse = amp <= 0f
+                ? 1f
+                : 0.7f + 0.3f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.PI)); // ~0.5Hz ease
+
+            if (_label != null)
+            {
+                Color c = Hazard;
+                c.a = pulse;
+                _label.color = c;
+                if (AccessibilitySettings.ForceIconTextRedundancy &&
+                    _label.text != null &&
+                    !_label.text.Contains("⚠"))
+                    _label.text = "⚠ " + _label.text;
+            }
+
+            if (_outline != null)
+            {
+                float stroke = amp <= 0f ? _baseOutline * 1.6f : _baseOutline;
+                _outline.effectDistance = new Vector2(stroke, -stroke);
+            }
         }
     }
 }

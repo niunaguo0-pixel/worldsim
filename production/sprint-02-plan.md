@@ -11,7 +11,7 @@
   - design/art/art-bible.md §8.4
   - docs/art/accessibility-grade.md v1.1.0
   - WorldSim AccessibilitySettings / DioramaGradeMath（已有减少动态壳）
-状态: 生效（Sprint 02 OPEN）
+状态: Sprint 02 实现中（VS-8 代码落地于 `cursor/sprint02-vs8-access`）
 ---
 
 # Phase 4 预制作 · Sprint 02（VS-8 可访问性 Standard）

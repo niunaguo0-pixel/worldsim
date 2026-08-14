@@ -68,7 +68,13 @@ namespace WorldSim.UI
             var snap = _timeSource.TimeSnapshot;
             Consume(snap.Events);
 
-            GUILayout.BeginArea(new Rect(12f, 12f, 460f, Screen.height - 24f));
+            float scale = AccessibilitySettings.FontScale;
+            Matrix4x4 prev = GUI.matrix;
+            if (Mathf.Abs(scale - 1f) > 0.001f)
+                GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
+
+            float panelW = 460f;
+            GUILayout.BeginArea(new Rect(12f, 12f, panelW, (Screen.height - 24f) / scale));
             GUILayout.BeginVertical("box");
             GUILayout.Label("WorldSim · 正式 HUD（S8）");
             GUILayout.Label(_startSummary);
@@ -81,6 +87,10 @@ namespace WorldSim.UI
                 $" | 人口 {snap.Population:0} | 粮储 {snap.FoodReserve:0.###}");
             if (_cameraLod != null)
                 GUILayout.Label($"视图 {_cameraLod.CurrentLodLabel}");
+            if (AccessibilitySettings.HighContrast)
+                GUILayout.Label("高对比 · 开");
+            if (AccessibilitySettings.CvdMode)
+                GUILayout.Label("CVD · 开");
 
             GUILayout.BeginHorizontal();
             TabButton(HudTab.Overview, "总览");
@@ -90,7 +100,7 @@ namespace WorldSim.UI
             TabButton(HudTab.Chronicle, "编年史");
             GUILayout.EndHorizontal();
 
-            _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(Screen.height - 220f));
+            _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height((Screen.height - 220f) / scale));
             switch (_tab)
             {
                 case HudTab.Overview: DrawOverview(snap); break;
@@ -104,6 +114,7 @@ namespace WorldSim.UI
             GUILayout.Label(_toast);
             GUILayout.EndVertical();
             GUILayout.EndArea();
+            GUI.matrix = prev;
         }
 
         private void DrawOverview(TimeViewSnapshot snap)

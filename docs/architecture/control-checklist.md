@@ -75,7 +75,7 @@
 5. ✅ `WorldSim.Editor.BuildScript.cs`（ADR-003；`BuildWin64` headless）
 6. ✅ region-presets 导入/消费（V0-6）；StreamingAssets 与 design 由 `assert-region-presets-synced.ps1` 守住
 7. ✅ 模块化开关框架（S7）完整配置 — `WorldSim.ModularToggle` 目录/预设 + New Game 面板 + 文明子步骤门控
-8. ✅ NPR 微缩沙盘渲染原型 — P2 地球+色板+rim；打磨：四季 Volume / AS-2 Overlay / 旱灾偏色+AS-4；手绘 TEX_DETAIL 探针 + NprWater；**减少动态设置壳已接 AS-4（≥2.5s）+ Bloom×0.5**
+8. ✅ NPR 微缩沙盘渲染原型 — P2 地球+色板+rim；打磨：四季 Volume / AS-2 Overlay / 旱灾偏色+AS-4；手绘 TEX_DETAIL 探针 + NprWater；减少动态壳；**Sprint 02 VS-8：高对比 / 脉冲=0 / LOD 0.5s / CVD 钩子 / 字体缩放**
 9. ✅ `com.unity.burst@1.8.30` 直依 + `assert-burst-pinned`（lock 中他包写的 ≥1.8.29 仅为下限，解析为 1.8.30）
 
 > 环境：Unity **6000.0.81f1**；Hub：`C:\Program Files\Unity\Hub\Editor\6000.0.81f1`；注册表：`HKLM\SOFTWARE\Unity Technologies\Installer\Unity 6000.0.81f1`（`Location x64`）。
@@ -100,7 +100,7 @@
 | Phase 3 出口 | **PASS** |
 | Phase 4 预制作 | **OPEN** |
 | 入口条件复核 | 2026-08-14（§D.1–D.9 全 ✅） |
-| 当前 Sprint | **Sprint 02** — VS-8 可访问性 Standard 收口（见 `production/sprint-02-plan.md`） |
+| 当前 Sprint | **Sprint 02** — VS-8 可访问性 Standard（实现中 / 见 `production/sprint-02-plan.md`） |
 | Sprint 01 | **CLOSED** — Gate-0 已绿（见 `production/sprint-01-plan.md` / `production/phase4-gate.md`） |
 | Runner | `worldsim-pc` online；登录任务 `WorldSim-GitHub-Actions-Runner`；`core.autocrlf=false` |
 | 权威阶段门记录 | `production/phase4-gate.md` |
